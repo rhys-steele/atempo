@@ -1,15 +1,21 @@
 package scaffold
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"steele/internal/compose"
+	"steele/internal/registry"
 	"steele/internal/utils"
 )
+
 
 // Installer defines how a framework should be installed.
 // This includes the command to run and the working directory context.
@@ -22,6 +28,7 @@ type Installer struct {
 // Metadata describes a Steele template's configuration,
 // including language, installer, and framework compatibility.
 type Metadata struct {
+	Name        string    `json:"name"`         // Project name template
 	Framework   string    `json:"framework"`    // e.g., "laravel"
 	Language    string    `json:"language"`     // e.g., "php"
 	Installer   Installer `json:"installer"`    // How to scaffold the source code
@@ -33,13 +40,11 @@ type Metadata struct {
 // It loads the template's `steele.json`, performs template substitution,
 // runs the specified install command, and copies template files.
 func Run(framework string, version string) error {
-	templatePath := filepath.Join("templates", framework)
-	metaPath := filepath.Join(templatePath, "steele.json")
-
-	// Load steele.json from the template directory
-	metaBytes, err := os.ReadFile(metaPath)
+	// Load steele.json from embedded templates
+	metaPath := fmt.Sprintf("templates/%s/steele.json", framework)
+	metaBytes, err := templatesFS.ReadFile(metaPath)
 	if err != nil {
-		return fmt.Errorf("could not read steele.json: %w", err)
+		return fmt.Errorf("could not read embedded steele.json for %s: %w", framework, err)
 	}
 
 	// Parse the metadata JSON into a structured object
@@ -65,7 +70,7 @@ func Run(framework string, version string) error {
 
 	// Step 2: Copy template files (AI context, Docker setup, etc.)
 	fmt.Println("📁 Copying template files...")
-	if err := copyTemplateFiles(templatePath, projectDir); err != nil {
+	if err := copyTemplateFiles(projectDir, meta.Framework); err != nil {
 		return fmt.Errorf("failed to copy template files: %w", err)
 	}
 
@@ -75,99 +80,13 @@ func Run(framework string, version string) error {
 		return fmt.Errorf("post-installation failed: %w", err)
 	}
 
-	return nil
-}
-
-// validateVersion checks if the requested version is compatible with the template
-func validateVersion(requestedVersion string, meta Metadata) error {
-	if requestedVersion == "" {
-		return fmt.Errorf("version cannot be empty")
-	}
-
-	// Check against minimum version
-	if meta.MinVersion != "" {
-		if utils.CompareVersions(requestedVersion, meta.MinVersion) < 0 {
-			return fmt.Errorf("version %s is below minimum supported version %s for %s", 
-				requestedVersion, meta.MinVersion, meta.Framework)
-		}
-	}
-
-	// Framework-specific version validation
-	switch meta.Framework {
-	case "laravel":
-		return validateLaravelVersion(requestedVersion)
-	case "django":
-		return validateDjangoVersion(requestedVersion)
+	// Step 4: Register project and generate docker-compose
+	fmt.Println("📝 Registering project and generating docker-compose...")
+	if err := finalizeProject(meta, projectDir, projectName, version); err != nil {
+		fmt.Printf("⚠️  Warning: %v\n", err)
 	}
 
 	return nil
-}
-
-// validateLaravelVersion checks Laravel-specific version constraints
-func validateLaravelVersion(version string) error {
-	// Laravel version constraints
-	majorVersion := utils.ParseVersionPart(strings.Split(version, ".")[0])
-	
-	if majorVersion < 8 {
-		return fmt.Errorf("Laravel version %s is too old (minimum supported: 8.0)", version)
-	}
-	
-	if majorVersion > 12 {
-		return fmt.Errorf("Laravel version %s is not yet supported (maximum: 12.x)", version)
-	}
-
-	return nil
-}
-
-// validateDjangoVersion checks Django-specific version constraints
-func validateDjangoVersion(version string) error {
-	// Django version constraints
-	majorVersion := utils.ParseVersionPart(strings.Split(version, ".")[0])
-	
-	if majorVersion < 4 {
-		return fmt.Errorf("Django version %s is too old (minimum supported: 4.0)", version)
-	}
-	
-	if majorVersion > 6 {
-		return fmt.Errorf("Django version %s is not yet supported (maximum: 6.x)", version)
-	}
-
-	return nil
-}
-
-// applyVersionSpecificOptions modifies the installation command based on framework and version
-func applyVersionSpecificOptions(command []string, framework, version string) []string {
-	switch framework {
-	case "laravel":
-		return applyLaravelVersionOptions(command, version)
-	case "django":
-		return applyDjangoVersionOptions(command, version)
-	}
-	
-	return command
-}
-
-// applyLaravelVersionOptions adds Laravel version-specific installation options
-func applyLaravelVersionOptions(command []string, version string) []string {
-	// For Laravel, we need to specify the exact version constraint
-	// Find the package name in the command and add version constraint
-	for i, arg := range command {
-		if arg == "laravel/laravel" {
-			// Add version constraint: laravel/laravel:^11.0 for version 11
-			majorVersion := strings.Split(version, ".")[0]
-			command[i] = fmt.Sprintf("laravel/laravel:^%s.0", majorVersion)
-			break
-		}
-	}
-	
-	return command
-}
-
-// applyDjangoVersionOptions adds Django version-specific installation options
-func applyDjangoVersionOptions(command []string, version string) []string {
-	// Django doesn't need version-specific startproject options
-	// Version is controlled by the Django package installed in requirements.txt
-	return command
 }
 
 // runInstaller executes the framework installation command
@@ -195,41 +114,6 @@ func runInstaller(meta Metadata, projectDir, projectName, version string) error 
 	return cmd.Run()
 }
 
-// copyTemplateFiles copies AI context, Docker setup, and other template files
-func copyTemplateFiles(templatePath, projectDir string) error {
-	// Copy AI context directory
-	aiSrc := filepath.Join(templatePath, "ai")
-	aiDst := filepath.Join(projectDir, "ai")
-	if utils.FileExists(aiSrc) {
-		fmt.Println("→ Copying AI context files...")
-		if err := utils.CopyDir(aiSrc, aiDst); err != nil {
-			return fmt.Errorf("failed to copy AI context: %w", err)
-		}
-	}
-
-	// Copy infrastructure directory (Docker setup)
-	infraSrc := filepath.Join(templatePath, "infra")
-	infraDst := filepath.Join(projectDir, "infra")
-	if utils.FileExists(infraSrc) {
-		fmt.Println("→ Copying Docker infrastructure...")
-		if err := utils.CopyDir(infraSrc, infraDst); err != nil {
-			return fmt.Errorf("failed to copy infrastructure: %w", err)
-		}
-	}
-
-	// Copy README.md
-	readmeSrc := filepath.Join(templatePath, "README.md")
-	readmeDst := filepath.Join(projectDir, "README.md")
-	if utils.FileExists(readmeSrc) {
-		fmt.Println("→ Copying project README...")
-		if err := utils.CopyFile(readmeSrc, readmeDst); err != nil {
-			return fmt.Errorf("failed to copy README: %w", err)
-		}
-	}
-
-	return nil
-}
-
 // validateVersion checks if the requested version is compatible with the template
 func validateVersion(requestedVersion string, meta Metadata) error {
 	if requestedVersion == "" {
@@ -320,6 +204,114 @@ func applyDjangoVersionOptions(command []string, version string) []string {
 	// Django doesn't need version-specific startproject options
 	// Version is controlled by the Django package installed in requirements.txt
 	return command
+}
+
+// copyTemplateFiles copies AI context, Docker setup, and other template files from embedded filesystem
+func copyTemplateFiles(projectDir, framework string) error {
+	templateBasePath := fmt.Sprintf("templates/%s", framework)
+	
+	// Copy AI context directory
+	aiSrcPath := fmt.Sprintf("%s/ai", templateBasePath)
+	aiDstPath := filepath.Join(projectDir, "ai")
+	fmt.Println("→ Copying AI context files...")
+	if err := copyEmbeddedDir(templatesFS, aiSrcPath, aiDstPath); err != nil {
+		return fmt.Errorf("failed to copy AI context: %w", err)
+	}
+
+	// Copy MCP server for the framework
+	if err := copyMCPServer(framework, projectDir); err != nil {
+		fmt.Printf("⚠️  Failed to copy MCP server: %v\n", err)
+		// Don't fail the entire setup if MCP server copy fails
+	}
+
+	// Copy infrastructure directory (Docker setup)
+	infraSrcPath := fmt.Sprintf("%s/infra", templateBasePath)
+	infraDstPath := filepath.Join(projectDir, "infra")
+	fmt.Println("→ Copying Docker infrastructure...")
+	if err := copyEmbeddedDir(templatesFS, infraSrcPath, infraDstPath); err != nil {
+		return fmt.Errorf("failed to copy infrastructure: %w", err)
+	}
+
+	// Copy README.md
+	readmeSrcPath := fmt.Sprintf("%s/README.md", templateBasePath)
+	readmeDstPath := filepath.Join(projectDir, "README.md")
+	if err := copyEmbeddedFile(templatesFS, readmeSrcPath, readmeDstPath); err == nil {
+		fmt.Println("→ Copying project README...")
+	}
+
+	return nil
+}
+
+// copyMCPServer copies the framework-specific MCP server to the project
+func copyMCPServer(framework, projectDir string) error {
+	mcpSrcPath := fmt.Sprintf("mcp-servers/%s", framework)
+	mcpDstPath := filepath.Join(projectDir, "ai", "mcp-server")
+
+	fmt.Println("→ Copying MCP server for", framework, "...")
+	
+	// Copy the MCP server files from embedded filesystem
+	if err := copyEmbeddedDir(mcpServersFS, mcpSrcPath, mcpDstPath); err != nil {
+		return fmt.Errorf("failed to copy MCP server: %w", err)
+	}
+
+	// Install npm dependencies
+	fmt.Println("→ Installing MCP server dependencies...")
+	cmd := exec.Command("npm", "install")
+	cmd.Dir = mcpDst
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to install MCP server dependencies: %w", err)
+	}
+
+	fmt.Println("✅ MCP server ready!")
+	fmt.Printf("   Add this to your Claude Code MCP settings:\n")
+	fmt.Printf("   {\n")
+	fmt.Printf("     \"steele-%s\": {\n", framework)
+	fmt.Printf("       \"command\": \"node\",\n")
+	fmt.Printf("       \"args\": [\"ai/mcp-server/index.js\"],\n")
+	fmt.Printf("       \"cwd\": \"%s\"\n", projectDir)
+	fmt.Printf("     }\n")
+	fmt.Printf("   }\n")
+
+	return nil
+}
+
+// finalizeProject registers the project and generates docker-compose.yml
+func finalizeProject(meta Metadata, projectDir, projectName, version string) error {
+	// Resolve project name from template
+	resolvedName := meta.Name
+	if resolvedName == "" || strings.Contains(resolvedName, "{{") {
+		resolvedName = strings.ReplaceAll(resolvedName, "{{project}}", projectName)
+		if resolvedName == "" || strings.Contains(resolvedName, "{{") {
+			resolvedName = projectName
+		}
+	}
+
+	// Register project in registry
+	reg, err := registry.LoadRegistry()
+	if err != nil {
+		return fmt.Errorf("failed to load registry: %w", err)
+	}
+
+	if err := reg.AddProject(resolvedName, projectDir, meta.Framework, version); err != nil {
+		return fmt.Errorf("failed to register project: %w", err)
+	}
+
+	fmt.Printf("→ Project '%s' registered\n", resolvedName)
+
+	// Generate docker-compose.yml from steele.json if it has services defined
+	steeleJsonPath := filepath.Join(projectDir, "steele.json")
+	if utils.FileExists(steeleJsonPath) {
+		fmt.Println("→ Generating docker-compose.yml from steele.json...")
+		if err := compose.GenerateDockerCompose(projectDir); err != nil {
+			return fmt.Errorf("failed to generate docker-compose.yml: %w", err)
+		}
+		fmt.Println("✅ docker-compose.yml generated")
+	}
+
+	return nil
 }
 
 // runPostInstall handles framework-specific setup after installation
@@ -335,98 +327,6 @@ func runPostInstall(meta Metadata, projectDir string) error {
 	}
 
 	return nil
-}
-
-// validateVersion checks if the requested version is compatible with the template
-func validateVersion(requestedVersion string, meta Metadata) error {
-	if requestedVersion == "" {
-		return fmt.Errorf("version cannot be empty")
-	}
-
-	// Check against minimum version
-	if meta.MinVersion != "" {
-		if utils.CompareVersions(requestedVersion, meta.MinVersion) < 0 {
-			return fmt.Errorf("version %s is below minimum supported version %s for %s", 
-				requestedVersion, meta.MinVersion, meta.Framework)
-		}
-	}
-
-	// Framework-specific version validation
-	switch meta.Framework {
-	case "laravel":
-		return validateLaravelVersion(requestedVersion)
-	case "django":
-		return validateDjangoVersion(requestedVersion)
-	}
-
-	return nil
-}
-
-// validateLaravelVersion checks Laravel-specific version constraints
-func validateLaravelVersion(version string) error {
-	// Laravel version constraints
-	majorVersion := utils.ParseVersionPart(strings.Split(version, ".")[0])
-	
-	if majorVersion < 8 {
-		return fmt.Errorf("Laravel version %s is too old (minimum supported: 8.0)", version)
-	}
-	
-	if majorVersion > 12 {
-		return fmt.Errorf("Laravel version %s is not yet supported (maximum: 12.x)", version)
-	}
-
-	return nil
-}
-
-// validateDjangoVersion checks Django-specific version constraints
-func validateDjangoVersion(version string) error {
-	// Django version constraints
-	majorVersion := utils.ParseVersionPart(strings.Split(version, ".")[0])
-	
-	if majorVersion < 4 {
-		return fmt.Errorf("Django version %s is too old (minimum supported: 4.0)", version)
-	}
-	
-	if majorVersion > 6 {
-		return fmt.Errorf("Django version %s is not yet supported (maximum: 6.x)", version)
-	}
-
-	return nil
-}
-
-// applyVersionSpecificOptions modifies the installation command based on framework and version
-func applyVersionSpecificOptions(command []string, framework, version string) []string {
-	switch framework {
-	case "laravel":
-		return applyLaravelVersionOptions(command, version)
-	case "django":
-		return applyDjangoVersionOptions(command, version)
-	}
-	
-	return command
-}
-
-// applyLaravelVersionOptions adds Laravel version-specific installation options
-func applyLaravelVersionOptions(command []string, version string) []string {
-	// For Laravel, we need to specify the exact version constraint
-	// Find the package name in the command and add version constraint
-	for i, arg := range command {
-		if arg == "laravel/laravel" {
-			// Add version constraint: laravel/laravel:^11.0 for version 11
-			majorVersion := strings.Split(version, ".")[0]
-			command[i] = fmt.Sprintf("laravel/laravel:^%s.0", majorVersion)
-			break
-		}
-	}
-	
-	return command
-}
-
-// applyDjangoVersionOptions adds Django version-specific installation options
-func applyDjangoVersionOptions(command []string, version string) []string {
-	// Django doesn't need version-specific startproject options
-	// Version is controlled by the Django package installed in requirements.txt
-	return command
 }
 
 // setupLaravel performs Laravel-specific post-installation setup
@@ -523,137 +423,6 @@ func runLaravelSetup(projectDir string) error {
 	return nil
 }
 
-// validateVersion checks if the requested version is compatible with the template
-func validateVersion(requestedVersion string, meta Metadata) error {
-	if requestedVersion == "" {
-		return fmt.Errorf("version cannot be empty")
-	}
-
-	// Check against minimum version
-	if meta.MinVersion != "" {
-		if utils.CompareVersions(requestedVersion, meta.MinVersion) < 0 {
-			return fmt.Errorf("version %s is below minimum supported version %s for %s", 
-				requestedVersion, meta.MinVersion, meta.Framework)
-		}
-	}
-
-	// Framework-specific version validation
-	switch meta.Framework {
-	case "laravel":
-		return validateLaravelVersion(requestedVersion)
-	case "django":
-		return validateDjangoVersion(requestedVersion)
-	}
-
-	return nil
-}
-
-// validateLaravelVersion checks Laravel-specific version constraints
-func validateLaravelVersion(version string) error {
-	// Laravel version constraints
-	majorVersion := utils.ParseVersionPart(strings.Split(version, ".")[0])
-	
-	if majorVersion < 8 {
-		return fmt.Errorf("Laravel version %s is too old (minimum supported: 8.0)", version)
-	}
-	
-	if majorVersion > 12 {
-		return fmt.Errorf("Laravel version %s is not yet supported (maximum: 12.x)", version)
-	}
-
-	return nil
-}
-
-// validateDjangoVersion checks Django-specific version constraints
-func validateDjangoVersion(version string) error {
-	// Django version constraints
-	majorVersion := utils.ParseVersionPart(strings.Split(version, ".")[0])
-	
-	if majorVersion < 4 {
-		return fmt.Errorf("Django version %s is too old (minimum supported: 4.0)", version)
-	}
-	
-	if majorVersion > 6 {
-		return fmt.Errorf("Django version %s is not yet supported (maximum: 6.x)", version)
-	}
-
-	return nil
-}
-
-// applyVersionSpecificOptions modifies the installation command based on framework and version
-func applyVersionSpecificOptions(command []string, framework, version string) []string {
-	switch framework {
-	case "laravel":
-		return applyLaravelVersionOptions(command, version)
-	case "django":
-		return applyDjangoVersionOptions(command, version)
-	}
-	
-	return command
-}
-
-// applyLaravelVersionOptions adds Laravel version-specific installation options
-func applyLaravelVersionOptions(command []string, version string) []string {
-	// For Laravel, we need to specify the exact version constraint
-	// Find the package name in the command and add version constraint
-	for i, arg := range command {
-		if arg == "laravel/laravel" {
-			// Add version constraint: laravel/laravel:^11.0 for version 11
-			majorVersion := strings.Split(version, ".")[0]
-			command[i] = fmt.Sprintf("laravel/laravel:^%s.0", majorVersion)
-			break
-		}
-	}
-	
-	return command
-}
-
-// applyDjangoVersionOptions adds Django version-specific installation options
-func applyDjangoVersionOptions(command []string, version string) []string {
-	// Django doesn't need version-specific startproject options
-	// Version is controlled by the Django package installed in requirements.txt
-	return command
-}
-
-// copyAndUpdateRequirements copies requirements.txt and updates Django version
-func copyAndUpdateRequirements(src, dst, projectDir string) error {
-	// Read the template requirements.txt
-	content, err := os.ReadFile(src)
-	if err != nil {
-		return fmt.Errorf("failed to read requirements template: %w", err)
-	}
-
-	// Get the requested Django version from the project name or context
-	// For now, we'll extract it from the command that was run
-	// This is a bit hacky but works for the current implementation
-	version := extractVersionFromProject(projectDir)
-	
-	if version != "" {
-		// Update Django version in requirements
-		reqContent := string(content)
-		majorVersion := strings.Split(version, ".")[0]
-		nextMajorVersion := fmt.Sprintf("%d", utils.ParseVersionPart(majorVersion)+1)
-		
-		// Replace Django version constraint
-		oldConstraint := "Django>=5.0,<6.0"
-		newConstraint := fmt.Sprintf("Django>=%s.0,<%s.0", majorVersion, nextMajorVersion)
-		reqContent = strings.ReplaceAll(reqContent, oldConstraint, newConstraint)
-		
-		content = []byte(reqContent)
-	}
-
-	// Write the updated requirements.txt
-	return os.WriteFile(dst, content, 0644)
-}
-
-// extractVersionFromProject attempts to extract the Django version from project context
-// This is a temporary solution until we pass version through the call stack
-func extractVersionFromProject(projectDir string) string {
-	// For now, return default version
-	// TODO: Pass version parameter through the entire call stack
-	return "5"
-}
-
 // setupDjango performs Django-specific post-installation setup
 func setupDjango(projectDir string) error {
 	srcDir := filepath.Join(projectDir, "src")
@@ -678,6 +447,42 @@ func setupDjango(projectDir string) error {
 
 	// Run Django setup commands
 	return runDjangoSetup(projectDir)
+}
+
+// copyAndUpdateRequirements copies requirements.txt and updates Django version
+func copyAndUpdateRequirements(src, dst, projectDir string) error {
+	// Read the template requirements.txt
+	content, err := os.ReadFile(src)
+	if err != nil {
+		return fmt.Errorf("failed to read requirements template: %w", err)
+	}
+
+	// Get the requested Django version from the project name or context
+	version := extractVersionFromProject(projectDir)
+	
+	if version != "" {
+		// Update Django version in requirements
+		reqContent := string(content)
+		majorVersion := strings.Split(version, ".")[0]
+		nextMajorVersion := fmt.Sprintf("%d", utils.ParseVersionPart(majorVersion)+1)
+		
+		// Replace Django version constraint
+		oldConstraint := "Django>=5.0,<6.0"
+		newConstraint := fmt.Sprintf("Django>=%s.0,<%s.0", majorVersion, nextMajorVersion)
+		reqContent = strings.ReplaceAll(reqContent, oldConstraint, newConstraint)
+		
+		content = []byte(reqContent)
+	}
+
+	// Write the updated requirements.txt
+	return os.WriteFile(dst, content, 0644)
+}
+
+// extractVersionFromProject attempts to extract the Django version from project context
+func extractVersionFromProject(projectDir string) string {
+	// For now, return default version
+	// TODO: Pass version parameter through the entire call stack
+	return "5"
 }
 
 // runDjangoSetup runs essential Django setup commands in Docker
@@ -712,94 +517,61 @@ func runDjangoSetup(projectDir string) error {
 	return nil
 }
 
-// validateVersion checks if the requested version is compatible with the template
-func validateVersion(requestedVersion string, meta Metadata) error {
-	if requestedVersion == "" {
-		return fmt.Errorf("version cannot be empty")
+
+// copyEmbeddedFile copies a single file from embedded filesystem to local filesystem
+func copyEmbeddedFile(fsys embed.FS, srcPath, dstPath string) error {
+	// Read file from embedded filesystem
+	data, err := fsys.ReadFile(srcPath)
+	if err != nil {
+		return fmt.Errorf("failed to read embedded file %s: %w", srcPath, err)
 	}
 
-	// Check against minimum version
-	if meta.MinVersion != "" {
-		if utils.CompareVersions(requestedVersion, meta.MinVersion) < 0 {
-			return fmt.Errorf("version %s is below minimum supported version %s for %s", 
-				requestedVersion, meta.MinVersion, meta.Framework)
+	// Create destination directory if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(dstPath), 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Write file to local filesystem
+	if err := os.WriteFile(dstPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write file %s: %w", dstPath, err)
+	}
+
+	return nil
+}
+
+// copyEmbeddedDir recursively copies a directory from embedded filesystem to local filesystem
+func copyEmbeddedDir(fsys embed.FS, srcPath, dstPath string) error {
+	// Create destination directory
+	if err := os.MkdirAll(dstPath, 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Walk through embedded directory
+	return fs.WalkDir(fsys, srcPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
 		}
-	}
 
-	// Framework-specific version validation
-	switch meta.Framework {
-	case "laravel":
-		return validateLaravelVersion(requestedVersion)
-	case "django":
-		return validateDjangoVersion(requestedVersion)
-	}
-
-	return nil
-}
-
-// validateLaravelVersion checks Laravel-specific version constraints
-func validateLaravelVersion(version string) error {
-	// Laravel version constraints
-	majorVersion := utils.ParseVersionPart(strings.Split(version, ".")[0])
-	
-	if majorVersion < 8 {
-		return fmt.Errorf("Laravel version %s is too old (minimum supported: 8.0)", version)
-	}
-	
-	if majorVersion > 12 {
-		return fmt.Errorf("Laravel version %s is not yet supported (maximum: 12.x)", version)
-	}
-
-	return nil
-}
-
-// validateDjangoVersion checks Django-specific version constraints
-func validateDjangoVersion(version string) error {
-	// Django version constraints
-	majorVersion := utils.ParseVersionPart(strings.Split(version, ".")[0])
-	
-	if majorVersion < 4 {
-		return fmt.Errorf("Django version %s is too old (minimum supported: 4.0)", version)
-	}
-	
-	if majorVersion > 6 {
-		return fmt.Errorf("Django version %s is not yet supported (maximum: 6.x)", version)
-	}
-
-	return nil
-}
-
-// applyVersionSpecificOptions modifies the installation command based on framework and version
-func applyVersionSpecificOptions(command []string, framework, version string) []string {
-	switch framework {
-	case "laravel":
-		return applyLaravelVersionOptions(command, version)
-	case "django":
-		return applyDjangoVersionOptions(command, version)
-	}
-	
-	return command
-}
-
-// applyLaravelVersionOptions adds Laravel version-specific installation options
-func applyLaravelVersionOptions(command []string, version string) []string {
-	// For Laravel, we need to specify the exact version constraint
-	// Find the package name in the command and add version constraint
-	for i, arg := range command {
-		if arg == "laravel/laravel" {
-			// Add version constraint: laravel/laravel:^11.0 for version 11
-			majorVersion := strings.Split(version, ".")[0]
-			command[i] = fmt.Sprintf("laravel/laravel:^%s.0", majorVersion)
-			break
+		// Calculate relative path from source
+		relPath, err := filepath.Rel(srcPath, path)
+		if err != nil {
+			return fmt.Errorf("failed to calculate relative path: %w", err)
 		}
-	}
-	
-	return command
-}
 
-// applyDjangoVersionOptions adds Django version-specific installation options
-func applyDjangoVersionOptions(command []string, version string) []string {
-	// Django doesn't need version-specific startproject options
-	// Version is controlled by the Django package installed in requirements.txt
-	return command
+		// Skip the root directory itself
+		if relPath == "." {
+			return nil
+		}
+
+		// Calculate destination path
+		destPath := filepath.Join(dstPath, relPath)
+
+		if d.IsDir() {
+			// Create directory
+			return os.MkdirAll(destPath, 0755)
+		} else {
+			// Copy file
+			return copyEmbeddedFile(fsys, path, destPath)
+		}
+	})
 }
