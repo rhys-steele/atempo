@@ -39,11 +39,23 @@ type Metadata struct {
 // It loads the template's `steele.json`, performs template substitution,
 // runs the specified install command, and copies template files.
 func Run(framework string, version string, templatesFS, mcpServersFS embed.FS) error {
-	// Load steele.json from embedded templates
-	metaPath := fmt.Sprintf("templates/%s/steele.json", framework)
-	metaBytes, err := templatesFS.ReadFile(metaPath)
+	// Load steele.json (try embedded first, fallback to filesystem)
+	var metaBytes []byte
+	var err error
+	
+	// Try embedded first
+	embeddedPath := fmt.Sprintf("templates/%s/steele.json", framework)
+	metaBytes, err = templatesFS.ReadFile(embeddedPath)
 	if err != nil {
-		return fmt.Errorf("could not read embedded steele.json for %s: %w", framework, err)
+		// Fallback to filesystem - find templates relative to binary location
+		filesystemPath, pathErr := getFilesystemTemplatePath(framework, "steele.json")
+		if pathErr != nil {
+			return fmt.Errorf("could not locate steele.json for %s: %w", framework, pathErr)
+		}
+		metaBytes, err = os.ReadFile(filesystemPath)
+		if err != nil {
+			return fmt.Errorf("could not read steele.json for %s: %w", framework, err)
+		}
 	}
 
 	// Parse the metadata JSON into a structured object
@@ -205,16 +217,22 @@ func applyDjangoVersionOptions(command []string, version string) []string {
 	return command
 }
 
-// copyTemplateFiles copies AI context, Docker setup, and other template files from embedded filesystem
+// copyTemplateFiles copies AI context, Docker setup, and other template files (embedded or filesystem)
 func copyTemplateFiles(projectDir, framework string, templatesFS, mcpServersFS embed.FS) error {
-	templateBasePath := fmt.Sprintf("templates/%s", framework)
-	
 	// Copy AI context directory
-	aiSrcPath := fmt.Sprintf("%s/ai", templateBasePath)
 	aiDstPath := filepath.Join(projectDir, "ai")
 	fmt.Println("→ Copying AI context files...")
-	if err := copyEmbeddedDir(templatesFS, aiSrcPath, aiDstPath); err != nil {
-		return fmt.Errorf("failed to copy AI context: %w", err)
+	
+	// Try embedded first, fallback to filesystem
+	embeddedAiPath := fmt.Sprintf("templates/%s/ai", framework)
+	if err := copyEmbeddedDir(templatesFS, embeddedAiPath, aiDstPath); err != nil {
+		// Fallback to filesystem
+		aiSrcPath, pathErr := getFilesystemTemplateDir(framework, "ai")
+		if pathErr == nil {
+			if err := utils.CopyDir(aiSrcPath, aiDstPath); err != nil {
+				return fmt.Errorf("failed to copy AI context: %w", err)
+			}
+		}
 	}
 
 	// Copy MCP server for the framework
@@ -224,17 +242,36 @@ func copyTemplateFiles(projectDir, framework string, templatesFS, mcpServersFS e
 	}
 
 	// Copy infrastructure directory (Docker setup)
-	infraSrcPath := fmt.Sprintf("%s/infra", templateBasePath)
 	infraDstPath := filepath.Join(projectDir, "infra")
 	fmt.Println("→ Copying Docker infrastructure...")
-	if err := copyEmbeddedDir(templatesFS, infraSrcPath, infraDstPath); err != nil {
-		return fmt.Errorf("failed to copy infrastructure: %w", err)
+	
+	// Try embedded first, fallback to filesystem
+	embeddedInfraPath := fmt.Sprintf("templates/%s/infra", framework)
+	if err := copyEmbeddedDir(templatesFS, embeddedInfraPath, infraDstPath); err != nil {
+		// Fallback to filesystem
+		infraSrcPath, pathErr := getFilesystemTemplateDir(framework, "infra")
+		if pathErr == nil {
+			if err := utils.CopyDir(infraSrcPath, infraDstPath); err != nil {
+				return fmt.Errorf("failed to copy infrastructure: %w", err)
+			}
+		}
 	}
 
 	// Copy README.md
-	readmeSrcPath := fmt.Sprintf("%s/README.md", templateBasePath)
 	readmeDstPath := filepath.Join(projectDir, "README.md")
-	if err := copyEmbeddedFile(templatesFS, readmeSrcPath, readmeDstPath); err == nil {
+	
+	// Try embedded first, fallback to filesystem
+	embeddedReadmePath := fmt.Sprintf("templates/%s/README.md", framework)
+	if err := copyEmbeddedFile(templatesFS, embeddedReadmePath, readmeDstPath); err != nil {
+		// Fallback to filesystem
+		readmeSrcPath, pathErr := getFilesystemTemplatePath(framework, "README.md")
+		if pathErr == nil {
+			fmt.Println("→ Copying project README...")
+			if err := utils.CopyFile(readmeSrcPath, readmeDstPath); err != nil {
+				return fmt.Errorf("failed to copy README: %w", err)
+			}
+		}
+	} else {
 		fmt.Println("→ Copying project README...")
 	}
 
@@ -243,14 +280,21 @@ func copyTemplateFiles(projectDir, framework string, templatesFS, mcpServersFS e
 
 // copyMCPServer copies the framework-specific MCP server to the project
 func copyMCPServer(framework, projectDir string, mcpServersFS embed.FS) error {
-	mcpSrcPath := fmt.Sprintf("mcp-servers/%s", framework)
+	embeddedMcpPath := fmt.Sprintf("mcp-servers/%s", framework)
 	mcpDstPath := filepath.Join(projectDir, "ai", "mcp-server")
 
 	fmt.Println("→ Copying MCP server for", framework, "...")
 	
-	// Copy the MCP server files from embedded filesystem
-	if err := copyEmbeddedDir(mcpServersFS, mcpSrcPath, mcpDstPath); err != nil {
-		return fmt.Errorf("failed to copy MCP server: %w", err)
+	// Try embedded first, fallback to filesystem
+	if err := copyEmbeddedDir(mcpServersFS, embeddedMcpPath, mcpDstPath); err != nil {
+		// Fallback to filesystem - find MCP servers relative to binary location
+		filesystemMcpPath, pathErr := getFilesystemMCPPath(framework)
+		if pathErr != nil {
+			return fmt.Errorf("MCP server for %s not found: %w", framework, pathErr)
+		}
+		if err := utils.CopyDir(filesystemMcpPath, mcpDstPath); err != nil {
+			return fmt.Errorf("failed to copy MCP server from filesystem: %w", err)
+		}
 	}
 
 	// Install npm dependencies
@@ -573,4 +617,103 @@ func copyEmbeddedDir(fsys embed.FS, srcPath, dstPath string) error {
 			return copyEmbeddedFile(fsys, path, destPath)
 		}
 	})
+}
+
+// getFilesystemTemplatePath finds template files relative to the binary location
+func getFilesystemTemplatePath(framework, filename string) (string, error) {
+	// Get the path to the current executable
+	executable, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("failed to get executable path: %w", err)
+	}
+
+	// Get the directory containing the executable
+	execDir := filepath.Dir(executable)
+	
+	// Look for templates in the same directory as the binary
+	templatePath := filepath.Join(execDir, "templates", framework, filename)
+	if utils.FileExists(templatePath) {
+		return templatePath, nil
+	}
+	
+	// If not found, try looking in the parent directory (development mode)
+	parentTemplateDir := filepath.Join(filepath.Dir(execDir), "templates", framework, filename)
+	if utils.FileExists(parentTemplateDir) {
+		return parentTemplateDir, nil
+	}
+	
+	// Try looking in the current working directory (fallback)
+	cwd, _ := os.Getwd()
+	cwdTemplateDir := filepath.Join(cwd, "templates", framework, filename)
+	if utils.FileExists(cwdTemplateDir) {
+		return cwdTemplateDir, nil
+	}
+	
+	return "", fmt.Errorf("template file %s not found for framework %s", filename, framework)
+}
+
+// getFilesystemTemplateDir finds template directories relative to the binary location
+func getFilesystemTemplateDir(framework, subdir string) (string, error) {
+	// Get the path to the current executable
+	executable, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("failed to get executable path: %w", err)
+	}
+
+	// Get the directory containing the executable
+	execDir := filepath.Dir(executable)
+	
+	// Look for templates in the same directory as the binary
+	templatePath := filepath.Join(execDir, "templates", framework, subdir)
+	if utils.FileExists(templatePath) {
+		return templatePath, nil
+	}
+	
+	// If not found, try looking in the parent directory (development mode)
+	parentTemplateDir := filepath.Join(filepath.Dir(execDir), "templates", framework, subdir)
+	if utils.FileExists(parentTemplateDir) {
+		return parentTemplateDir, nil
+	}
+	
+	// Try looking in the current working directory (fallback)
+	cwd, _ := os.Getwd()
+	cwdTemplateDir := filepath.Join(cwd, "templates", framework, subdir)
+	if utils.FileExists(cwdTemplateDir) {
+		return cwdTemplateDir, nil
+	}
+	
+	return "", fmt.Errorf("template directory %s not found for framework %s", subdir, framework)
+}
+
+// getFilesystemMCPPath finds MCP server directories relative to the binary location
+func getFilesystemMCPPath(framework string) (string, error) {
+	// Get the path to the current executable
+	executable, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("failed to get executable path: %w", err)
+	}
+
+	// Get the directory containing the executable
+	execDir := filepath.Dir(executable)
+	
+	// Look for MCP servers in the same directory as the binary
+	mcpPath := filepath.Join(execDir, "mcp-servers", framework)
+	if utils.FileExists(mcpPath) {
+		return mcpPath, nil
+	}
+	
+	// If not found, try looking in the parent directory (development mode)
+	parentMCPDir := filepath.Join(filepath.Dir(execDir), "mcp-servers", framework)
+	if utils.FileExists(parentMCPDir) {
+		return parentMCPDir, nil
+	}
+	
+	// Try looking in the current working directory (fallback)
+	cwd, _ := os.Getwd()
+	cwdMCPDir := filepath.Join(cwd, "mcp-servers", framework)
+	if utils.FileExists(cwdMCPDir) {
+		return cwdMCPDir, nil
+	}
+	
+	return "", fmt.Errorf("MCP server directory not found for framework %s", framework)
 }
