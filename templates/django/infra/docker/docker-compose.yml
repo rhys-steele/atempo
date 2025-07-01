@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # Django Web Application
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+    image: django-app
+    container_name: django-web
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-dev-key-change-in-production
+      - DATABASE_URL=postgresql://django:django@postgres:5432/django
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - django
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16
+    container_name: django-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: django
+      POSTGRES_USER: django
+      POSTGRES_PASSWORD: django
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - django
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: django-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - django
+
+  # Mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog
+    container_name: django-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - django
+
+  # Celery Worker (for background tasks)
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+    image: django-app
+    container_name: django-worker
+    restart: unless-stopped
+    command: celery -A config worker -l info
+    volumes:
+      - ./src:/app
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-dev-key-change-in-production
+      - DATABASE_URL=postgresql://django:django@postgres:5432/django
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - django
+
+  # Celery Beat (for scheduled tasks)
+  beat:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+    image: django-app
+    container_name: django-beat
+    restart: unless-stopped
+    command: celery -A config beat -l info
+    volumes:
+      - ./src:/app
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-dev-key-change-in-production
+      - DATABASE_URL=postgresql://django:django@postgres:5432/django
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - django
+
+# Docker Networks
+networks:
+  django:
+    driver: bridge
+
+# Volumes
+volumes:
+  postgres_data:
+    driver: local

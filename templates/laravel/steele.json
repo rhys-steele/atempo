@@ -1,0 +1,83 @@
+{
+  "name": "{{project}}",
+  "framework": "laravel",
+  "language": "php",
+  "installer": {
+    "type": "docker",
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "-v",
+      "{{cwd}}:/workspace",
+      "-w",
+      "/workspace",
+      "composer:latest",
+      "create-project",
+      "--prefer-dist",
+      "--no-interaction",
+      "laravel/laravel",
+      "{{name}}"
+    ],
+    "work-dir": "{{cwd}}"
+  },
+  "working-dir": "/var/www",
+  "min-version": "10.0",
+  "services": {
+    "app": {
+      "type": "build",
+      "dockerfile": "infra/docker/Dockerfile",
+      "working_dir": "/var/www",
+      "volumes": ["./src:/var/www"],
+      "depends_on": ["mysql", "redis"]
+    },
+    "webserver": {
+      "type": "image",
+      "image": "nginx:alpine",
+      "ports": ["8000:80"],
+      "volumes": [
+        "./src:/var/www",
+        "./infra/docker/nginx.conf:/etc/nginx/conf.d/default.conf"
+      ],
+      "depends_on": ["app"]
+    },
+    "mysql": {
+      "type": "image",
+      "image": "mysql:8.0",
+      "ports": ["3306:3306"],
+      "environment": {
+        "MYSQL_DATABASE": "laravel",
+        "MYSQL_ROOT_PASSWORD": "root",
+        "MYSQL_PASSWORD": "laravel",
+        "MYSQL_USER": "laravel"
+      },
+      "volumes": ["mysql_data:/var/lib/mysql"]
+    },
+    "redis": {
+      "type": "image",
+      "image": "redis:alpine",
+      "ports": ["6379:6379"]
+    },
+    "mailhog": {
+      "type": "image",
+      "image": "mailhog/mailhog",
+      "ports": ["1025:1025", "8025:8025"]
+    }
+  },
+  "volumes": {
+    "mysql_data": {
+      "driver": "local"
+    }
+  },
+  "networks": {
+    "laravel": {
+      "driver": "bridge"
+    }
+  },
+  "post_install": [
+    "Copy AI context and Docker configuration to project",
+    "Generate Laravel application key",
+    "Set up proper file permissions",
+    "Initialize database and run migrations"
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "name": "{{project}}",
+  "framework": "django",
+  "language": "python",
+  "installer": {
+    "type": "docker",
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "-v",
+      "{{cwd}}:/workspace",
+      "-w",
+      "/workspace",
+      "python:3.11-slim",
+      "bash",
+      "-c",
+      "pip install django && django-admin startproject {{project}} {{name}}"
+    ],
+    "work-dir": "{{cwd}}"
+  },
+  "working-dir": "/app",
+  "min-version": "4.0",
+  "services": {
+    "web": {
+      "type": "build",
+      "dockerfile": "infra/docker/Dockerfile",
+      "ports": ["8000:8000"],
+      "volumes": ["./src:/app"],
+      "environment": {
+        "DEBUG": "1",
+        "SECRET_KEY": "django-insecure-dev-key-change-in-production",
+        "DATABASE_URL": "postgresql://django:django@postgres:5432/django",
+        "REDIS_URL": "redis://redis:6379/0"
+      },
+      "depends_on": ["postgres", "redis"]
+    },
+    "postgres": {
+      "type": "image",
+      "image": "postgres:16",
+      "ports": ["5432:5432"],
+      "environment": {
+        "POSTGRES_DB": "django",
+        "POSTGRES_USER": "django",
+        "POSTGRES_PASSWORD": "django"
+      },
+      "volumes": ["postgres_data:/var/lib/postgresql/data"]
+    },
+    "redis": {
+      "type": "image",
+      "image": "redis:alpine",
+      "ports": ["6379:6379"]
+    },
+    "mailhog": {
+      "type": "image",
+      "image": "mailhog/mailhog",
+      "ports": ["1025:1025", "8025:8025"]
+    },
+    "worker": {
+      "type": "build",
+      "dockerfile": "infra/docker/Dockerfile",
+      "command": "celery -A config worker -l info",
+      "volumes": ["./src:/app"],
+      "environment": {
+        "DEBUG": "1",
+        "SECRET_KEY": "django-insecure-dev-key-change-in-production",
+        "DATABASE_URL": "postgresql://django:django@postgres:5432/django",
+        "REDIS_URL": "redis://redis:6379/0"
+      },
+      "depends_on": ["postgres", "redis"]
+    },
+    "beat": {
+      "type": "build",
+      "dockerfile": "infra/docker/Dockerfile",
+      "command": "celery -A config beat -l info",
+      "volumes": ["./src:/app"],
+      "environment": {
+        "DEBUG": "1",
+        "SECRET_KEY": "django-insecure-dev-key-change-in-production",
+        "DATABASE_URL": "postgresql://django:django@postgres:5432/django",
+        "REDIS_URL": "redis://redis:6379/0"
+      },
+      "depends_on": ["postgres", "redis"]
+    }
+  },
+  "volumes": {
+    "postgres_data": {
+      "driver": "local"
+    }
+  },
+  "networks": {
+    "django": {
+      "driver": "bridge"
+    }
+  },
+  "post_install": [
+    "Copy AI context and Docker configuration to project",
+    "Set up virtual environment and install dependencies",
+    "Configure Django settings for Docker environment",
+    "Run initial migrations and create superuser"
+  ]
+}

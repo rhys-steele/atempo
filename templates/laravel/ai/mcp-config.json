@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "steele-laravel": {
+      "command": "node",
+      "args": ["ai/mcp-server/index.js"],
+      "cwd": ".",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "steele-laravel-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Laravel projects created with Steele",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "zod": "^3.23.8"
+  },
+  "keywords": ["mcp", "laravel", "steele", "php"],
+  "author": "Steele CLI",
+  "license": "MIT"
+}
