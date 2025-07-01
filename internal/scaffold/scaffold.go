@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"steele/internal/compose"
+	"steele/internal/mcp"
 	"steele/internal/registry"
 	"steele/internal/utils"
 )
@@ -278,22 +279,56 @@ func copyTemplateFiles(projectDir, framework string, templatesFS, mcpServersFS e
 	return nil
 }
 
-// copyMCPServer copies the framework-specific MCP server to the project
+// copyMCPServer discovers and installs the best available MCP server for the framework
 func copyMCPServer(framework, projectDir string, mcpServersFS embed.FS) error {
-	embeddedMcpPath := fmt.Sprintf("mcp-servers/%s", framework)
 	mcpDstPath := filepath.Join(projectDir, "ai", "mcp-server")
 
-	fmt.Println("→ Copying MCP server for", framework, "...")
+	fmt.Println("→ Discovering MCP servers for", framework, "...")
 	
-	// Try embedded first, fallback to filesystem
-	if err := copyEmbeddedDir(mcpServersFS, embeddedMcpPath, mcpDstPath); err != nil {
-		// Fallback to filesystem - find MCP servers relative to binary location
-		filesystemMcpPath, pathErr := getFilesystemMCPPath(framework)
-		if pathErr != nil {
-			return fmt.Errorf("MCP server for %s not found: %w", framework, pathErr)
+	// Discover available MCP servers
+	discovery, err := mcp.DiscoverMCPServers(framework)
+	if err != nil {
+		return fmt.Errorf("failed to discover MCP servers: %w", err)
+	}
+
+	var selectedServer mcp.MCPServer
+	var serverType string
+
+	// Prefer official servers, then community, then generated
+	if len(discovery.Official) > 0 {
+		selectedServer = discovery.Official[0]
+		serverType = "official"
+		fmt.Printf("→ Using official MCP server: %s\n", selectedServer.Name)
+	} else if len(discovery.Community) > 0 {
+		selectedServer = discovery.Community[0]
+		serverType = "community"
+		fmt.Printf("→ Using community MCP server: %s\n", selectedServer.Name)
+	} else if discovery.Generated != nil {
+		selectedServer = *discovery.Generated
+		serverType = "generated"
+		fmt.Printf("→ Generating custom MCP server: %s\n", selectedServer.Name)
+	} else {
+		return fmt.Errorf("no MCP servers available for %s", framework)
+	}
+
+	// Install the selected server
+	if serverType == "generated" {
+		// Use template-based generation
+		projectInfo := mcp.ProjectInfo{
+			Name:      filepath.Base(projectDir),
+			Framework: framework,
+			Path:      projectDir,
 		}
-		if err := utils.CopyDir(filesystemMcpPath, mcpDstPath); err != nil {
-			return fmt.Errorf("failed to copy MCP server from filesystem: %w", err)
+		
+		fmt.Println("→ Generating MCP server from template...")
+		if err := mcp.GenerateServerFromTemplate(selectedServer, projectInfo, mcpDstPath); err != nil {
+			return fmt.Errorf("failed to generate MCP server: %w", err)
+		}
+	} else {
+		// Install official/community server
+		fmt.Printf("→ Installing %s MCP server...\n", serverType)
+		if err := mcp.InstallMCPServer(selectedServer, projectDir); err != nil {
+			return fmt.Errorf("failed to install MCP server: %w", err)
 		}
 	}
 
