@@ -1,7 +1,7 @@
 {
-  "name": "steele-django-mcp-server",
+  "name": "atempo-django-mcp-server",
   "version": "1.0.0",
-  "description": "MCP server for Django projects created with Steele",
+  "description": "MCP server for Django projects created with Atempo",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
     "@modelcontextprotocol/sdk": "^0.4.0",
     "zod": "^3.23.8"
   },
-  "keywords": ["mcp", "django", "steele", "python"],
-  "author": "Steele CLI",
+  "keywords": ["mcp", "django", "atempo", "python"],
+  "author": "Atempo CLI",
   "license": "MIT"
 }

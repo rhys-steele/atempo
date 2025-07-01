@@ -47,7 +47,7 @@ func New(projectName string) (*Logger, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	logsDir := filepath.Join(homeDir, ".steele", "logs")
+	logsDir := filepath.Join(homeDir, ".atempo", "logs")
 	if err := os.MkdirAll(logsDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create logs directory: %w", err)
 	}
@@ -88,7 +88,7 @@ func (l *Logger) Close() error {
 func (l *Logger) writeHeader() {
 	header := fmt.Sprintf(`
 ========================================
-Steele Project Setup Log
+Atempo Project Setup Log
 ========================================
 Project: %s
 Started: %s
@@ -244,11 +244,10 @@ func (l *Logger) logf(format string, args ...interface{}) {
 
 // showProgress displays a progress indicator for the current step
 func (l *Logger) showProgress(step *Step) {
-	elapsed := time.Since(l.StartTime).Round(time.Second)
-	
 	switch step.Status {
 	case StepRunning:
-		fmt.Printf("⏳ %s... (%s)\n", step.Name, elapsed)
+		// Don't show running state - just completion
+		return
 	case StepComplete:
 		duration := step.Duration.Round(time.Millisecond)
 		fmt.Printf("✅ %s (%s)\n", step.Name, duration)
@@ -266,7 +265,7 @@ func (l *Logger) PrintSummary() {
 	totalDuration := time.Since(l.StartTime)
 	fmt.Printf("\n🎉 Setup completed in %s\n", totalDuration.Round(time.Second))
 	fmt.Printf("📄 Full logs: %s\n", l.LogPath)
-	fmt.Printf("💡 View logs: steele logs %s\n", l.ProjectName)
+	fmt.Printf("💡 View logs: atempo logs %s\n", l.ProjectName)
 }
 
 // GetLatestLogFile returns the path to the latest log file for a project
@@ -276,7 +275,7 @@ func GetLatestLogFile(projectName string) (string, error) {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	logsDir := filepath.Join(homeDir, ".steele", "logs")
+	logsDir := filepath.Join(homeDir, ".atempo", "logs")
 	
 	// Find all log files for the project
 	pattern := filepath.Join(logsDir, fmt.Sprintf("%s_*.log", projectName))
@@ -301,7 +300,7 @@ func GetAllLogFiles(projectName string) ([]string, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	logsDir := filepath.Join(homeDir, ".steele", "logs")
+	logsDir := filepath.Join(homeDir, ".atempo", "logs")
 	
 	// Find all log files for the project
 	pattern := filepath.Join(logsDir, fmt.Sprintf("%s_*.log", projectName))

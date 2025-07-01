@@ -1,4 +1,4 @@
-Steele License v1.0 (Open Source)
+Atempo License v1.0 (Open Source)
 
 Copyright (c) 2025 Rhys May
 
@@ -8,7 +8,7 @@ copy, modify, merge, publish, and distribute copies of the Software, subject to
 the following conditions:
 
 1. **Attribution**  
-   You must preserve the original author credit in source code, documentation, and significant derivative works. Acknowledging “Built with Steele” is encouraged but not required.
+   You must preserve the original author credit in source code, documentation, and significant derivative works. Acknowledging “Built with Atempo” is encouraged but not required.
 
 2. **Open Use**  
    You may use the Software for personal, educational, commercial, or non-commercial projects, including but not limited to bootstrapping new applications, using AI scaffolding agents, or integrating with other developer tooling.
@@ -20,10 +20,10 @@ the following conditions:
    The authors shall not be held liable for any damages or claims arising from the use or misuse of the Software, including generated code or downstream integrations.
 
 5. **Contribution Clause**  
-   Contributions are welcome. By submitting pull requests, you agree to license your contributions under this same Steele License v1.0.
+   Contributions are welcome. By submitting pull requests, you agree to license your contributions under this same Atempo License v1.0.
 
 ---
 
 This license is inspired by the MIT License, with developer-first and AI-first tooling in mind.
 
-For more info or to contribute, visit: https://github.com/rhys-steele/steele
+For more info or to contribute, visit: https://github.com/rhys-atempo/atempo

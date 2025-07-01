@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"steele/internal/utils"
+	"atempo/internal/utils"
 )
 
-// Project represents a registered Steele project
+// Project represents a registered Atempo project
 type Project struct {
 	Name         string    `json:"name"`
 	Path         string    `json:"path"`
@@ -34,12 +34,12 @@ func GetRegistryPath() (string, error) {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
-	steeleDir := filepath.Join(homeDir, ".steele")
-	if err := os.MkdirAll(steeleDir, 0755); err != nil {
-		return "", fmt.Errorf("failed to create steele directory: %w", err)
+	atempoDir := filepath.Join(homeDir, ".atempo")
+	if err := os.MkdirAll(atempoDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create atempo directory: %w", err)
 	}
 
-	return filepath.Join(steeleDir, "registry.json"), nil
+	return filepath.Join(atempoDir, "registry.json"), nil
 }
 
 // LoadRegistry loads the project registry from disk
@@ -187,21 +187,21 @@ func ResolveProjectPath(identifier string) (string, error) {
 	return filepath.Join(cwd, identifier), nil
 }
 
-// ScanForProjects scans a directory for Steele projects and adds them to registry
+// ScanForProjects scans a directory for Atempo projects and adds them to registry
 func (r *Registry) ScanForProjects(scanPath string) error {
 	return filepath.Walk(scanPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil // Continue on errors
 		}
 
-		if info.IsDir() && info.Name() == "steele.json" {
-			return nil // Skip directories named steele.json
+		if info.IsDir() && info.Name() == "atempo.json" {
+			return nil // Skip directories named atempo.json
 		}
 
-		if !info.IsDir() && info.Name() == "steele.json" {
-			// Found a steele.json file
+		if !info.IsDir() && info.Name() == "atempo.json" {
+			// Found a atempo.json file
 			projectPath := filepath.Dir(path)
-			if err := r.addProjectFromSteeleJson(projectPath); err != nil {
+			if err := r.addProjectFromAtempoJson(projectPath); err != nil {
 				fmt.Printf("Warning: Failed to add project from %s: %v\n", projectPath, err)
 			}
 		}
@@ -210,11 +210,11 @@ func (r *Registry) ScanForProjects(scanPath string) error {
 	})
 }
 
-// addProjectFromSteeleJson reads a steele.json file and adds the project to registry
-func (r *Registry) addProjectFromSteeleJson(projectPath string) error {
-	steeleJsonPath := filepath.Join(projectPath, "steele.json")
+// addProjectFromAtempoJson reads a atempo.json file and adds the project to registry
+func (r *Registry) addProjectFromAtempoJson(projectPath string) error {
+	atempoJsonPath := filepath.Join(projectPath, "atempo.json")
 	
-	data, err := os.ReadFile(steeleJsonPath)
+	data, err := os.ReadFile(atempoJsonPath)
 	if err != nil {
 		return err
 	}

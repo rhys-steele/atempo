@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"steele/internal/compose"
-	"steele/internal/logger"
-	"steele/internal/mcp"
-	"steele/internal/registry"
-	"steele/internal/utils"
+	"atempo/internal/compose"
+	"atempo/internal/logger"
+	"atempo/internal/mcp"
+	"atempo/internal/registry"
+	"atempo/internal/utils"
 )
 
 
@@ -26,7 +26,7 @@ type Installer struct {
 	WorkDir string   `json:"work-dir"` // Directory to run the command in
 }
 
-// Metadata describes a Steele template's configuration,
+// Metadata describes a Atempo template's configuration,
 // including language, installer, and framework compatibility.
 type Metadata struct {
 	Name        string    `json:"name"`         // Project name template
@@ -38,7 +38,7 @@ type Metadata struct {
 }
 
 // Run executes the scaffolding process for the given framework and version.
-// It loads the template's `steele.json`, performs template substitution,
+// It loads the template's `atempo.json`, performs template substitution,
 // runs the specified install command, and copies template files.
 func Run(framework string, version string, templatesFS, mcpServersFS embed.FS) error {
 	// Get the current working directory (user's target project root)
@@ -57,31 +57,31 @@ func Run(framework string, version string, templatesFS, mcpServersFS embed.FS) e
 
 	// Step 1: Load and validate template configuration
 	loadStep := log.StartStep("Loading template configuration")
-	// Load steele.json (try embedded first, fallback to filesystem)
+	// Load atempo.json (try embedded first, fallback to filesystem)
 	var metaBytes []byte
 	
 	// Try embedded first
-	embeddedPath := fmt.Sprintf("templates/%s/steele.json", framework)
+	embeddedPath := fmt.Sprintf("templates/%s/atempo.json", framework)
 	metaBytes, readErr := templatesFS.ReadFile(embeddedPath)
 	if readErr != nil {
 		// Fallback to filesystem - find templates relative to binary location
-		filesystemPath, pathErr := getFilesystemTemplatePath(framework, "steele.json")
+		filesystemPath, pathErr := getFilesystemTemplatePath(framework, "atempo.json")
 		if pathErr != nil {
-			log.ErrorStep(loadStep, fmt.Errorf("could not locate steele.json for %s: %w", framework, pathErr))
-			return fmt.Errorf("could not locate steele.json for %s: %w", framework, pathErr)
+			log.ErrorStep(loadStep, fmt.Errorf("could not locate atempo.json for %s: %w", framework, pathErr))
+			return fmt.Errorf("could not locate atempo.json for %s: %w", framework, pathErr)
 		}
 		metaBytes, readErr = os.ReadFile(filesystemPath)
 		if readErr != nil {
-			log.ErrorStep(loadStep, fmt.Errorf("could not read steele.json for %s: %w", framework, readErr))
-			return fmt.Errorf("could not read steele.json for %s: %w", framework, readErr)
+			log.ErrorStep(loadStep, fmt.Errorf("could not read atempo.json for %s: %w", framework, readErr))
+			return fmt.Errorf("could not read atempo.json for %s: %w", framework, readErr)
 		}
 	}
 
 	// Parse the metadata JSON into a structured object
 	var meta Metadata
 	if parseErr := json.Unmarshal(metaBytes, &meta); parseErr != nil {
-		log.ErrorStep(loadStep, fmt.Errorf("invalid steele.json: %w", parseErr))
-		return fmt.Errorf("invalid steele.json: %w", parseErr)
+		log.ErrorStep(loadStep, fmt.Errorf("invalid atempo.json: %w", parseErr))
+		return fmt.Errorf("invalid atempo.json: %w", parseErr)
 	}
 
 	// Validate version compatibility
@@ -377,9 +377,9 @@ func finalizeProject(log *logger.Logger, step *logger.Step, meta Metadata, proje
 		return fmt.Errorf("failed to register project: %w", err)
 	}
 
-	// Generate docker-compose.yml from steele.json if it has services defined
-	steeleJsonPath := filepath.Join(projectDir, "steele.json")
-	if utils.FileExists(steeleJsonPath) {
+	// Generate docker-compose.yml from atempo.json if it has services defined
+	atempoJsonPath := filepath.Join(projectDir, "atempo.json")
+	if utils.FileExists(atempoJsonPath) {
 		if err := compose.GenerateDockerCompose(projectDir); err != nil {
 			return fmt.Errorf("failed to generate docker-compose.yml: %w", err)
 		}

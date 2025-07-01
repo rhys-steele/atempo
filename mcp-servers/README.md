@@ -1,6 +1,6 @@
-# Steele MCP Servers
+# Atempo MCP Servers
 
-Plug-and-play MCP (Model Context Protocol) servers for Laravel and Django projects created with Steele. These servers provide framework-specific tools that integrate seamlessly with Claude Code.
+Plug-and-play MCP (Model Context Protocol) servers for Laravel and Django projects created with Atempo. These servers provide framework-specific tools that integrate seamlessly with Claude Code.
 
 ## Quick Start
 
@@ -11,7 +11,7 @@ cd mcp-servers
 ```
 
 ### 2. Auto-Installation (Recommended)
-When you run `steele start laravel:11` or `steele start django:5`, the appropriate MCP server is automatically copied to your project and configured.
+When you run `atempo start laravel:11` or `atempo start django:5`, the appropriate MCP server is automatically copied to your project and configured.
 
 ### 3. Manual Installation
 If you need to add an MCP server to an existing project:
@@ -100,7 +100,7 @@ Add this to your Claude Code MCP settings (usually in `~/.config/claude-code/mcp
 ```json
 {
   "mcpServers": {
-    "steele-laravel": {
+    "atempo-laravel": {
       "command": "node",
       "args": ["ai/mcp-server/index.js"],
       "cwd": "/path/to/your/laravel/project"
@@ -113,7 +113,7 @@ Add this to your Claude Code MCP settings (usually in `~/.config/claude-code/mcp
 ```json
 {
   "mcpServers": {
-    "steele-django": {
+    "atempo-django": {
       "command": "node", 
       "args": ["ai/mcp-server/index.js"],
       "cwd": "/path/to/your/django/project"
@@ -124,14 +124,14 @@ Add this to your Claude Code MCP settings (usually in `~/.config/claude-code/mcp
 
 ### Auto-Configuration
 
-When using Steele CLI, the MCP configuration is automatically:
+When using Atempo CLI, the MCP configuration is automatically:
 1. Copied to your project's `ai/mcp-config.json`
 2. Set up with the correct paths
 3. Ready to import into Claude Code
 
 ## Docker Integration
 
-Both MCP servers are designed to work with the Docker environments created by Steele:
+Both MCP servers are designed to work with the Docker environments created by Atempo:
 
 - **Laravel**: Commands run inside the `app` container
 - **Django**: Commands run inside the `web` container

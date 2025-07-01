@@ -1,6 +1,6 @@
-# 🛠️ Steele
+# 🛠️ Atempo
 
-**Steele** is a developer-first, AI-enhanced CLI for bootstrapping **framework-agnostic** projects with built-in support for Claude, MCP (Model–Context–Protocol), Docker, and best-practice architecture.  
+**Atempo** is a developer-first, AI-enhanced CLI for bootstrapping **framework-agnostic** projects with built-in support for Claude, MCP (Model–Context–Protocol), Docker, and best-practice architecture.  
 
 Start fast. Stay scalable. Think with context.
 
@@ -13,21 +13,21 @@ Start fast. Stay scalable. Think with context.
 If you have Go installed:
 
 ```bash
-go install github.com/yourname/steele@latest
+go install github.com/yourname/atempo@latest
 ```
 
 Or clone and build manually:
 
 ```bash
-git clone https://github.com/yourname/steele
-cd steele
-go build -o steele .
+git clone https://github.com/yourname/atempo
+cd atempo
+go build -o atempo .
 ```
 
 Then move it into your path (optional):
 
 ```bash
-mv steele /usr/local/bin/
+mv atempo /usr/local/bin/
 ```
 
 ---
@@ -36,7 +36,7 @@ mv steele /usr/local/bin/
 
 ```bash
 mkdir my-app && cd my-app
-steele start laravel:12
+atempo start laravel:12
 ```
 
 This sets up:
@@ -46,20 +46,20 @@ my-app/
 ├── src/                # Laravel 12 source code
 ├── ai/                 # AI + MCP context system
 ├── infra/              # Docker environment
-├── steele.json         # Framework metadata
+├── atempo.json         # Framework metadata
 └── README.md
 ```
 
 ---
 
-## 💡 What Is Steele?
+## 💡 What Is Atempo?
 
-**Steele** helps you scaffold new application projects with:
+**Atempo** helps you scaffold new application projects with:
 
 - 🚀 Language/framework starter templates (Laravel, Node, etc.)
 - 🧠 MCP-ready Claude context (`ai/context/context.yaml`)
 - 🐳 Dev infrastructure (`infra/docker/`)
-- 🧪 Dev-friendly commands (`steele docker`, `steele artisan`, etc.)
+- 🧪 Dev-friendly commands (`atempo docker`, `atempo artisan`, etc.)
 - ✨ AI integration points (prompts, agents, Claude interface)
 
 Think of it as a smarter `create-react-app`, but for **any stack** — and AI-aware from day one.
@@ -70,7 +70,7 @@ Think of it as a smarter `create-react-app`, but for **any stack** — and AI-aw
 
 ### 🆕 Start a New Project
 ```bash
-steele start laravel:12
+atempo start laravel:12
 ```
 
 Scaffolds a Laravel 12 project with context and infra.
@@ -79,15 +79,15 @@ Scaffolds a Laravel 12 project with context and infra.
 
 ### 🐳 Docker Commands
 ```bash
-steele docker up       # Start containers
-steele docker bash     # Open shell into app container
+atempo docker up       # Start containers
+atempo docker bash     # Open shell into app container
 ```
 
 ---
 
 ### 🧪 Artisan Passthrough
 ```bash
-steele artisan migrate:fresh
+atempo artisan migrate:fresh
 ```
 
 Runs Laravel `artisan` commands inside Docker transparently.
@@ -96,14 +96,14 @@ Runs Laravel `artisan` commands inside Docker transparently.
 
 ## 🔮 Coming Soon
 
-- `steele context edit`: edit your Claude context file
-- `steele claude "Generate a service for onboarding users"`: injects context and prompts Claude
-- `steele start node:20`, `steele start react`, etc.
-- `steele generate test`, `steele prompt --from src/Service.php`
+- `atempo context edit`: edit your Claude context file
+- `atempo claude "Generate a service for onboarding users"`: injects context and prompts Claude
+- `atempo start node:20`, `atempo start react`, etc.
+- `atempo generate test`, `atempo prompt --from src/Service.php`
 
 ---
 
-## 🌍 Why Use Steele?
+## 🌍 Why Use Atempo?
 
 - 🔁 Reuse across all your projects
 - 🧠 Keeps your Claude and LLM tooling separated from code
@@ -116,10 +116,10 @@ Runs Laravel `artisan` commands inside Docker transparently.
 
 > Tools should get out of your way and *into your headspace*.
 
-**Steele separates the CLI from your projects.**  
+**Atempo separates the CLI from your projects.**  
 It bootstraps your app, manages Docker, feeds AI agents with context, and gives you smart commands — without embedding anything unnecessary into your codebase.
 
-You install Steele once. You use it everywhere.
+You install Atempo once. You use it everywhere.
 
 ---
 

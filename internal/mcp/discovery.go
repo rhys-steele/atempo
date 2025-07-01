@@ -107,7 +107,7 @@ func loadCachedRegistry() (*MCPRegistry, error) {
 		return nil, err
 	}
 
-	cacheFile := filepath.Join(homeDir, ".steele", "mcp-registry.json")
+	cacheFile := filepath.Join(homeDir, ".atempo", "mcp-registry.json")
 	data, err := os.ReadFile(cacheFile)
 	if err != nil {
 		return nil, err
@@ -198,12 +198,12 @@ func cacheRegistry(registry *MCPRegistry) error {
 		return err
 	}
 
-	steeleDir := filepath.Join(homeDir, ".steele")
-	if err := os.MkdirAll(steeleDir, 0755); err != nil {
+	atempoDir := filepath.Join(homeDir, ".atempo")
+	if err := os.MkdirAll(atempoDir, 0755); err != nil {
 		return err
 	}
 
-	cacheFile := filepath.Join(steeleDir, "mcp-registry.json")
+	cacheFile := filepath.Join(atempoDir, "mcp-registry.json")
 	data, err := json.MarshalIndent(registry, "", "  ")
 	if err != nil {
 		return err
@@ -245,7 +245,7 @@ func generateCustomServer(framework string) (*MCPServer, error) {
 // generateLaravelServer creates a Laravel-specific MCP server
 func generateLaravelServer() *MCPServer {
 	return &MCPServer{
-		Name:        "steele-laravel",
+		Name:        "atempo-laravel",
 		Type:        "generated",
 		Framework:   "laravel",
 		Command:     []string{"node"},
@@ -261,7 +261,7 @@ func generateLaravelServer() *MCPServer {
 // generateDjangoServer creates a Django-specific MCP server
 func generateDjangoServer() *MCPServer {
 	return &MCPServer{
-		Name:        "steele-django",
+		Name:        "atempo-django",
 		Type:        "generated",
 		Framework:   "django",
 		Command:     []string{"node"},
@@ -277,7 +277,7 @@ func generateDjangoServer() *MCPServer {
 // generateUniversalServer creates a universal MCP server
 func generateUniversalServer(framework string) *MCPServer {
 	return &MCPServer{
-		Name:        fmt.Sprintf("steele-%s", framework),
+		Name:        fmt.Sprintf("atempo-%s", framework),
 		Type:        "generated",
 		Framework:   framework,
 		Command:     []string{"node"},

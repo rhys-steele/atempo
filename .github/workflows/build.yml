@@ -50,15 +50,15 @@ jobs:
       run: |
         mkdir -p dist
         if [ "$GOOS" = "windows" ]; then
-          go build -o dist/steele-$GOOS-$GOARCH.exe cmd/steele/main.go
+          go build -o dist/atempo-$GOOS-$GOARCH.exe cmd/atempo/main.go
         else
-          go build -o dist/steele-$GOOS-$GOARCH cmd/steele/main.go
+          go build -o dist/atempo-$GOOS-$GOARCH cmd/atempo/main.go
         fi
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: steele-${{ matrix.goos }}-${{ matrix.goarch }}
+        name: atempo-${{ matrix.goos }}-${{ matrix.goarch }}
         path: dist/
 
   release:

@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Setup script for Steele MCP servers
+# Setup script for Atempo MCP servers
 # This script installs dependencies for both Laravel and Django MCP servers
 
 set -e
 
-echo "🔧 Setting up Steele MCP servers..."
+echo "🔧 Setting up Atempo MCP servers..."
 
 # Function to install npm dependencies
 install_server() {
