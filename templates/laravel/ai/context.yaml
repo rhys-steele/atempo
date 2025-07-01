@@ -1,0 +1,154 @@
+name: Laravel Project Context
+description: Comprehensive context for Laravel development with Steele
+version: "1.0"
+
+# Framework Information
+framework:
+  name: Laravel
+  version: "11.x"
+  language: PHP
+  package_manager: Composer
+
+# Project Structure
+structure:
+  source_root: src/
+  config_dir: src/config/
+  routes_dir: src/routes/
+  controllers_dir: src/app/Http/Controllers/
+  models_dir: src/app/Models/
+  views_dir: src/resources/views/
+  migrations_dir: src/database/migrations/
+  tests_dir: src/tests/
+
+# Development Commands
+commands:
+  install_dependencies: "composer install"
+  run_migrations: "php artisan migrate"
+  create_migration: "php artisan make:migration {name}"
+  create_controller: "php artisan make:controller {name}"
+  create_model: "php artisan make:model {name}"
+  create_middleware: "php artisan make:middleware {name}"
+  run_tests: "php artisan test"
+  serve_dev: "php artisan serve"
+  clear_cache: "php artisan cache:clear"
+  generate_key: "php artisan key:generate"
+
+# Docker Integration
+docker:
+  app_container: app
+  database_container: mysql
+  redis_container: redis
+  working_directory: /var/www
+  
+# Common Patterns
+patterns:
+  controllers:
+    - "Controllers should extend the base Controller class"
+    - "Use resource controllers for CRUD operations"
+    - "Return responses using response() helpers or view() for templates"
+  
+  models:
+    - "Models should extend Illuminate\\Database\\Eloquent\\Model"
+    - "Define fillable or guarded properties for mass assignment"
+    - "Use relationships (hasOne, hasMany, belongsTo, etc.)"
+  
+  migrations:
+    - "Use Schema::create() for new tables"
+    - "Use Schema::table() for modifying existing tables"
+    - "Always create rollback methods in down()"
+  
+  routes:
+    - "Web routes in routes/web.php for browser requests"
+    - "API routes in routes/api.php for API endpoints"
+    - "Use Route::resource() for RESTful controllers"
+
+# Best Practices
+best_practices:
+  - "Use Laravel's built-in validation in form requests"
+  - "Implement proper error handling with try-catch blocks"
+  - "Use Laravel's queue system for time-consuming tasks"
+  - "Follow PSR-4 autoloading standards"
+  - "Use dependency injection in controllers and services"
+  - "Implement proper database relationships"
+  - "Use Laravel's built-in authentication system"
+  - "Write comprehensive tests for your application logic"
+
+# Environment Setup
+environment:
+  required_env_vars:
+    - APP_NAME
+    - APP_ENV
+    - APP_KEY
+    - DB_CONNECTION
+    - DB_HOST
+    - DB_PORT
+    - DB_DATABASE
+    - DB_USERNAME
+    - DB_PASSWORD
+  
+  development_tools:
+    - Laravel Telescope (debugging)
+    - Laravel Tinker (REPL)
+    - PHPUnit (testing)
+    - Laravel Dusk (browser testing)
+
+# Common Issues & Solutions
+troubleshooting:
+  permission_issues: "Set proper permissions: chmod -R 775 storage bootstrap/cache"
+  cache_issues: "Clear all caches: php artisan optimize:clear"
+  database_connection: "Check .env database credentials and ensure MySQL is running"
+  composer_issues: "Run composer dump-autoload to regenerate autoload files"
+
+# File Templates
+templates:
+  controller: |
+    <?php
+    
+    namespace App\\Http\\Controllers;
+    
+    use Illuminate\\Http\\Request;
+    
+    class {ClassName}Controller extends Controller
+    {
+        public function index()
+        {
+            //
+        }
+        
+        public function store(Request $request)
+        {
+            //
+        }
+        
+        public function show($id)
+        {
+            //
+        }
+        
+        public function update(Request $request, $id)
+        {
+            //
+        }
+        
+        public function destroy($id)
+        {
+            //
+        }
+    }
+  
+  model: |
+    <?php
+    
+    namespace App\\Models;
+    
+    use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;
+    use Illuminate\\Database\\Eloquent\\Model;
+    
+    class {ClassName} extends Model
+    {
+        use HasFactory;
+        
+        protected $fillable = [
+            //
+        ];
+    }

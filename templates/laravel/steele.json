@@ -8,14 +8,29 @@
       "create-project",
       "--prefer-dist",
       "--no-interaction",
-      "--no-scripts",
-      "--no-progress",
-      "--no-plugins",
       "laravel/laravel",
       "{{name}}"
     ],
     "work-dir": "{{cwd}}"
   },
   "working-dir": "/var/www",
-  "min-version": "10.0"
+  "min-version": "10.0",
+  "services": {
+    "database": "mysql",
+    "cache": "redis",
+    "queue": "redis",
+    "mail": "mailhog"
+  },
+  "ports": {
+    "web": 8000,
+    "mysql": 3306,
+    "redis": 6379,
+    "mailhog": 8025
+  },
+  "post_install": [
+    "Copy AI context and Docker configuration to project",
+    "Generate Laravel application key",
+    "Set up proper file permissions",
+    "Initialize database and run migrations"
+  ]
 }
