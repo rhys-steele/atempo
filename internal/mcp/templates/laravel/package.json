@@ -1,0 +1,17 @@
+{
+  "name": "{{.Server.Name}}",
+  "version": "1.0.0",
+  "description": "{{.Server.Description}}",
+  "main": "index.js",
+  "bin": {
+    "{{.Server.Name}}": "./index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["mcp", "laravel", "php", "steele"]
+}
