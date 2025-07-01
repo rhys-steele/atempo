@@ -39,7 +39,7 @@ type Metadata struct {
 // Run executes the scaffolding process for the given framework and version.
 // It loads the template's `steele.json`, performs template substitution,
 // runs the specified install command, and copies template files.
-func Run(framework string, version string) error {
+func Run(framework string, version string, templatesFS, mcpServersFS embed.FS) error {
 	// Load steele.json from embedded templates
 	metaPath := fmt.Sprintf("templates/%s/steele.json", framework)
 	metaBytes, err := templatesFS.ReadFile(metaPath)
@@ -70,7 +70,7 @@ func Run(framework string, version string) error {
 
 	// Step 2: Copy template files (AI context, Docker setup, etc.)
 	fmt.Println("📁 Copying template files...")
-	if err := copyTemplateFiles(projectDir, meta.Framework); err != nil {
+	if err := copyTemplateFiles(projectDir, meta.Framework, templatesFS, mcpServersFS); err != nil {
 		return fmt.Errorf("failed to copy template files: %w", err)
 	}
 
@@ -207,7 +207,7 @@ func applyDjangoVersionOptions(command []string, version string) []string {
 }
 
 // copyTemplateFiles copies AI context, Docker setup, and other template files from embedded filesystem
-func copyTemplateFiles(projectDir, framework string) error {
+func copyTemplateFiles(projectDir, framework string, templatesFS, mcpServersFS embed.FS) error {
 	templateBasePath := fmt.Sprintf("templates/%s", framework)
 	
 	// Copy AI context directory
@@ -219,7 +219,7 @@ func copyTemplateFiles(projectDir, framework string) error {
 	}
 
 	// Copy MCP server for the framework
-	if err := copyMCPServer(framework, projectDir); err != nil {
+	if err := copyMCPServer(framework, projectDir, mcpServersFS); err != nil {
 		fmt.Printf("⚠️  Failed to copy MCP server: %v\n", err)
 		// Don't fail the entire setup if MCP server copy fails
 	}
@@ -243,7 +243,7 @@ func copyTemplateFiles(projectDir, framework string) error {
 }
 
 // copyMCPServer copies the framework-specific MCP server to the project
-func copyMCPServer(framework, projectDir string) error {
+func copyMCPServer(framework, projectDir string, mcpServersFS embed.FS) error {
 	mcpSrcPath := fmt.Sprintf("mcp-servers/%s", framework)
 	mcpDstPath := filepath.Join(projectDir, "ai", "mcp-server")
 
