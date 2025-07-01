@@ -4,7 +4,6 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -257,7 +256,7 @@ func copyMCPServer(framework, projectDir string, mcpServersFS embed.FS) error {
 	// Install npm dependencies
 	fmt.Println("→ Installing MCP server dependencies...")
 	cmd := exec.Command("npm", "install")
-	cmd.Dir = mcpDst
+	cmd.Dir = mcpDstPath
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

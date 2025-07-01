@@ -12,11 +12,13 @@ import (
 	"steele/internal/scaffold"
 )
 
-//go:embed templates
-var templatesFS embed.FS
+// TODO: Fix embedding - temporarily disabled
+// //go:embed templates/laravel/steele.json
+// var templatesFS embed.FS
 
-//go:embed mcp-servers/*
-var mcpServersFS embed.FS
+// TODO: Fix MCP server embedding
+// //go:embed mcp-servers/laravel/index.js
+// var mcpServersFS embed.FS
 
 // main is the entry point for the Steele CLI.
 // Steele is a command-line tool for scaffolding and managing developer projects
@@ -67,8 +69,9 @@ func handleStartCommand() {
 	framework := parts[0]
 	version := parts[1]
 
-	// Trigger the scaffold process
-	err := scaffold.Run(framework, version, templatesFS, mcpServersFS)
+	// Trigger the scaffold process (temporarily without embedded files)
+	var emptyFS1, emptyFS2 embed.FS
+	err := scaffold.Run(framework, version, emptyFS1, emptyFS2)
 	if err != nil {
 		fmt.Printf("Scaffold error: %v\n", err)
 		os.Exit(1)
