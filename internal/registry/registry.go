@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,6 +20,29 @@ type Project struct {
 	Version      string    `json:"version"`
 	CreatedAt    time.Time `json:"created_at"`
 	LastAccessed time.Time `json:"last_accessed"`
+	
+	// Enhanced project state
+	Status       string    `json:"status"`         // running/stopped/healthy/unhealthy
+	Ports        []Port    `json:"ports"`
+	URLs         []string  `json:"urls"`
+	GitBranch    string    `json:"git_branch,omitempty"`
+	GitStatus    string    `json:"git_status,omitempty"`
+	Services     []Service `json:"services"`
+}
+
+// Port represents a port mapping for a service
+type Port struct {
+	Service   string `json:"service"`
+	Internal  int    `json:"internal"`
+	External  int    `json:"external"`
+	Protocol  string `json:"protocol"`
+}
+
+// Service represents a Docker service with its status
+type Service struct {
+	Name    string `json:"name"`
+	Status  string `json:"status"`  // running/stopped/healthy/unhealthy
+	URL     string `json:"url,omitempty"`
 }
 
 // Registry manages the mapping of project names to paths
@@ -252,4 +276,209 @@ func (r *Registry) CleanupInvalidProjects() error {
 
 	r.Projects = validProjects
 	return r.SaveRegistry()
+}
+
+// UpdateProjectStatus updates the status and health information for a project
+func (r *Registry) UpdateProjectStatus(name string) error {
+	for i, project := range r.Projects {
+		if project.Name == name {
+			// Check project status
+			status, services, ports, urls := r.checkProjectHealth(project.Path)
+			
+			r.Projects[i].Status = status
+			r.Projects[i].Services = services
+			r.Projects[i].Ports = ports
+			r.Projects[i].URLs = urls
+			r.Projects[i].LastAccessed = time.Now()
+			
+			// Update Git information if in a Git repository
+			gitBranch, gitStatus := r.getGitInfo(project.Path)
+			r.Projects[i].GitBranch = gitBranch
+			r.Projects[i].GitStatus = gitStatus
+			
+			return r.SaveRegistry()
+		}
+	}
+	
+	return fmt.Errorf("project '%s' not found", name)
+}
+
+// UpdateAllProjectsStatus updates status for all registered projects
+func (r *Registry) UpdateAllProjectsStatus() error {
+	for i := range r.Projects {
+		status, services, ports, urls := r.checkProjectHealth(r.Projects[i].Path)
+		
+		r.Projects[i].Status = status
+		r.Projects[i].Services = services
+		r.Projects[i].Ports = ports
+		r.Projects[i].URLs = urls
+		
+		// Update Git information if in a Git repository
+		gitBranch, gitStatus := r.getGitInfo(r.Projects[i].Path)
+		r.Projects[i].GitBranch = gitBranch
+		r.Projects[i].GitStatus = gitStatus
+	}
+	
+	return r.SaveRegistry()
+}
+
+// checkProjectHealth checks the health of a project by examining Docker services
+func (r *Registry) checkProjectHealth(projectPath string) (string, []Service, []Port, []string) {
+	var services []Service
+	var ports []Port
+	var urls []string
+	var overallStatus string = "stopped"
+
+	// Check if docker-compose.yml exists
+	composePath := filepath.Join(projectPath, "docker-compose.yml")
+	if !utils.FileExists(composePath) {
+		return "no-docker", services, ports, urls
+	}
+
+	// Run docker-compose ps to get service status
+	cmd := exec.Command("docker-compose", "ps", "--format", "json")
+	cmd.Dir = projectPath
+	output, err := cmd.Output()
+	if err != nil {
+		return "docker-error", services, ports, urls
+	}
+
+	// Parse docker-compose ps output
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	runningServices := 0
+	totalServices := 0
+
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+
+		var serviceData map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &serviceData); err != nil {
+			continue
+		}
+
+		totalServices++
+		serviceName := serviceData["Service"].(string)
+		state := serviceData["State"].(string)
+		
+		// Determine service status
+		var serviceStatus string
+		switch state {
+		case "running":
+			serviceStatus = "running"
+			runningServices++
+		case "exited":
+			serviceStatus = "stopped"
+		default:
+			serviceStatus = "unhealthy"
+		}
+
+		services = append(services, Service{
+			Name:   serviceName,
+			Status: serviceStatus,
+		})
+
+		// Extract port information if service is running
+		if serviceStatus == "running" && serviceData["Publishers"] != nil {
+			if publishers, ok := serviceData["Publishers"].([]interface{}); ok {
+				for _, pub := range publishers {
+					if pubMap, ok := pub.(map[string]interface{}); ok {
+						if targetPort, ok := pubMap["TargetPort"].(float64); ok {
+							if publishedPort, ok := pubMap["PublishedPort"].(float64); ok {
+								ports = append(ports, Port{
+									Service:  serviceName,
+									Internal: int(targetPort),
+									External: int(publishedPort),
+									Protocol: "tcp",
+								})
+
+								// Generate URL for web services
+								if isWebPort(int(publishedPort)) {
+									url := fmt.Sprintf("http://localhost:%d", int(publishedPort))
+									urls = append(urls, url)
+									
+									// Update service with URL
+									for i := range services {
+										if services[i].Name == serviceName {
+											services[i].URL = url
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Determine overall status
+	if totalServices == 0 {
+		overallStatus = "no-services"
+	} else if runningServices == totalServices {
+		overallStatus = "running"
+	} else if runningServices > 0 {
+		overallStatus = "partial"
+	} else {
+		overallStatus = "stopped"
+	}
+
+	return overallStatus, services, ports, urls
+}
+
+// getGitInfo retrieves Git branch and status information
+func (r *Registry) getGitInfo(projectPath string) (string, string) {
+	// Check if it's a Git repository
+	gitDir := filepath.Join(projectPath, ".git")
+	if !utils.FileExists(gitDir) {
+		return "", ""
+	}
+
+	// Get current branch
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd.Dir = projectPath
+	branchOutput, err := cmd.Output()
+	if err != nil {
+		return "", ""
+	}
+	branch := strings.TrimSpace(string(branchOutput))
+
+	// Get status
+	cmd = exec.Command("git", "status", "--porcelain")
+	cmd.Dir = projectPath
+	statusOutput, err := cmd.Output()
+	if err != nil {
+		return branch, ""
+	}
+
+	statusLines := strings.Split(strings.TrimSpace(string(statusOutput)), "\n")
+	if len(statusLines) == 1 && statusLines[0] == "" {
+		return branch, "clean"
+	}
+
+	// Count modifications
+	modifications := 0
+	for _, line := range statusLines {
+		if strings.TrimSpace(line) != "" {
+			modifications++
+		}
+	}
+
+	if modifications > 0 {
+		return branch, fmt.Sprintf("%d changes", modifications)
+	}
+
+	return branch, "clean"
+}
+
+// isWebPort determines if a port is typically used for web services
+func isWebPort(port int) bool {
+	webPorts := []int{80, 443, 3000, 4000, 5000, 8000, 8080, 8443, 9000}
+	for _, webPort := range webPorts {
+		if port == webPort {
+			return true
+		}
+	}
+	return false
 }
