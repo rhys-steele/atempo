@@ -1,0 +1,188 @@
+name: Django Project Context
+description: Comprehensive context for Django development with Steele
+version: "1.0"
+
+# Framework Information
+framework:
+  name: Django
+  version: "5.x"
+  language: Python
+  package_manager: pip
+
+# Project Structure
+structure:
+  source_root: src/
+  settings_dir: src/config/settings/
+  apps_dir: src/apps/
+  templates_dir: src/templates/
+  static_dir: src/static/
+  media_dir: src/media/
+  requirements_file: src/requirements.txt
+  manage_py: src/manage.py
+
+# Development Commands
+commands:
+  install_dependencies: "pip install -r requirements.txt"
+  run_migrations: "python manage.py migrate"
+  create_migration: "python manage.py makemigrations {app_name}"
+  create_app: "python manage.py startapp {app_name}"
+  create_superuser: "python manage.py createsuperuser"
+  run_tests: "python manage.py test"
+  serve_dev: "python manage.py runserver"
+  collect_static: "python manage.py collectstatic"
+  shell: "python manage.py shell"
+  check_deployment: "python manage.py check --deploy"
+
+# Docker Integration
+docker:
+  app_container: web
+  database_container: postgres
+  redis_container: redis
+  working_directory: /app
+
+# Common Patterns
+patterns:
+  models:
+    - "Models should inherit from django.db.models.Model"
+    - "Use Django's built-in field types (CharField, IntegerField, etc.)"
+    - "Define __str__ methods for readable object representations"
+    - "Use Meta class for model options (ordering, verbose_name, etc.)"
+  
+  views:
+    - "Use class-based views for complex logic, function views for simple cases"
+    - "Always validate and sanitize user input"
+    - "Use Django's built-in authentication and permissions"
+    - "Return HttpResponse objects or use shortcuts like render()"
+  
+  urls:
+    - "Define URL patterns in urls.py files"
+    - "Use path() for simple patterns, re_path() for regex"
+    - "Include app URLs in main project urls.py"
+    - "Use URL names for reverse lookups"
+  
+  templates:
+    - "Use Django template language with proper escaping"
+    - "Extend base templates and use blocks for content"
+    - "Load static files with {% load static %}"
+    - "Use template filters and tags for data manipulation"
+
+# Best Practices
+best_practices:
+  - "Use Django's built-in user authentication system"
+  - "Implement proper error handling with try-except blocks"
+  - "Use Django's ORM instead of raw SQL when possible"
+  - "Follow Django's naming conventions for models, views, and URLs"
+  - "Use Django's built-in security features (CSRF, XSS protection)"
+  - "Implement proper logging throughout your application"
+  - "Use Django's migration system for database schema changes"
+  - "Write comprehensive tests for models, views, and forms"
+  - "Use environment variables for sensitive configuration"
+  - "Follow the DRY (Don't Repeat Yourself) principle"
+
+# Environment Setup
+environment:
+  required_env_vars:
+    - SECRET_KEY
+    - DEBUG
+    - DATABASE_URL
+    - ALLOWED_HOSTS
+    - REDIS_URL
+  
+  development_tools:
+    - Django Debug Toolbar
+    - Django Extensions
+    - pytest-django (testing)
+    - black (code formatting)
+    - flake8 (linting)
+
+# Common Issues & Solutions
+troubleshooting:
+  migration_issues: "Run 'python manage.py makemigrations' then 'python manage.py migrate'"
+  static_files: "Run 'python manage.py collectstatic' and check STATIC_ROOT setting"
+  database_connection: "Check DATABASE_URL and ensure database server is running"
+  import_errors: "Verify PYTHONPATH and app registration in INSTALLED_APPS"
+  csrf_errors: "Ensure {% csrf_token %} is included in forms"
+
+# File Templates
+templates:
+  model: |
+    from django.db import models
+    from django.contrib.auth.models import User
+
+
+    class {ClassName}(models.Model):
+        name = models.CharField(max_length=255)
+        created_at = models.DateTimeField(auto_now_add=True)
+        updated_at = models.DateTimeField(auto_now=True)
+        
+        class Meta:
+            ordering = ['-created_at']
+            verbose_name = '{ClassName}'
+            verbose_name_plural = '{ClassName}s'
+        
+        def __str__(self):
+            return self.name
+
+  view: |
+    from django.shortcuts import render, get_object_or_404
+    from django.http import HttpResponse, JsonResponse
+    from django.views.generic import ListView, DetailView
+    from django.contrib.auth.decorators import login_required
+    from django.utils.decorators import method_decorator
+
+
+    class {ClassName}ListView(ListView):
+        model = {ModelName}
+        template_name = '{app_name}/{model_name}_list.html'
+        context_object_name = '{model_name}s'
+        paginate_by = 20
+
+
+    class {ClassName}DetailView(DetailView):
+        model = {ModelName}
+        template_name = '{app_name}/{model_name}_detail.html'
+        context_object_name = '{model_name}'
+
+  form: |
+    from django import forms
+    from .models import {ModelName}
+
+
+    class {ClassName}Form(forms.ModelForm):
+        class Meta:
+            model = {ModelName}
+            fields = ['name', 'description']
+            widgets = {
+                'description': forms.Textarea(attrs={'rows': 4}),
+            }
+        
+        def clean_name(self):
+            name = self.cleaned_data['name']
+            if len(name) < 2:
+                raise forms.ValidationError('Name must be at least 2 characters long.')
+            return name
+
+# Django Apps Structure
+apps_structure:
+  recommended_apps:
+    - accounts (user management)
+    - core (shared utilities)
+    - api (REST API endpoints)
+  
+  app_structure: |
+    app_name/
+    ├── __init__.py
+    ├── admin.py
+    ├── apps.py
+    ├── models.py
+    ├── views.py
+    ├── urls.py
+    ├── forms.py
+    ├── serializers.py (for DRF)
+    ├── tests/
+    │   ├── __init__.py
+    │   ├── test_models.py
+    │   ├── test_views.py
+    │   └── test_forms.py
+    ├── templates/app_name/
+    └── migrations/

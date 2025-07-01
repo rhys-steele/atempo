@@ -1,0 +1,34 @@
+{
+  "framework": "django",
+  "language": "python",
+  "installer": {
+    "type": "pip",
+    "command": [
+      "django-admin",
+      "startproject",
+      "{{project}}",
+      "{{name}}"
+    ],
+    "work-dir": "{{cwd}}"
+  },
+  "working-dir": "/app",
+  "min-version": "4.0",
+  "services": {
+    "database": "postgresql",
+    "cache": "redis",
+    "queue": "celery",
+    "mail": "mailhog"
+  },
+  "ports": {
+    "web": 8000,
+    "postgres": 5432,
+    "redis": 6379,
+    "mailhog": 8025
+  },
+  "post_install": [
+    "Copy AI context and Docker configuration to project",
+    "Set up virtual environment and install dependencies",
+    "Configure Django settings for Docker environment",
+    "Run initial migrations and create superuser"
+  ]
+}
