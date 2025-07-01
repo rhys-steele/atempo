@@ -8,6 +8,7 @@ import (
 
 	"steele/internal/compose"
 	"steele/internal/docker"
+	"steele/internal/logger"
 	"steele/internal/registry"
 	"steele/internal/scaffold"
 )
@@ -42,6 +43,8 @@ func main() {
 		handleProjectsCommand()
 	case "add-service":
 		handleAddServiceCommand()
+	case "logs":
+		handleLogsCommand()
 	case "help", "--help", "-h":
 		showUsage()
 	default:
@@ -189,6 +192,7 @@ Commands:
   reconfigure [project]         Regenerate docker-compose.yml from steele.json
   add-service <type> [project]  Add predefined services (minio, elasticsearch, etc.)
   projects                      List all registered projects
+  logs <project>                View setup logs for a project
   help                          Show this help message
 
 Examples:
@@ -199,6 +203,7 @@ Examples:
   steele reconfigure            Regenerate docker-compose.yml from steele.json
   steele add-service minio      Add MinIO object storage service
   steele projects               List all registered projects
+  steele logs my-app            View setup logs for 'my-app' project
 
 Project Management:
   - Projects are automatically registered when created with 'steele start'
@@ -305,6 +310,58 @@ func handleAddServiceCommand() {
 
 	fmt.Printf("✅ %s service added to steele.json\n", serviceType)
 	fmt.Println("Run 'steele reconfigure' to update docker-compose.yml")
+}
+
+// handleLogsCommand displays setup logs for a project
+func handleLogsCommand() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: steele logs <project_name>")
+		fmt.Println("\nExample: steele logs my-laravel-app")
+		os.Exit(1)
+	}
+
+	projectName := os.Args[2]
+
+	// Get the latest log file for the project
+	logFile, err := logger.GetLatestLogFile(projectName)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		fmt.Println("\nTip: Project logs are created during 'steele start'. Available projects:")
+		
+		// Show available projects
+		reg, regErr := registry.LoadRegistry()
+		if regErr == nil {
+			projects := reg.ListProjects()
+			for _, project := range projects {
+				fmt.Printf("  - %s\n", project.Name)
+			}
+		}
+		os.Exit(1)
+	}
+
+	// Display the log file
+	fmt.Printf("📄 Setup logs for project: %s\n", projectName)
+	fmt.Printf("🔗 Log file: %s\n\n", logFile)
+
+	// Read and display the file content
+	content, err := os.ReadFile(logFile)
+	if err != nil {
+		fmt.Printf("Failed to read log file: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Print(string(content))
+
+	// Show all available log files if there are multiple
+	allLogs, err := logger.GetAllLogFiles(projectName)
+	if err == nil && len(allLogs) > 1 {
+		fmt.Printf("\nOther available logs for %s:\n", projectName)
+		for i, logPath := range allLogs {
+			if logPath != logFile {
+				fmt.Printf("  %d. %s\n", i+1, logPath)
+			}
+		}
+	}
 }
 
 // showDockerUsage displays Docker-specific help

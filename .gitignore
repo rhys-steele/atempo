@@ -34,3 +34,6 @@ Thumbs.db
 
 # Cache directories
 .cache/
+
+# My files
+.me/
