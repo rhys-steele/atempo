@@ -1,0 +1,21 @@
+{
+  "framework": "laravel",
+  "language": "php",
+  "installer": {
+    "type": "composer",
+    "command": [
+      "composer",
+      "create-project",
+      "--prefer-dist",
+      "--no-interaction",
+      "--no-scripts",
+      "--no-progress",
+      "--no-plugins",
+      "laravel/laravel",
+      "{{name}}"
+    ],
+    "work-dir": "{{cwd}}"
+  },
+  "working-dir": "/var/www",
+  "min-version": "10.0"
+}
