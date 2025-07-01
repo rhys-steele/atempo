@@ -1,22 +1,36 @@
-# 🛠️ Steele
+# Steele
 
-**Steele** is a developer-first, AI-enhanced CLI for bootstrapping **framework-agnostic** projects with built-in support for Claude, MCP (Model–Context–Protocol), Docker, and best-practice architecture.  
+[![Go Version](https://img.shields.io/badge/go-1.22+-brightgreen.svg)](https://golang.org)
+[![License](https://img.shields.io/badge/license-Steele%20OSL-blue)](./LICENSE)
+[![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
+[![CLI](https://img.shields.io/badge/cli-steele-informational)]()
 
-Start fast. Stay scalable. Think with context.
+**Steele** is a command-line tool for bootstrapping modern, AI-enabled development environments.
+
+It scaffolds framework-native codebases (e.g. Laravel, Node, Django) using official installers, then layers in a Claude-ready AI context system and optional Docker-based infrastructure. Steele is designed for speed, clarity, and long-term reuse.
 
 ---
 
-## 🚀 Quick Start
+## Overview
 
-### 📦 Install
+Steele creates clean, opinionated project structures with:
 
-If you have Go installed:
+- Framework-native source code (via official installers)
+- AI-first Claude context system
+- Optional Docker setup for local development
+- Project metadata via `steele.json`
+
+---
+
+## Installation
+
+You’ll need Go 1.22+ installed:
 
 ```bash
 go install github.com/yourname/steele@latest
 ```
 
-Or clone and build manually:
+Alternatively, build from source:
 
 ```bash
 git clone https://github.com/yourname/steele
@@ -24,7 +38,7 @@ cd steele
 go build -o steele .
 ```
 
-Then move it into your path (optional):
+(Optional) Move it to your path:
 
 ```bash
 mv steele /usr/local/bin/
@@ -32,109 +46,68 @@ mv steele /usr/local/bin/
 
 ---
 
-### 🧱 Create a New Project
+## Usage
+
+### Create a new Laravel project
 
 ```bash
 mkdir my-app && cd my-app
 steele start laravel:12
 ```
 
-This sets up:
+This will:
+
+- Run Laravel's official installer in a Docker container
+- Populate your `/src` directory
+- Add Claude context (`/ai/context.yaml`)
+- Add optional Docker environment (`/infra/docker/`)
+- Create `steele.json` for future commands
+
+---
+
+## Project Structure
+
+After running `steele start`, you’ll get:
 
 ```
 my-app/
-├── src/                # Laravel 12 source code
-├── ai/                 # AI + MCP context system
-├── infra/              # Docker environment
-├── steele.json         # Framework metadata
+├── src/              # Laravel source code
+├── ai/               # Claude context
+├── infra/            # Docker infrastructure
+│   └── docker/
+├── steele.json       # Metadata used by Steele
 └── README.md
 ```
 
 ---
 
-## 💡 What Is Steele?
+## Commands
 
-**Steele** helps you scaffold new application projects with:
-
-- 🚀 Language/framework starter templates (Laravel, Node, etc.)
-- 🧠 MCP-ready Claude context (`ai/context/context.yaml`)
-- 🐳 Dev infrastructure (`infra/docker/`)
-- 🧪 Dev-friendly commands (`steele docker`, `steele artisan`, etc.)
-- ✨ AI integration points (prompts, agents, Claude interface)
-
-Think of it as a smarter `create-react-app`, but for **any stack** — and AI-aware from day one.
+- `steele start <framework>` – Scaffold a new project
+- `steele docker up` – Start Docker services (coming soon)
+- `steele context edit` – Modify Claude context (coming soon)
+- `steele generate <type>` – Generate services, tests, etc. using Claude (future)
 
 ---
 
-## 🧰 Core CLI Commands
+## Philosophy
 
-### 🆕 Start a New Project
-```bash
-steele start laravel:12
-```
-
-Scaffolds a Laravel 12 project with context and infra.
+Steele helps developers start fast without sacrificing structure. By combining official frameworks with an AI-first toolchain, Steele keeps code clean, reproducible, and easy to scale — without bloated templates or vendor lock-in.
 
 ---
 
-### 🐳 Docker Commands
-```bash
-steele docker up       # Start containers
-steele docker bash     # Open shell into app container
-```
+## Roadmap
+
+- Laravel: ✅
+- Node.js: ⏳
+- Django: ⏳
+- React: ⏳
+- Custom templates: 🔜
+- Service/test generation via Claude: 🔜
 
 ---
 
-### 🧪 Artisan Passthrough
-```bash
-steele artisan migrate:fresh
-```
+## License
 
-Runs Laravel `artisan` commands inside Docker transparently.
-
----
-
-## 🔮 Coming Soon
-
-- `steele context edit`: edit your Claude context file
-- `steele claude "Generate a service for onboarding users"`: injects context and prompts Claude
-- `steele start node:20`, `steele start react`, etc.
-- `steele generate test`, `steele prompt --from src/Service.php`
-
----
-
-## 🌍 Why Use Steele?
-
-- 🔁 Reuse across all your projects
-- 🧠 Keeps your Claude and LLM tooling separated from code
-- 🚫 No more polluting your projects with boilerplate or AI agents
-- 💬 Prepares every project to use AI as a co-developer, not a side tool
-
----
-
-## 🧱 Philosophy
-
-> Tools should get out of your way and *into your headspace*.
-
-**Steele separates the CLI from your projects.**  
-It bootstraps your app, manages Docker, feeds AI agents with context, and gives you smart commands — without embedding anything unnecessary into your codebase.
-
-You install Steele once. You use it everywhere.
-
----
-
-## 🧩 Framework Roadmap
-
-| Framework   | Status   |
-|-------------|----------|
-| Laravel     | ✅ Ready |
-| Node.js     | 🔜       |
-| Django      | 🔜       |
-| React       | 🔜       |
-| Astro       | 🔜       |
-
----
-
-## 📄 License
-
-MIT – © 2025 Rhys May
+Licensed under the **Steele Open Source License v1.0**  
+See [LICENSE](./LICENSE) for details.
