@@ -19,7 +19,7 @@ class LaravelMCPServer {
   constructor() {
     this.server = new Server(
       {
-        name: "steele-laravel-mcp-server",
+        name: "atempo-laravel-mcp-server",
         version: "1.0.0",
       },
       {

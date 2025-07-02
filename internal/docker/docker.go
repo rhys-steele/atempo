@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"steele/internal/utils"
+	"atempo/internal/utils"
 )
 
 // DockerCommand represents available Docker operations
@@ -17,7 +17,7 @@ type DockerCommand struct {
 	Args        []string
 }
 
-// Common Docker commands for Steele projects
+// Common Docker commands for Atempo projects
 var SupportedCommands = map[string]DockerCommand{
 	"up": {
 		Name:        "up",

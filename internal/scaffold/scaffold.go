@@ -10,9 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"steele/internal/compose"
-	"steele/internal/registry"
-	"steele/internal/utils"
+	"atempo/internal/compose"
+	"atempo/internal/logger"
+	"atempo/internal/mcp"
+	"atempo/internal/registry"
+	"atempo/internal/utils"
 )
 
 
@@ -24,7 +26,7 @@ type Installer struct {
 	WorkDir string   `json:"work-dir"` // Directory to run the command in
 }
 
-// Metadata describes a Steele template's configuration,
+// Metadata describes a Atempo template's configuration,
 // including language, installer, and framework compatibility.
 type Metadata struct {
 	Name        string    `json:"name"`         // Project name template
@@ -36,72 +38,98 @@ type Metadata struct {
 }
 
 // Run executes the scaffolding process for the given framework and version.
-// It loads the template's `steele.json`, performs template substitution,
+// It loads the template's `atempo.json`, performs template substitution,
 // runs the specified install command, and copies template files.
 func Run(framework string, version string, templatesFS, mcpServersFS embed.FS) error {
-	// Load steele.json (try embedded first, fallback to filesystem)
+	// Get the current working directory (user's target project root)
+	projectDir, _ := os.Getwd()
+	projectName := filepath.Base(projectDir)
+
+	// Create logger for this project
+	log, err := logger.New(projectName)
+	if err != nil {
+		return fmt.Errorf("failed to create logger: %w", err)
+	}
+	defer log.Close()
+
+	fmt.Printf("🚀 Setting up %s %s project: %s\n", framework, version, projectName)
+	fmt.Printf("📄 Detailed logs will be saved to: %s\n\n", log.LogPath)
+
+	// Step 1: Load and validate template configuration
+	loadStep := log.StartStep("Loading template configuration")
+	// Load atempo.json (try embedded first, fallback to filesystem)
 	var metaBytes []byte
-	var err error
 	
 	// Try embedded first
-	embeddedPath := fmt.Sprintf("templates/%s/steele.json", framework)
-	metaBytes, err = templatesFS.ReadFile(embeddedPath)
-	if err != nil {
+	embeddedPath := fmt.Sprintf("templates/%s/atempo.json", framework)
+	metaBytes, readErr := templatesFS.ReadFile(embeddedPath)
+	if readErr != nil {
 		// Fallback to filesystem - find templates relative to binary location
-		filesystemPath, pathErr := getFilesystemTemplatePath(framework, "steele.json")
+		filesystemPath, pathErr := getFilesystemTemplatePath(framework, "atempo.json")
 		if pathErr != nil {
-			return fmt.Errorf("could not locate steele.json for %s: %w", framework, pathErr)
+			log.ErrorStep(loadStep, fmt.Errorf("could not locate atempo.json for %s: %w", framework, pathErr))
+			return fmt.Errorf("could not locate atempo.json for %s: %w", framework, pathErr)
 		}
-		metaBytes, err = os.ReadFile(filesystemPath)
-		if err != nil {
-			return fmt.Errorf("could not read steele.json for %s: %w", framework, err)
+		metaBytes, readErr = os.ReadFile(filesystemPath)
+		if readErr != nil {
+			log.ErrorStep(loadStep, fmt.Errorf("could not read atempo.json for %s: %w", framework, readErr))
+			return fmt.Errorf("could not read atempo.json for %s: %w", framework, readErr)
 		}
 	}
 
 	// Parse the metadata JSON into a structured object
 	var meta Metadata
-	if err := json.Unmarshal(metaBytes, &meta); err != nil {
-		return fmt.Errorf("invalid steele.json: %w", err)
+	if parseErr := json.Unmarshal(metaBytes, &meta); parseErr != nil {
+		log.ErrorStep(loadStep, fmt.Errorf("invalid atempo.json: %w", parseErr))
+		return fmt.Errorf("invalid atempo.json: %w", parseErr)
 	}
 
 	// Validate version compatibility
-	if err := validateVersion(version, meta); err != nil {
-		return fmt.Errorf("version validation failed: %w", err)
+	if validateErr := validateVersion(version, meta); validateErr != nil {
+		log.ErrorStep(loadStep, fmt.Errorf("version validation failed: %w", validateErr))
+		return fmt.Errorf("version validation failed: %w", validateErr)
 	}
 
-	// Get the current working directory (user's target project root)
-	projectDir, _ := os.Getwd()
-	projectName := filepath.Base(projectDir)
+	log.CompleteStep(loadStep)
 
-	// Step 1: Run the framework installer (e.g., composer create-project)
-	fmt.Println("🚀 Installing", framework, version, "application...")
-	if err := runInstaller(meta, projectDir, projectName, version); err != nil {
+	// Step 2: Run the framework installer (e.g., composer create-project)
+	installStep := log.StartStep(fmt.Sprintf("Installing %s %s application", framework, version))
+	if err := runInstaller(log, installStep, meta, projectDir, projectName, version); err != nil {
+		log.ErrorStep(installStep, err)
 		return fmt.Errorf("installer failed: %w", err)
 	}
+	log.CompleteStep(installStep)
 
-	// Step 2: Copy template files (AI context, Docker setup, etc.)
-	fmt.Println("📁 Copying template files...")
-	if err := copyTemplateFiles(projectDir, meta.Framework, templatesFS, mcpServersFS); err != nil {
+	// Step 3: Copy template files (AI context, Docker setup, etc.)
+	copyStep := log.StartStep("Copying template files")
+	if err := copyTemplateFiles(log, copyStep, projectDir, meta.Framework, templatesFS, mcpServersFS); err != nil {
+		log.ErrorStep(copyStep, err)
 		return fmt.Errorf("failed to copy template files: %w", err)
 	}
+	log.CompleteStep(copyStep)
 
-	// Step 3: Run post-installation setup
-	fmt.Println("⚙️  Running post-installation setup...")
-	if err := runPostInstall(meta, projectDir); err != nil {
+	// Step 4: Run post-installation setup
+	postStep := log.StartStep("Running post-installation setup")
+	if err := runPostInstall(log, postStep, meta, projectDir); err != nil {
+		log.ErrorStep(postStep, err)
 		return fmt.Errorf("post-installation failed: %w", err)
 	}
+	log.CompleteStep(postStep)
 
-	// Step 4: Register project and generate docker-compose
-	fmt.Println("📝 Registering project and generating docker-compose...")
-	if err := finalizeProject(meta, projectDir, projectName, version); err != nil {
-		fmt.Printf("⚠️  Warning: %v\n", err)
+	// Step 5: Register project and generate docker-compose
+	finalStep := log.StartStep("Registering project and generating docker-compose")
+	if err := finalizeProject(log, finalStep, meta, projectDir, projectName, version); err != nil {
+		log.WarningStep(finalStep, err.Error())
+	} else {
+		log.CompleteStep(finalStep)
 	}
 
+	log.PrintSummary()
 	return nil
 }
 
 // runInstaller executes the framework installation command
-func runInstaller(meta Metadata, projectDir, projectName, version string) error {
+func runInstaller(log *logger.Logger, step *logger.Step, meta Metadata, projectDir, projectName, version string) error {
 	// Perform template variable substitution in the command
 	command := make([]string, len(meta.Installer.Command))
 	for i, part := range meta.Installer.Command {
@@ -118,11 +146,9 @@ func runInstaller(meta Metadata, projectDir, projectName, version string) error 
 	// Prepare the executable command
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
-	fmt.Println("→ Running:", strings.Join(command, " "))
-	return cmd.Run()
+	// Use logger to capture command output
+	return log.RunCommand(step, cmd)
 }
 
 // validateVersion checks if the requested version is compatible with the template
@@ -218,10 +244,9 @@ func applyDjangoVersionOptions(command []string, version string) []string {
 }
 
 // copyTemplateFiles copies AI context, Docker setup, and other template files (embedded or filesystem)
-func copyTemplateFiles(projectDir, framework string, templatesFS, mcpServersFS embed.FS) error {
+func copyTemplateFiles(log *logger.Logger, step *logger.Step, projectDir, framework string, templatesFS, mcpServersFS embed.FS) error {
 	// Copy AI context directory
 	aiDstPath := filepath.Join(projectDir, "ai")
-	fmt.Println("→ Copying AI context files...")
 	
 	// Try embedded first, fallback to filesystem
 	embeddedAiPath := fmt.Sprintf("templates/%s/ai", framework)
@@ -236,14 +261,13 @@ func copyTemplateFiles(projectDir, framework string, templatesFS, mcpServersFS e
 	}
 
 	// Copy MCP server for the framework
-	if err := copyMCPServer(framework, projectDir, mcpServersFS); err != nil {
-		fmt.Printf("⚠️  Failed to copy MCP server: %v\n", err)
+	if err := copyMCPServer(log, step, framework, projectDir, mcpServersFS); err != nil {
+		log.WarningStep(step, fmt.Sprintf("Failed to copy MCP server: %v", err))
 		// Don't fail the entire setup if MCP server copy fails
 	}
 
 	// Copy infrastructure directory (Docker setup)
 	infraDstPath := filepath.Join(projectDir, "infra")
-	fmt.Println("→ Copying Docker infrastructure...")
 	
 	// Try embedded first, fallback to filesystem
 	embeddedInfraPath := fmt.Sprintf("templates/%s/infra", framework)
@@ -266,63 +290,74 @@ func copyTemplateFiles(projectDir, framework string, templatesFS, mcpServersFS e
 		// Fallback to filesystem
 		readmeSrcPath, pathErr := getFilesystemTemplatePath(framework, "README.md")
 		if pathErr == nil {
-			fmt.Println("→ Copying project README...")
 			if err := utils.CopyFile(readmeSrcPath, readmeDstPath); err != nil {
 				return fmt.Errorf("failed to copy README: %w", err)
 			}
 		}
-	} else {
-		fmt.Println("→ Copying project README...")
 	}
 
 	return nil
 }
 
-// copyMCPServer copies the framework-specific MCP server to the project
-func copyMCPServer(framework, projectDir string, mcpServersFS embed.FS) error {
-	embeddedMcpPath := fmt.Sprintf("mcp-servers/%s", framework)
+// copyMCPServer discovers and installs the best available MCP server for the framework
+func copyMCPServer(log *logger.Logger, step *logger.Step, framework, projectDir string, mcpServersFS embed.FS) error {
 	mcpDstPath := filepath.Join(projectDir, "ai", "mcp-server")
-
-	fmt.Println("→ Copying MCP server for", framework, "...")
 	
-	// Try embedded first, fallback to filesystem
-	if err := copyEmbeddedDir(mcpServersFS, embeddedMcpPath, mcpDstPath); err != nil {
-		// Fallback to filesystem - find MCP servers relative to binary location
-		filesystemMcpPath, pathErr := getFilesystemMCPPath(framework)
-		if pathErr != nil {
-			return fmt.Errorf("MCP server for %s not found: %w", framework, pathErr)
+	// Discover available MCP servers
+	discovery, err := mcp.DiscoverMCPServers(framework)
+	if err != nil {
+		return fmt.Errorf("failed to discover MCP servers: %w", err)
+	}
+
+	var selectedServer mcp.MCPServer
+	var serverType string
+
+	// Prefer official servers, then community, then generated
+	if len(discovery.Official) > 0 {
+		selectedServer = discovery.Official[0]
+		serverType = "official"
+	} else if len(discovery.Community) > 0 {
+		selectedServer = discovery.Community[0]
+		serverType = "community"
+	} else if discovery.Generated != nil {
+		selectedServer = *discovery.Generated
+		serverType = "generated"
+	} else {
+		return fmt.Errorf("no MCP servers available for %s", framework)
+	}
+
+	// Install the selected server
+	if serverType == "generated" {
+		// Use template-based generation
+		projectInfo := mcp.ProjectInfo{
+			Name:      filepath.Base(projectDir),
+			Framework: framework,
+			Path:      projectDir,
 		}
-		if err := utils.CopyDir(filesystemMcpPath, mcpDstPath); err != nil {
-			return fmt.Errorf("failed to copy MCP server from filesystem: %w", err)
+		
+		if err := mcp.GenerateServerFromTemplate(selectedServer, projectInfo, mcpDstPath); err != nil {
+			return fmt.Errorf("failed to generate MCP server: %w", err)
+		}
+	} else {
+		// Install official/community server
+		if err := mcp.InstallMCPServer(selectedServer, projectDir); err != nil {
+			return fmt.Errorf("failed to install MCP server: %w", err)
 		}
 	}
 
 	// Install npm dependencies
-	fmt.Println("→ Installing MCP server dependencies...")
 	cmd := exec.Command("npm", "install")
 	cmd.Dir = mcpDstPath
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
-	if err := cmd.Run(); err != nil {
+	if err := log.RunCommand(step, cmd); err != nil {
 		return fmt.Errorf("failed to install MCP server dependencies: %w", err)
 	}
-
-	fmt.Println("✅ MCP server ready!")
-	fmt.Printf("   Add this to your Claude Code MCP settings:\n")
-	fmt.Printf("   {\n")
-	fmt.Printf("     \"steele-%s\": {\n", framework)
-	fmt.Printf("       \"command\": \"node\",\n")
-	fmt.Printf("       \"args\": [\"ai/mcp-server/index.js\"],\n")
-	fmt.Printf("       \"cwd\": \"%s\"\n", projectDir)
-	fmt.Printf("     }\n")
-	fmt.Printf("   }\n")
 
 	return nil
 }
 
 // finalizeProject registers the project and generates docker-compose.yml
-func finalizeProject(meta Metadata, projectDir, projectName, version string) error {
+func finalizeProject(log *logger.Logger, step *logger.Step, meta Metadata, projectDir, projectName, version string) error {
 	// Resolve project name from template
 	resolvedName := meta.Name
 	if resolvedName == "" || strings.Contains(resolvedName, "{{") {
@@ -342,38 +377,34 @@ func finalizeProject(meta Metadata, projectDir, projectName, version string) err
 		return fmt.Errorf("failed to register project: %w", err)
 	}
 
-	fmt.Printf("→ Project '%s' registered\n", resolvedName)
-
-	// Generate docker-compose.yml from steele.json if it has services defined
-	steeleJsonPath := filepath.Join(projectDir, "steele.json")
-	if utils.FileExists(steeleJsonPath) {
-		fmt.Println("→ Generating docker-compose.yml from steele.json...")
+	// Generate docker-compose.yml from atempo.json if it has services defined
+	atempoJsonPath := filepath.Join(projectDir, "atempo.json")
+	if utils.FileExists(atempoJsonPath) {
 		if err := compose.GenerateDockerCompose(projectDir); err != nil {
 			return fmt.Errorf("failed to generate docker-compose.yml: %w", err)
 		}
-		fmt.Println("✅ docker-compose.yml generated")
 	}
 
 	return nil
 }
 
 // runPostInstall handles framework-specific setup after installation
-func runPostInstall(meta Metadata, projectDir string) error {
+func runPostInstall(log *logger.Logger, step *logger.Step, meta Metadata, projectDir string) error {
 	// Set up Laravel environment file
 	if meta.Framework == "laravel" {
-		return setupLaravel(projectDir)
+		return setupLaravel(log, step, projectDir)
 	}
 
 	// Set up Django environment
 	if meta.Framework == "django" {
-		return setupDjango(projectDir)
+		return setupDjango(log, step, projectDir)
 	}
 
 	return nil
 }
 
 // setupLaravel performs Laravel-specific post-installation setup
-func setupLaravel(projectDir string) error {
+func setupLaravel(log *logger.Logger, step *logger.Step, projectDir string) error {
 	srcDir := filepath.Join(projectDir, "src")
 	
 	// Copy .env.example to .env
@@ -381,27 +412,24 @@ func setupLaravel(projectDir string) error {
 	envFile := filepath.Join(srcDir, ".env")
 	
 	if utils.FileExists(envExample) && !utils.FileExists(envFile) {
-		fmt.Println("→ Creating .env file from .env.example...")
 		if err := utils.CopyFile(envExample, envFile); err != nil {
 			return fmt.Errorf("failed to create .env file: %w", err)
 		}
 	}
 
 	// Update .env with Docker database configuration
-	fmt.Println("→ Configuring Laravel for Docker environment...")
 	if err := updateLaravelEnv(envFile); err != nil {
 		return fmt.Errorf("failed to update .env: %w", err)
 	}
 
 	// Check if Docker is available and start services
-	if err := startDockerServices(projectDir); err != nil {
-		fmt.Println("⚠️  Docker not available or failed to start services")
-		fmt.Println("   Run 'docker-compose up -d' manually to start the development environment")
+	if err := startDockerServices(log, step, projectDir); err != nil {
+		log.WarningStep(step, "Docker not available or failed to start services - run 'docker-compose up -d' manually")
 		return nil // Don't fail the entire setup if Docker isn't available
 	}
 
 	// Run Laravel setup commands
-	return runLaravelSetup(projectDir)
+	return runLaravelSetup(log, step, projectDir)
 }
 
 // updateLaravelEnv updates the .env file with Docker-specific configuration
@@ -429,19 +457,15 @@ func updateLaravelEnv(envFile string) error {
 }
 
 // startDockerServices attempts to start Docker services
-func startDockerServices(projectDir string) error {
-	fmt.Println("→ Starting Docker services...")
-	
+func startDockerServices(log *logger.Logger, step *logger.Step, projectDir string) error {
 	cmd := exec.Command("docker-compose", "up", "-d")
 	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	
-	return cmd.Run()
+	return log.RunCommand(step, cmd)
 }
 
 // runLaravelSetup runs essential Laravel setup commands in Docker
-func runLaravelSetup(projectDir string) error {
+func runLaravelSetup(log *logger.Logger, step *logger.Step, projectDir string) error {
 	commands := [][]string{
 		{"docker-compose", "exec", "-T", "app", "composer", "install"},
 		{"docker-compose", "exec", "-T", "app", "php", "artisan", "key:generate"},
@@ -449,16 +473,11 @@ func runLaravelSetup(projectDir string) error {
 	}
 
 	for _, command := range commands {
-		fmt.Println("→ Running:", strings.Join(command, " "))
-		
 		cmd := exec.Command(command[0], command[1:]...)
 		cmd.Dir = projectDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 		
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("⚠️  Command failed: %s\n", strings.Join(command, " "))
-			fmt.Println("   You may need to run this manually after Docker services are ready")
+		if err := log.RunCommand(step, cmd); err != nil {
+			log.WarningStep(step, fmt.Sprintf("Command failed: %s - you may need to run this manually", strings.Join(command, " ")))
 			continue // Continue with other commands
 		}
 	}
@@ -467,7 +486,7 @@ func runLaravelSetup(projectDir string) error {
 }
 
 // setupDjango performs Django-specific post-installation setup
-func setupDjango(projectDir string) error {
+func setupDjango(log *logger.Logger, step *logger.Step, projectDir string) error {
 	srcDir := filepath.Join(projectDir, "src")
 	
 	// Copy and update requirements.txt from Docker template
@@ -475,21 +494,19 @@ func setupDjango(projectDir string) error {
 	requirementsDst := filepath.Join(srcDir, "requirements.txt")
 	
 	if utils.FileExists(requirementsSrc) {
-		fmt.Println("→ Copying and updating requirements.txt...")
 		if err := copyAndUpdateRequirements(requirementsSrc, requirementsDst, projectDir); err != nil {
 			return fmt.Errorf("failed to copy requirements.txt: %w", err)
 		}
 	}
 
 	// Check if Docker is available and start services
-	if err := startDockerServices(projectDir); err != nil {
-		fmt.Println("⚠️  Docker not available or failed to start services")
-		fmt.Println("   Run 'docker-compose up -d' manually to start the development environment")
+	if err := startDockerServices(log, step, projectDir); err != nil {
+		log.WarningStep(step, "Docker not available or failed to start services - run 'docker-compose up -d' manually")
 		return nil // Don't fail the entire setup if Docker isn't available
 	}
 
 	// Run Django setup commands
-	return runDjangoSetup(projectDir)
+	return runDjangoSetup(log, step, projectDir)
 }
 
 // copyAndUpdateRequirements copies requirements.txt and updates Django version
@@ -529,7 +546,7 @@ func extractVersionFromProject(projectDir string) string {
 }
 
 // runDjangoSetup runs essential Django setup commands in Docker
-func runDjangoSetup(projectDir string) error {
+func runDjangoSetup(log *logger.Logger, step *logger.Step, projectDir string) error {
 	commands := [][]string{
 		{"docker-compose", "exec", "-T", "web", "pip", "install", "-r", "requirements.txt"},
 		{"docker-compose", "exec", "-T", "web", "python", "manage.py", "migrate"},
@@ -537,25 +554,14 @@ func runDjangoSetup(projectDir string) error {
 	}
 
 	for _, command := range commands {
-		fmt.Println("→ Running:", strings.Join(command, " "))
-		
 		cmd := exec.Command(command[0], command[1:]...)
 		cmd.Dir = projectDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 		
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("⚠️  Command failed: %s\n", strings.Join(command, " "))
-			fmt.Println("   You may need to run this manually after Docker services are ready")
+		if err := log.RunCommand(step, cmd); err != nil {
+			log.WarningStep(step, fmt.Sprintf("Command failed: %s - you may need to run this manually", strings.Join(command, " ")))
 			continue // Continue with other commands
 		}
 	}
-
-	fmt.Println("🎉 Django setup complete!")
-	fmt.Println("   → Django app: http://localhost:8000")
-	fmt.Println("   → Django admin: http://localhost:8000/admin")
-	fmt.Println("   → Mailhog: http://localhost:8025")
-	fmt.Println("   → Create superuser: docker-compose exec web python manage.py createsuperuser")
 
 	return nil
 }

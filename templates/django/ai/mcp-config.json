@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "steele-django": {
+    "atempo-django": {
       "command": "node",
       "args": ["ai/mcp-server/index.js"],
       "cwd": ".",

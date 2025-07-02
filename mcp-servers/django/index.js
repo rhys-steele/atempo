@@ -19,7 +19,7 @@ class DjangoMCPServer {
   constructor() {
     this.server = new Server(
       {
-        name: "steele-django-mcp-server",
+        name: "atempo-django-mcp-server",
         version: "1.0.0",
       },
       {

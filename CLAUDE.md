@@ -4,19 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Steele is a developer-first, AI-enhanced CLI tool for scaffolding framework-agnostic projects with built-in support for Claude, MCP (Model-Context-Protocol), Docker, and best-practice architecture. It's designed as a reusable CLI that operates external to projects while bootstrapping them with AI-ready context systems.
+Atempo is a developer-first, AI-enhanced CLI tool for scaffolding framework-agnostic projects with built-in support for Claude, MCP (Model-Context-Protocol), Docker, and best-practice architecture. It's designed as a reusable CLI that operates external to projects while bootstrapping them with AI-ready context systems.
 
 ## Build and Development Commands
 
 ### Building the CLI
 ```bash
-go build -o steele cmd/steele/main.go
+go build -o atempo cmd/atempo/main.go
 ```
 
 ### Installation from source
 ```bash
-go build -o steele .
-mv steele /usr/local/bin/  # Optional: add to PATH
+go build -o atempo .
+mv atempo /usr/local/bin/  # Optional: add to PATH
 ```
 
 ### Module management
@@ -26,21 +26,42 @@ go mod tidy
 
 ## Architecture
 
-### Core Components
+### New Modular Architecture (Post-Refactor)
 
-- **`cmd/steele/main.go`**: CLI entry point that handles command parsing and delegates to scaffold package
-- **`internal/scaffold/scaffold.go`**: Core scaffolding logic that reads template metadata and executes installation commands
-- **`templates/`**: Framework-specific templates with metadata files (`steele.json`)
-- **`internal/context/`**: AI context management (currently empty, placeholder for future MCP integration)
-- **`internal/utils/`**: Shared utilities (currently empty)
+The project follows Clean Architecture principles with clear separation of concerns:
+
+#### Core Components
+
+- **`cmd/atempo/main.go`**: Minimal CLI entry point (61 lines) that delegates to command registry
+- **`internal/app/commands/`**: Command layer with individual handlers
+  - `command.go`: Base interfaces and structures
+  - `registry.go`: Command registry and routing
+  - `start.go`: Project scaffolding command
+  - `docker.go`: Docker operations command
+  - `projects.go`: Project listing command
+  - `status.go`: Project status dashboard
+  - `other.go`: Additional commands (reconfigure, add-service, logs, describe)
+- **`internal/scaffold/`**: Core scaffolding business logic
+- **`internal/registry/`**: Project registry management
+- **`internal/docker/`**: Docker integration layer
+- **`internal/compose/`**: Docker Compose generation
+- **`templates/`**: Framework-specific templates with metadata files
+
+#### Architecture Benefits
+
+- **Modularity**: Each command is a separate, testable unit
+- **Extensibility**: Easy to add new commands without touching existing code
+- **Maintainability**: Clean separation reduces complexity
+- **Testability**: Commands can be unit tested in isolation
+- **Scalability**: Supports plugin architecture for future frameworks
 
 ### Template System
 
 Templates are stored in `templates/<framework>/` directories, each containing:
-- `steele.json`: Metadata file defining framework, language, installer commands, and working directory
+- `atempo.json`: Metadata file defining framework, language, installer commands, and working directory
 - Framework-specific files (Dockerfile, docker-compose.yml, context files, etc.)
 
-The `steele.json` structure:
+The `atempo.json` structure:
 ```json
 {
   "framework": "laravel",
@@ -62,16 +83,16 @@ Template variables supported:
 
 ### Current CLI Usage
 ```bash
-steele start <framework>:<version>
+atempo start <framework>:<version>
 ```
 
-Example: `steele start laravel:12`
+Example: `atempo start laravel:12`
 
 ### Planned Features (from README)
-- Docker integration (`steele docker up`, `steele docker bash`)
-- Framework command passthrough (`steele artisan migrate:fresh`)
-- AI context editing (`steele context edit`)
-- Direct Claude integration (`steele claude "prompt"`)
+- Docker integration (`atempo docker up`, `atempo docker bash`)
+- Framework command passthrough (`atempo artisan migrate:fresh`)
+- AI context editing (`atempo context edit`)
+- Direct Claude integration (`atempo claude "prompt"`)
 - Additional framework support (Node.js, Django, React, Astro)
 
 ## Development Notes

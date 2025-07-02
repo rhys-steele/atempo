@@ -1,13 +1,13 @@
-# Steele
+# Atempo
+
+**Atempo** is a command-line tool for bootstrapping modern, AI-enabled development environments.
+
+It scaffolds framework-native codebases (e.g. Laravel, Node, Django) using official installers, then layers in a Claude-ready AI context system and optional Docker-based infrastructure. Steele is designed for speed, clarity, and long-term reuse.
 
 [![Go Version](https://img.shields.io/badge/go-1.22+-brightgreen.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/license-Steele%20OSL-blue)](./LICENSE)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
 [![CLI](https://img.shields.io/badge/cli-steele-informational)]()
-
-**Steele** is a command-line tool for bootstrapping modern, AI-enabled development environments.
-
-It scaffolds framework-native codebases (e.g. Laravel, Node, Django) using official installers, then layers in a Claude-ready AI context system and optional Docker-based infrastructure. Steele is designed for speed, clarity, and long-term reuse.
 
 ---
 
@@ -27,21 +27,21 @@ Steele creates clean, opinionated project structures with:
 You’ll need Go 1.22+ installed:
 
 ```bash
-go install github.com/yourname/steele@latest
+go install github.com/yourname/atempo@latest
 ```
 
 Alternatively, build from source:
 
 ```bash
-git clone https://github.com/yourname/steele
-cd steele
-go build -o steele .
+git clone https://github.com/yourname/atempo
+cd atempo
+go build -o atempo .
 ```
 
 (Optional) Move it to your path:
 
 ```bash
-mv steele /usr/local/bin/
+mv atempo /usr/local/bin/
 ```
 
 ---
@@ -52,9 +52,43 @@ mv steele /usr/local/bin/
 
 ```bash
 mkdir my-app && cd my-app
-steele start laravel:12
+atempo start laravel:12
 ```
 
+This sets up:
+
+```
+my-app/
+├── src/                # Laravel 12 source code
+├── ai/                 # AI + MCP context system
+├── infra/              # Docker environment
+├── atempo.json         # Framework metadata
+└── README.md
+```
+
+## What Is Atempo?
+
+**Atempo** helps you scaffold new application projects with:
+
+- Language/framework starter templates (Laravel, Node, etc.)
+- MCP-ready Claude context (`ai/context/context.yaml`)
+- Dev infrastructure (`infra/docker/`)
+- Dev-friendly commands (`atempo docker`, `atempo artisan`, etc.)
+- AI integration points (prompts, agents, Claude interface)
+
+Think of it as a smarter `create-react-app`, but for **any stack** — and AI-aware from day one.
+
+---
+
+## Core CLI Commands
+
+### Start a New Project
+```bash
+atempo start laravel:12
+```
+
+Scaffolds a Laravel 12 project with context and infra.
+=======
 This will:
 
 - Run Laravel's official installer in a Docker container
@@ -69,30 +103,47 @@ This will:
 
 After running `steele start`, you’ll get:
 
+### Docker Commands
+```bash
+atempo docker up       # Start containers
+atempo docker bash     # Open shell into app container
 ```
-my-app/
-├── src/              # Laravel source code
-├── ai/               # Claude context
-├── infra/            # Docker infrastructure
-│   └── docker/
-├── steele.json       # Metadata used by Steele
-└── README.md
+
+---
+
+### Artisan Passthrough
+```bash
+atempo artisan migrate:fresh
 ```
 
 ---
 
 ## Commands
 
-- `steele start <framework>` – Scaffold a new project
-- `steele docker up` – Start Docker services (coming soon)
-- `steele context edit` – Modify Claude context (coming soon)
-- `steele generate <type>` – Generate services, tests, etc. using Claude (future)
+- `atempo context edit`: edit your Claude context file
+- `atempo claude "Generate a service for onboarding users"`: injects context and prompts Claude
+- `atempo start node:20`, `atempo start react`, etc.
+- `atempo generate test`, `atempo prompt --from src/Service.php`
+
+---
+
+## Why Use Atempo?
+
+- Reuse across all your projects
+- Keeps your Claude and LLM tooling separated from code
+- No more polluting your projects with boilerplate or AI agents
+- Prepares every project to use AI as a co-developer, not a side tool
 
 ---
 
 ## Philosophy
 
-Steele helps developers start fast without sacrificing structure. By combining official frameworks with an AI-first toolchain, Steele keeps code clean, reproducible, and easy to scale — without bloated templates or vendor lock-in.
+> Tools should get out of your way and *into your headspace*.
+
+**Atempo separates the CLI from your projects.**  
+It bootstraps your app, manages Docker, feeds AI agents with context, and gives you smart commands — without embedding anything unnecessary into your codebase.
+
+You install Atempo once. You use it everywhere.
 
 ---
 

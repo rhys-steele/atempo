@@ -1,4 +1,4 @@
-# Django Template for Steele
+# Django Template for Atempo
 
 This template creates a comprehensive Django development environment with Docker, AI context, and modern Python best practices built-in.
 
@@ -29,10 +29,10 @@ This template creates a comprehensive Django development environment with Docker
 - Docker and Docker Compose
 - Python 3.12+ (for local development)
 
-### Installation with Steele
+### Installation with Atempo
 ```bash
 mkdir my-django-app && cd my-django-app
-steele start django:5
+atempo start django:5
 ```
 
 ### Manual Setup After Installation
@@ -148,7 +148,7 @@ project/
 │       ├── Dockerfile
 │       ├── docker-compose.yml
 │       └── requirements.txt
-├── steele.json                  # Steele template configuration
+├── atempo.json                  # Atempo template configuration
 └── README.md
 ```
 
