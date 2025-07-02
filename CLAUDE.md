@@ -26,13 +26,34 @@ go mod tidy
 
 ## Architecture
 
-### Core Components
+### New Modular Architecture (Post-Refactor)
 
-- **`cmd/atempo/main.go`**: CLI entry point that handles command parsing and delegates to scaffold package
-- **`internal/scaffold/scaffold.go`**: Core scaffolding logic that reads template metadata and executes installation commands
-- **`templates/`**: Framework-specific templates with metadata files (`atempo.json`)
-- **`internal/context/`**: AI context management (currently empty, placeholder for future MCP integration)
-- **`internal/utils/`**: Shared utilities (currently empty)
+The project follows Clean Architecture principles with clear separation of concerns:
+
+#### Core Components
+
+- **`cmd/atempo/main.go`**: Minimal CLI entry point (61 lines) that delegates to command registry
+- **`internal/app/commands/`**: Command layer with individual handlers
+  - `command.go`: Base interfaces and structures
+  - `registry.go`: Command registry and routing
+  - `start.go`: Project scaffolding command
+  - `docker.go`: Docker operations command
+  - `projects.go`: Project listing command
+  - `status.go`: Project status dashboard
+  - `other.go`: Additional commands (reconfigure, add-service, logs, describe)
+- **`internal/scaffold/`**: Core scaffolding business logic
+- **`internal/registry/`**: Project registry management
+- **`internal/docker/`**: Docker integration layer
+- **`internal/compose/`**: Docker Compose generation
+- **`templates/`**: Framework-specific templates with metadata files
+
+#### Architecture Benefits
+
+- **Modularity**: Each command is a separate, testable unit
+- **Extensibility**: Easy to add new commands without touching existing code
+- **Maintainability**: Clean separation reduces complexity
+- **Testability**: Commands can be unit tested in isolation
+- **Scalability**: Supports plugin architecture for future frameworks
 
 ### Template System
 
