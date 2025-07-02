@@ -36,7 +36,7 @@ The project follows Clean Architecture principles with clear separation of conce
 - **`internal/app/commands/`**: Command layer with individual handlers
   - `command.go`: Base interfaces and structures
   - `registry.go`: Command registry and routing
-  - `start.go`: Project scaffolding command
+  - `create.go`: Project scaffolding command
   - `docker.go`: Docker operations command
   - `projects.go`: Project listing command
   - `status.go`: Project status dashboard
@@ -83,10 +83,10 @@ Template variables supported:
 
 ### Current CLI Usage
 ```bash
-atempo start <framework>:<version>
+atempo create <framework>:<version>
 ```
 
-Example: `atempo start laravel:12`
+Example: `atempo create laravel:12`
 
 ### Planned Features (from README)
 - Docker integration (`atempo docker up`, `atempo docker bash`)

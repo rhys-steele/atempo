@@ -52,7 +52,7 @@ mv atempo /usr/local/bin/
 
 ```bash
 mkdir my-app && cd my-app
-atempo start laravel:12
+atempo create laravel:12
 ```
 
 This sets up:
@@ -84,7 +84,7 @@ Think of it as a smarter `create-react-app`, but for **any stack** — and AI-aw
 
 ### Start a New Project
 ```bash
-atempo start laravel:12
+atempo create laravel:12
 ```
 
 Scaffolds a Laravel 12 project with context and infra.
@@ -122,7 +122,7 @@ atempo artisan migrate:fresh
 
 - `atempo context edit`: edit your Claude context file
 - `atempo claude "Generate a service for onboarding users"`: injects context and prompts Claude
-- `atempo start node:20`, `atempo start react`, etc.
+- `atempo create node:20`, `atempo create react`, etc.
 - `atempo generate test`, `atempo prompt --from src/Service.php`
 
 ---

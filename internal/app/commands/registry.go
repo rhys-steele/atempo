@@ -23,7 +23,8 @@ func NewCommandRegistry(templatesFS, mcpServersFS embed.FS) *CommandRegistry {
 	}
 	
 	// Register all commands
-	registry.register(NewStartCommand(ctx, templatesFS, mcpServersFS))
+	registry.register(NewCreateCommand(ctx, templatesFS, mcpServersFS))
+	registry.register(NewAuthCommand(ctx))
 	registry.register(NewDockerCommand(ctx))
 	registry.register(NewProjectsCommand(ctx))
 	registry.register(NewStatusCommand(ctx))
@@ -82,7 +83,7 @@ Commands:`)
 
 	// Display commands in a logical order
 	commandOrder := []string{
-		"start", "status", "describe", "docker", 
+		"create", "auth", "status", "describe", "docker", 
 		"reconfigure", "add-service", "projects", "logs",
 	}
 	
@@ -94,10 +95,10 @@ Commands:`)
 
 	fmt.Println(`
 Examples:
-  atempo start laravel my-app           Create Laravel (latest) in ./my-app/
-  atempo start laravel:11 my-app        Create Laravel 11 in ./my-app/
-  atempo start django                   Create Django (latest) in current directory
-  atempo start django:5                 Create Django 5 in current directory
+  atempo create laravel my-app          Create Laravel (latest) in ./my-app/
+  atempo create laravel:11 my-app       Create Laravel 11 in ./my-app/
+  atempo create django                  Create Django (latest) in current directory
+  atempo create django:5                Create Django 5 in current directory
   atempo status                         Show dashboard with all project statuses
   atempo describe my-app                Show detailed description of 'my-app' project
   atempo describe                       Describe project in current directory
@@ -109,7 +110,7 @@ Examples:
   atempo logs my-app                    View setup logs for 'my-app' project
 
 Project Management:
-  - Projects are automatically registered when created with 'atempo start'
+  - Projects are automatically registered when created with 'atempo create'
   - Use project names instead of paths: 'atempo docker up my-laravel-app'
   - Services defined in atempo.json generate docker-compose.yml automatically
 

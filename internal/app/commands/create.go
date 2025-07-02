@@ -11,20 +11,20 @@ import (
 	"atempo/internal/scaffold"
 )
 
-// StartCommand handles the 'start' command for scaffolding new projects
-type StartCommand struct {
+// CreateCommand handles the 'create' command for scaffolding new projects
+type CreateCommand struct {
 	*BaseCommand
 	templatesFS   embed.FS
 	mcpServersFS  embed.FS
 }
 
-// NewStartCommand creates a new start command
-func NewStartCommand(ctx *CommandContext, templatesFS, mcpServersFS embed.FS) *StartCommand {
-	return &StartCommand{
+// NewCreateCommand creates a new create command
+func NewCreateCommand(ctx *CommandContext, templatesFS, mcpServersFS embed.FS) *CreateCommand {
+	return &CreateCommand{
 		BaseCommand: NewBaseCommand(
-			"start",
+			"create",
 			"Create a new project",
-			"atempo start <framework>[:<version>] [project_name]",
+			"atempo create <framework>[:<version>] [project_name]",
 			ctx,
 		),
 		templatesFS:  templatesFS,
@@ -32,10 +32,10 @@ func NewStartCommand(ctx *CommandContext, templatesFS, mcpServersFS embed.FS) *S
 	}
 }
 
-// Execute runs the start command
-func (c *StartCommand) Execute(ctx context.Context, args []string) error {
+// Execute runs the create command
+func (c *CreateCommand) Execute(ctx context.Context, args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: %s\nExamples:\n  atempo start laravel my-app     # Laravel latest in ./my-app/\n  atempo start laravel:11 my-app  # Laravel 11 in ./my-app/\n  atempo start laravel            # Laravel latest in current directory", c.Usage())
+		return fmt.Errorf("usage: %s\nExamples:\n  atempo create laravel my-app     # Laravel latest in ./my-app/\n  atempo create laravel:11 my-app  # Laravel 11 in ./my-app/\n  atempo create laravel            # Laravel latest in current directory", c.Usage())
 	}
 
 	// Parse framework and optional version
@@ -97,7 +97,7 @@ func (c *StartCommand) Execute(ctx context.Context, args []string) error {
 }
 
 // getLatestVersion returns the latest supported version for a framework
-func (c *StartCommand) getLatestVersion(framework string) string {
+func (c *CreateCommand) getLatestVersion(framework string) string {
 	switch framework {
 	case "laravel":
 		return "11" // Laravel 11 is the latest LTS

@@ -146,7 +146,7 @@ func (c *LogsCommand) Execute(ctx context.Context, args []string) error {
 	logFile, err := logger.GetLatestLogFile(projectName)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		fmt.Println("\nTip: Project logs are created during 'atempo start'. Available projects:")
+		fmt.Println("\nTip: Project logs are created during 'atempo create'. Available projects:")
 		
 		// Show available projects
 		reg, regErr := registry.LoadRegistry()
@@ -242,7 +242,7 @@ func (c *DescribeCommand) Execute(ctx context.Context, args []string) error {
 	if project == nil {
 		atempoJsonPath := filepath.Join(projectPath, "atempo.json")
 		if !utils.FileExists(atempoJsonPath) {
-			return fmt.Errorf("no atempo.json found in %s\nThis doesn't appear to be an Atempo project.\nRun 'atempo start <framework>' to create a new project", projectPath)
+			return fmt.Errorf("no atempo.json found in %s\nThis doesn't appear to be an Atempo project.\nRun 'atempo create <framework>' to create a new project", projectPath)
 		}
 		
 		// Read atempo.json to get basic info
