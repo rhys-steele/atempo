@@ -32,6 +32,7 @@ func NewCommandRegistry(templatesFS, mcpServersFS embed.FS) *CommandRegistry {
 	registry.register(NewAddServiceCommand(ctx))
 	registry.register(NewLogsCommand(ctx))
 	registry.register(NewDescribeCommand(ctx))
+	registry.register(NewShellCommand(ctx, registry))
 	
 	return registry
 }

@@ -2,23 +2,23 @@
 
 **Atempo** is a command-line tool for bootstrapping modern, AI-enabled development environments.
 
-It scaffolds framework-native codebases (e.g. Laravel, Node, Django) using official installers, then layers in a Claude-ready AI context system and optional Docker-based infrastructure. Steele is designed for speed, clarity, and long-term reuse.
+It scaffolds framework-native codebases (e.g. Laravel, Node, Django) using official installers, then layers in a Claude-ready AI context system and optional Docker-based infrastructure. Atempo is designed for speed, clarity, and long-term reuse.
 
 [![Go Version](https://img.shields.io/badge/go-1.22+-brightgreen.svg)](https://golang.org)
-[![License](https://img.shields.io/badge/license-Steele%20OSL-blue)](./LICENSE)
+[![License](https://img.shields.io/badge/license-Atempo%20OSL-blue)](./LICENSE)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![CLI](https://img.shields.io/badge/cli-steele-informational)]()
+[![CLI](https://img.shields.io/badge/cli-atempo-informational)]()
 
 ---
 
 ## Overview
 
-Steele creates clean, opinionated project structures with:
+Atempo creates clean, opinionated project structures with:
 
 - Framework-native source code (via official installers)
 - AI-first Claude context system
 - Optional Docker setup for local development
-- Project metadata via `steele.json`
+- Project metadata via `atempo.json`
 
 ---
 
@@ -95,13 +95,13 @@ This will:
 - Populate your `/src` directory
 - Add Claude context (`/ai/context.yaml`)
 - Add optional Docker environment (`/infra/docker/`)
-- Create `steele.json` for future commands
+- Create `atempo.json` for future commands
 
 ---
 
 ## Project Structure
 
-After running `steele start`, you’ll get:
+After running `atempo start`, you’ll get:
 
 ### Docker Commands
 ```bash
@@ -160,5 +160,5 @@ You install Atempo once. You use it everywhere.
 
 ## License
 
-Licensed under the **Steele Open Source License v1.0**  
+Licensed under the **Atempo Open Source License v1.0**  
 See [LICENSE](./LICENSE) for details.
