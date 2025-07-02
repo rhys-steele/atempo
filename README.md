@@ -1,22 +1,36 @@
-# 🛠️ Atempo
+# Atempo
 
-**Atempo** is a developer-first, AI-enhanced CLI for bootstrapping **framework-agnostic** projects with built-in support for Claude, MCP (Model–Context–Protocol), Docker, and best-practice architecture.  
+**Atempo** is a command-line tool for bootstrapping modern, AI-enabled development environments.
 
-Start fast. Stay scalable. Think with context.
+It scaffolds framework-native codebases (e.g. Laravel, Node, Django) using official installers, then layers in a Claude-ready AI context system and optional Docker-based infrastructure. Steele is designed for speed, clarity, and long-term reuse.
+
+[![Go Version](https://img.shields.io/badge/go-1.22+-brightgreen.svg)](https://golang.org)
+[![License](https://img.shields.io/badge/license-Steele%20OSL-blue)](./LICENSE)
+[![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
+[![CLI](https://img.shields.io/badge/cli-steele-informational)]()
 
 ---
 
-## 🚀 Quick Start
+## Overview
 
-### 📦 Install
+Steele creates clean, opinionated project structures with:
 
-If you have Go installed:
+- Framework-native source code (via official installers)
+- AI-first Claude context system
+- Optional Docker setup for local development
+- Project metadata via `steele.json`
+
+---
+
+## Installation
+
+You’ll need Go 1.22+ installed:
 
 ```bash
 go install github.com/yourname/atempo@latest
 ```
 
-Or clone and build manually:
+Alternatively, build from source:
 
 ```bash
 git clone https://github.com/yourname/atempo
@@ -24,7 +38,7 @@ cd atempo
 go build -o atempo .
 ```
 
-Then move it into your path (optional):
+(Optional) Move it to your path:
 
 ```bash
 mv atempo /usr/local/bin/
@@ -32,7 +46,9 @@ mv atempo /usr/local/bin/
 
 ---
 
-### 🧱 Create a New Project
+## Usage
+
+### Create a new Laravel project
 
 ```bash
 mkdir my-app && cd my-app
@@ -50,34 +66,44 @@ my-app/
 └── README.md
 ```
 
----
-
-## 💡 What Is Atempo?
+## What Is Atempo?
 
 **Atempo** helps you scaffold new application projects with:
 
-- 🚀 Language/framework starter templates (Laravel, Node, etc.)
-- 🧠 MCP-ready Claude context (`ai/context/context.yaml`)
-- 🐳 Dev infrastructure (`infra/docker/`)
-- 🧪 Dev-friendly commands (`atempo docker`, `atempo artisan`, etc.)
-- ✨ AI integration points (prompts, agents, Claude interface)
+- Language/framework starter templates (Laravel, Node, etc.)
+- MCP-ready Claude context (`ai/context/context.yaml`)
+- Dev infrastructure (`infra/docker/`)
+- Dev-friendly commands (`atempo docker`, `atempo artisan`, etc.)
+- AI integration points (prompts, agents, Claude interface)
 
 Think of it as a smarter `create-react-app`, but for **any stack** — and AI-aware from day one.
 
 ---
 
-## 🧰 Core CLI Commands
+## Core CLI Commands
 
-### 🆕 Start a New Project
+### Start a New Project
 ```bash
 atempo start laravel:12
 ```
 
 Scaffolds a Laravel 12 project with context and infra.
+=======
+This will:
+
+- Run Laravel's official installer in a Docker container
+- Populate your `/src` directory
+- Add Claude context (`/ai/context.yaml`)
+- Add optional Docker environment (`/infra/docker/`)
+- Create `steele.json` for future commands
 
 ---
 
-### 🐳 Docker Commands
+## Project Structure
+
+After running `steele start`, you’ll get:
+
+### Docker Commands
 ```bash
 atempo docker up       # Start containers
 atempo docker bash     # Open shell into app container
@@ -85,16 +111,14 @@ atempo docker bash     # Open shell into app container
 
 ---
 
-### 🧪 Artisan Passthrough
+### Artisan Passthrough
 ```bash
 atempo artisan migrate:fresh
 ```
 
-Runs Laravel `artisan` commands inside Docker transparently.
-
 ---
 
-## 🔮 Coming Soon
+## Commands
 
 - `atempo context edit`: edit your Claude context file
 - `atempo claude "Generate a service for onboarding users"`: injects context and prompts Claude
@@ -103,16 +127,16 @@ Runs Laravel `artisan` commands inside Docker transparently.
 
 ---
 
-## 🌍 Why Use Atempo?
+## Why Use Atempo?
 
-- 🔁 Reuse across all your projects
-- 🧠 Keeps your Claude and LLM tooling separated from code
-- 🚫 No more polluting your projects with boilerplate or AI agents
-- 💬 Prepares every project to use AI as a co-developer, not a side tool
+- Reuse across all your projects
+- Keeps your Claude and LLM tooling separated from code
+- No more polluting your projects with boilerplate or AI agents
+- Prepares every project to use AI as a co-developer, not a side tool
 
 ---
 
-## 🧱 Philosophy
+## Philosophy
 
 > Tools should get out of your way and *into your headspace*.
 
@@ -123,18 +147,18 @@ You install Atempo once. You use it everywhere.
 
 ---
 
-## 🧩 Framework Roadmap
+## Roadmap
 
-| Framework   | Status   |
-|-------------|----------|
-| Laravel     | ✅ Ready |
-| Node.js     | 🔜       |
-| Django      | 🔜       |
-| React       | 🔜       |
-| Astro       | 🔜       |
+- Laravel: ✅
+- Node.js: ⏳
+- Django: ⏳
+- React: ⏳
+- Custom templates: 🔜
+- Service/test generation via Claude: 🔜
 
 ---
 
-## 📄 License
+## License
 
-MIT – © 2025 Rhys May
+Licensed under the **Steele Open Source License v1.0**  
+See [LICENSE](./LICENSE) for details.
