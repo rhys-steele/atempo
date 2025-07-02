@@ -8,8 +8,9 @@ atempo.exe
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
+# Test binary, built with `go test -c` & Test files
 *.test
+testing/
 
 # Output of the go coverage tool
 *.out
