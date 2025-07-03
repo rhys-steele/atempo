@@ -101,19 +101,19 @@ func (s *StatusIndicator) Warning(message string) {
 func (s *StatusIndicator) getStatusSymbolAndColor(status StatusType) (string, string) {
 	switch status {
 	case StatusThinking:
-		return "✶", ColorBlue
+		return "⏺", ColorBlue
 	case StatusWorking:
-		return "⚡", ColorYellow
+		return "⏺", ColorYellow
 	case StatusSuccess:
-		return "✓", ColorGreen
+		return "⏺", ColorGreen
 	case StatusError:
-		return "✗", ColorRed
+		return "⏺", ColorRed
 	case StatusInfo:
 		return "⏺", ColorBlue
 	case StatusWarning:
-		return "⚠", ColorYellow
+		return "⏺", ColorYellow
 	default:
-		return "•", ColorWhite
+		return "⏺", ColorWhite
 	}
 }
 

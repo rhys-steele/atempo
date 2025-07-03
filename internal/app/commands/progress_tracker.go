@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -83,16 +85,51 @@ func (p *ProgressTracker) ShowProgress() {
 // Complete marks the entire process as complete
 func (p *ProgressTracker) Complete(projectName string) {
 	totalElapsed := time.Since(p.startTime)
-	fmt.Printf("%s🎉 Project '%s' created successfully!%s\n", ColorGreen, projectName, ColorReset)
-	fmt.Printf("%s   Total time: %s%s\n\n", ColorGray, p.formatDuration(totalElapsed), ColorReset)
 	
-	// Show next steps
-	fmt.Printf("%s💡 Next steps:%s\n", ColorBlue, ColorReset)
-	fmt.Printf("   %satempo status%s           # Check project status\n", ColorCyan, ColorReset)
-	fmt.Printf("   %satempo docker up%s        # Start development services\n", ColorCyan, ColorReset)
-	fmt.Printf("   %satempo describe%s         # View project details\n", ColorCyan, ColorReset)
+	fmt.Printf("\n%s✅ %s created successfully%s %s(%s)%s\n", 
+		ColorGreen, projectName, ColorReset, 
+		ColorGray, p.formatDuration(totalElapsed), ColorReset)
+	
+	// Show log file for debugging if needed
+	if logPath := p.getLogPath(projectName); logPath != "" {
+		fmt.Printf("%s📄 Logs: %s%s\n", ColorGray, logPath, ColorReset)
+	}
+	
+	// Show concise next steps
+	fmt.Printf("\n%sNext steps:%s\n", ColorBlue, ColorReset)
+	fmt.Printf("  %s%s code%s         Open in VS Code\n", ColorCyan, projectName, ColorReset)
+	fmt.Printf("  %s%s up%s           Start services\n", ColorCyan, projectName, ColorReset)
+	fmt.Printf("  %s%s status%s       Check status\n", ColorCyan, projectName, ColorReset)
+	fmt.Println()
 }
 
+
+// getLogPath tries to find the latest log file for a project
+func (p *ProgressTracker) getLogPath(projectName string) string {
+	// Import is handled by the logger package
+	// This is a simple implementation - could be enhanced
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	
+	// Try to find the most recent log file
+	logsDir := filepath.Join(homeDir, ".atempo", "logs")
+	files, err := os.ReadDir(logsDir)
+	if err != nil {
+		return ""
+	}
+	
+	// Find the most recent log file for this project
+	var latestFile string
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), projectName+"_") && strings.HasSuffix(file.Name(), ".log") {
+			latestFile = filepath.Join(logsDir, file.Name())
+		}
+	}
+	
+	return latestFile
+}
 
 // formatDuration formats elapsed time nicely
 func (p *ProgressTracker) formatDuration(d time.Duration) string {
@@ -120,9 +157,10 @@ func (p *ProgressTracker) DrawProgressBar(width int) string {
 
 // CreateSteps defines the standard steps for project creation
 type CreateSteps struct {
+	AIProjectPlanning int
 	LoadTemplate      int
 	InstallFramework  int
-	CopyTemplateFiles int
+	GenerateAIContext int
 	PostInstallSetup  int
 	FinalizeProject   int
 }
@@ -130,10 +168,11 @@ type CreateSteps struct {
 // StandardCreateSteps returns the standard step definitions
 func StandardCreateSteps() CreateSteps {
 	return CreateSteps{
-		LoadTemplate:      1,
-		InstallFramework:  2,
-		CopyTemplateFiles: 3,
-		PostInstallSetup:  4,
-		FinalizeProject:   5,
+		AIProjectPlanning: 1,
+		LoadTemplate:      2,
+		InstallFramework:  3,
+		GenerateAIContext: 4,
+		PostInstallSetup:  5,
+		FinalizeProject:   6,
 	}
 }

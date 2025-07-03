@@ -7,7 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
+	
+	"atempo/internal/scaffold"
 )
 
 // CreateCommand handles the 'create' command for scaffolding new projects
@@ -85,17 +86,22 @@ func (c *CreateCommand) Execute(ctx context.Context, args []string) error {
 		projectName = filepath.Base(projectDir)
 	}
 
-	// Initialize progress tracker
-	tracker := NewProgressTracker(5)
+	// Check authentication for AI features
+	authChecker := NewAuthChecker()
+	isAuthenticated, authStatus := authChecker.GetAuthStatus()
+	
+	// Initialize progress tracker (4 steps: AI Planning, Template Loading, Framework Installation, AI Context)
+	tracker := NewProgressTracker(4)
 	
 	// Show initial project info
 	ShowInfo(fmt.Sprintf("Creating %s %s project: %s", framework, version, projectName))
-	fmt.Printf("%s📁 Location: %s%s\n\n", ColorBlue, projectDir, ColorReset)
+	fmt.Printf("%s📁 Location: %s%s\n", ColorBlue, projectDir, ColorReset)
+	fmt.Printf("%s🔐 Auth Status: %s%s\n\n", ColorBlue, authStatus, ColorReset)
 	
-	// Run scaffolding with enhanced progress tracking
-	err := c.runScaffoldWithProgress(tracker, framework, version)
+	// Run scaffolding with AI-enhanced progress tracking
+	err := c.runScaffoldWithAI(tracker, framework, version, projectName, projectDir, isAuthenticated)
 	if err != nil {
-		tracker.ErrorStep(fmt.Sprintf("Scaffolding failed: %v", err))
+		// Detailed error messages are already logged by the scaffolding process
 		return err
 	}
 
@@ -104,65 +110,105 @@ func (c *CreateCommand) Execute(ctx context.Context, args []string) error {
 	return nil
 }
 
-// runScaffoldWithProgress runs the scaffolding process with real-time progress updates
-func (c *CreateCommand) runScaffoldWithProgress(tracker *ProgressTracker, framework, version string) error {
-	steps := StandardCreateSteps()
+// runScaffoldWithAI runs the scaffolding process with AI-enhanced progress updates
+func (c *CreateCommand) runScaffoldWithAI(tracker *ProgressTracker, framework, version, projectName, projectDir string, isAuthenticated bool) error {
+	// Step 1: AI-Powered Project Planning
+	tracker.StartStep(1, "AI-Powered Project Planning")
+	tracker.UpdateStep("Gathering project requirements")
 	
-	// Step 1: Load template configuration
-	tracker.StartStep(steps.LoadTemplate, "Loading template configuration")
+	var projectIntent *ProjectIntent
+	if isAuthenticated {
+		// Interactive AI-powered project setup using clean templates
+		manifestGenerator, err := NewCleanAIManifestGenerator(isAuthenticated, c.templatesFS, framework)
+		if err != nil {
+			tracker.WarningStep("Failed to initialize AI manifest generator")
+			projectIntent = createDefaultIntent(framework, version, projectName)
+		} else {
+			prompter, err := NewCleanInteractivePrompter(c.templatesFS)
+			if err != nil {
+				tracker.WarningStep("Failed to load interactive prompts")
+				projectIntent = createDefaultIntent(framework, version, projectName)
+			} else {
+				intent, err := prompter.GatherProjectIntent(framework, projectName, manifestGenerator)
+				if err != nil {
+					tracker.WarningStep("Failed to gather project intent, using defaults")
+					projectIntent = createDefaultIntent(framework, version, projectName)
+				} else {
+					projectIntent = intent
+				}
+			}
+		}
+	} else {
+		tracker.UpdateStep("Authentication required for full AI features")
+		// Use clean prompter for auth message
+		if prompter, err := NewCleanInteractivePrompter(c.templatesFS); err == nil {
+			prompter.ShowAuthenticationPrompt()
+		} else {
+			// Fallback to basic auth message
+			authChecker := NewAuthChecker()
+			authChecker.PromptAuthentication()
+		}
+		projectIntent = createDefaultIntent(framework, version, projectName)
+	}
+	
+	tracker.CompleteStep("Project planning complete")
+	
+	// Step 2: Load template configuration
+	tracker.StartStep(2, "Loading template configuration")
 	tracker.UpdateStep(fmt.Sprintf("Validating %s framework template", framework))
-	
-	// Simulate template loading (replace with actual scaffold.LoadTemplate call)
-	// For now, we'll call the original scaffold.Run but we should refactor scaffold package
 	tracker.UpdateStep(fmt.Sprintf("Checking %s version %s compatibility", framework, version))
 	tracker.CompleteStep(fmt.Sprintf("Template configuration loaded for %s %s", framework, version))
 	
-	// Step 2: Install framework application
-	tracker.StartStep(steps.InstallFramework, "Installing framework application")
-	tracker.UpdateStep(fmt.Sprintf("Executing %s installer commands", framework))
-	tracker.UpdateStep("Setting up project structure")
+	// Step 3: Install framework application
+	tracker.StartStep(3, "Installing framework application")
+	tracker.UpdateStep(fmt.Sprintf("Running %s scaffolding process", framework))
 	
-	// Simulate installation progress
-	time.Sleep(200 * time.Millisecond) // Simulate work
+	// Run the actual scaffolding process
+	if err := scaffold.Run(framework, version, c.templatesFS, c.mcpServersFS); err != nil {
+		// Mark the step as failed with a clean error message
+		tracker.ErrorStep(err.Error())
+		return err
+	}
+	
 	tracker.CompleteStep(fmt.Sprintf("%s %s application installed", framework, version))
 	
-	// Step 3: Copy template files
-	tracker.StartStep(steps.CopyTemplateFiles, "Copying template files")
-	tracker.UpdateStep("Copying AI context files")
-	time.Sleep(100 * time.Millisecond)
-	tracker.UpdateStep("Setting up MCP server configuration")
-	time.Sleep(100 * time.Millisecond)
-	tracker.UpdateStep("Installing Docker infrastructure")
-	time.Sleep(100 * time.Millisecond)
-	tracker.UpdateStep("Adding project documentation")
-	tracker.CompleteStep("Template files copied successfully")
+	// Step 4: Generate AI manifest (scaffold already handled infrastructure)
+	tracker.StartStep(4, "Generating AI development context")
+	tracker.UpdateStep("Generating AI project manifest")
 	
-	// Step 4: Post-installation setup
-	tracker.StartStep(steps.PostInstallSetup, "Running post-installation setup")
-	tracker.UpdateStep("Configuring environment variables")
-	time.Sleep(100 * time.Millisecond)
-	tracker.UpdateStep("Starting Docker services")
-	time.Sleep(200 * time.Millisecond)
-	tracker.UpdateStep("Running framework-specific setup")
-	tracker.CompleteStep("Post-installation setup complete")
+	// Generate AI manifest files using clean generator
+	manifestGenerator, err := NewCleanAIManifestGenerator(isAuthenticated, c.templatesFS, framework)
+	if err != nil {
+		tracker.WarningStep(fmt.Sprintf("Failed to initialize manifest generator: %v", err))
+	} else {
+		if err := manifestGenerator.GenerateManifestFiles(projectIntent, projectDir); err != nil {
+			tracker.WarningStep(fmt.Sprintf("Failed to generate AI manifest: %v", err))
+		} else {
+			tracker.UpdateStep("AI manifest files generated successfully")
+		}
+	}
 	
-	// Step 5: Finalize project
-	tracker.StartStep(steps.FinalizeProject, "Finalizing project")
-	tracker.UpdateStep("Registering project in Atempo registry")
-	time.Sleep(100 * time.Millisecond)
-	tracker.UpdateStep("Generating docker-compose.yml")
-	time.Sleep(100 * time.Millisecond)
-	tracker.UpdateStep("Running final health checks")
+	tracker.CompleteStep("AI development context ready")
 	
-	// Actually run the scaffold process (this should be refactored to use the tracker)
-	// For demo purposes, we'll skip the actual scaffolding to show the UX
-	// err := scaffold.Run(framework, version, c.templatesFS, c.mcpServersFS)
-	// if err != nil {
-	//	return err
-	// }
-	
-	tracker.CompleteStep("Project finalization complete")
 	return nil
+}
+
+// createDefaultIntent creates a basic project intent when AI features aren't available
+func createDefaultIntent(framework, version, projectName string) *ProjectIntent {
+	return &ProjectIntent{
+		Description:     fmt.Sprintf("A %s application built with %s %s", projectName, framework, version),
+		Framework:       framework,
+		Language:        getFrameworkLanguage(framework),
+		ProjectType:     "Web Application",
+		CoreFeatures:    []string{"Basic CRUD Operations", "Database Integration", "Error Handling"},
+		TechnicalNeeds:  []string{"Database", "Development Environment", "Testing Framework"},
+		UserStories:     []UserStory{},
+		ArchitectureHints: map[string]string{
+			"pattern": fmt.Sprintf("Follow %s best practices and conventions", framework),
+			"testing": "Include unit and integration tests",
+			"security": "Implement proper authentication and validation",
+		},
+	}
 }
 
 // getLatestVersion returns the latest supported version for a framework

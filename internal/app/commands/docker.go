@@ -3,7 +3,9 @@ package commands
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"atempo/internal/docker"
 	"atempo/internal/registry"
@@ -62,15 +64,21 @@ func (c *DockerCommand) Execute(ctx context.Context, args []string) error {
 		}
 	}
 
+	// Check for timeout flag in additional args
+	timeout, filteredArgs := c.parseTimeoutFlag(additionalArgs)
+	
 	// Handle special commands
 	switch dockerCmd {
 	case "exec":
-		return c.handleDockerExec(projectPath, additionalArgs)
+		return c.handleDockerExec(projectPath, filteredArgs)
 	case "services":
 		return c.handleDockerServices(projectPath)
 	default:
-		// Standard docker-compose command
-		return docker.ExecuteCommand(dockerCmd, projectPath, additionalArgs)
+		// Standard docker-compose command with optional custom timeout
+		if timeout > 0 {
+			return docker.ExecuteWithCustomTimeout(dockerCmd, projectPath, filteredArgs, timeout)
+		}
+		return docker.ExecuteCommand(dockerCmd, projectPath, filteredArgs)
 	}
 }
 
@@ -137,4 +145,52 @@ Project Resolution:
   - Relative path: '../myproject'  
   - Absolute path: '/full/path/to/project'
   - Current directory if no argument provided`
+}
+
+// parseTimeoutFlag extracts timeout flag from arguments and returns filtered args
+func (c *DockerCommand) parseTimeoutFlag(args []string) (time.Duration, []string) {
+	var filteredArgs []string
+	var timeout time.Duration
+	
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		
+		// Check for --timeout flag
+		if arg == "--timeout" && i+1 < len(args) {
+			if duration, err := c.parseTimeoutValue(args[i+1]); err == nil {
+				timeout = duration
+				i++ // Skip the next argument (timeout value)
+				continue
+			}
+		}
+		
+		// Check for --timeout=value format
+		if strings.HasPrefix(arg, "--timeout=") {
+			value := strings.TrimPrefix(arg, "--timeout=")
+			if duration, err := c.parseTimeoutValue(value); err == nil {
+				timeout = duration
+				continue
+			}
+		}
+		
+		// Keep all other arguments
+		filteredArgs = append(filteredArgs, arg)
+	}
+	
+	return timeout, filteredArgs
+}
+
+// parseTimeoutValue parses timeout string into duration (supports suffixes like 5m, 30s, etc.)
+func (c *DockerCommand) parseTimeoutValue(value string) (time.Duration, error) {
+	// Try parsing as duration first (5m, 30s, etc.)
+	if duration, err := time.ParseDuration(value); err == nil {
+		return duration, nil
+	}
+	
+	// Try parsing as plain number (assume minutes)
+	if minutes, err := strconv.Atoi(value); err == nil {
+		return time.Duration(minutes) * time.Minute, nil
+	}
+	
+	return 0, fmt.Errorf("invalid timeout format: %s", value)
 }
