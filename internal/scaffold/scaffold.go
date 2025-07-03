@@ -17,7 +17,6 @@ import (
 	"atempo/internal/utils"
 )
 
-
 // Installer defines how a framework should be installed.
 // This includes the command to run and the working directory context.
 type Installer struct {
@@ -29,12 +28,12 @@ type Installer struct {
 // Metadata describes a Atempo template's configuration,
 // including language, installer, and framework compatibility.
 type Metadata struct {
-	Name        string    `json:"name"`         // Project name template
-	Framework   string    `json:"framework"`    // e.g., "laravel"
-	Language    string    `json:"language"`     // e.g., "php"
-	Installer   Installer `json:"installer"`    // How to scaffold the source code
-	WorkingDir  string    `json:"working-dir"`  // Expected project root path in container, e.g., /var/www
-	MinVersion  string    `json:"min-version"`  // Minimum supported version (semantic)
+	Name       string    `json:"name"`        // Project name template
+	Framework  string    `json:"framework"`   // e.g., "laravel"
+	Language   string    `json:"language"`    // e.g., "php"
+	Installer  Installer `json:"installer"`   // How to scaffold the source code
+	WorkingDir string    `json:"working-dir"` // Expected project root path in container, e.g., /var/www
+	MinVersion string    `json:"min-version"` // Minimum supported version (semantic)
 }
 
 // Run executes the scaffolding process for the given framework and version.
@@ -45,23 +44,22 @@ func Run(framework string, version string, templatesFS, mcpServersFS embed.FS) e
 	projectDir, _ := os.Getwd()
 	projectName := filepath.Base(projectDir)
 
-	// Create logger for this project
-	log, err := logger.New(projectName)
+	// Create quiet logger for this project (progress shown by caller)
+	log, err := logger.NewQuiet(projectName)
 	if err != nil {
 		return fmt.Errorf("failed to create logger: %w", err)
 	}
 	defer log.Close()
 
-	fmt.Printf("🚀 Setting up %s %s project: %s\n", framework, version, projectName)
-	fmt.Printf("📄 Detailed logs will be saved to: %s\n\n", log.LogPath)
+	// Log file location is only shown in verbose mode or on error
 
 	// Step 1: Load and validate template configuration
 	loadStep := log.StartStep("Loading template configuration")
 	// Load atempo.json (try embedded first, fallback to filesystem)
 	var metaBytes []byte
-	
+
 	// Try embedded first
-	embeddedPath := fmt.Sprintf("templates/%s/atempo.json", framework)
+	embeddedPath := fmt.Sprintf("templates/frameworks/%s/atempo.json", framework)
 	metaBytes, readErr := templatesFS.ReadFile(embeddedPath)
 	if readErr != nil {
 		// Fallback to filesystem - find templates relative to binary location
@@ -102,7 +100,7 @@ func Run(framework string, version string, templatesFS, mcpServersFS embed.FS) e
 
 	// Step 3: Copy template files (AI context, Docker setup, etc.)
 	copyStep := log.StartStep("Copying template files")
-	if err := copyTemplateFiles(log, copyStep, projectDir, meta.Framework, templatesFS, mcpServersFS); err != nil {
+	if err := copyTemplateFiles(log, copyStep, projectDir, projectName, meta.Framework, version, templatesFS, mcpServersFS); err != nil {
 		log.ErrorStep(copyStep, err)
 		return fmt.Errorf("failed to copy template files: %w", err)
 	}
@@ -143,6 +141,13 @@ func runInstaller(log *logger.Logger, step *logger.Step, meta Metadata, projectD
 	// Add version-specific logic for different frameworks
 	command = applyVersionSpecificOptions(command, meta.Framework, version)
 
+	// Check if Docker is required and available
+	if meta.Installer.Type == "docker" && command[0] == "docker" {
+		if err := checkDockerAvailability(); err != nil {
+			return fmt.Errorf("Docker is required but not available: %w", err)
+		}
+	}
+
 	// Prepare the executable command
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Dir = projectDir
@@ -160,7 +165,7 @@ func validateVersion(requestedVersion string, meta Metadata) error {
 	// Check against minimum version
 	if meta.MinVersion != "" {
 		if utils.CompareVersions(requestedVersion, meta.MinVersion) < 0 {
-			return fmt.Errorf("version %s is below minimum supported version %s for %s", 
+			return fmt.Errorf("version %s is below minimum supported version %s for %s",
 				requestedVersion, meta.MinVersion, meta.Framework)
 		}
 	}
@@ -180,11 +185,11 @@ func validateVersion(requestedVersion string, meta Metadata) error {
 func validateLaravelVersion(version string) error {
 	// Laravel version constraints
 	majorVersion := utils.ParseVersionPart(strings.Split(version, ".")[0])
-	
+
 	if majorVersion < 8 {
 		return fmt.Errorf("Laravel version %s is too old (minimum supported: 8.0)", version)
 	}
-	
+
 	if majorVersion > 12 {
 		return fmt.Errorf("Laravel version %s is not yet supported (maximum: 12.x)", version)
 	}
@@ -196,11 +201,11 @@ func validateLaravelVersion(version string) error {
 func validateDjangoVersion(version string) error {
 	// Django version constraints
 	majorVersion := utils.ParseVersionPart(strings.Split(version, ".")[0])
-	
+
 	if majorVersion < 4 {
 		return fmt.Errorf("Django version %s is too old (minimum supported: 4.0)", version)
 	}
-	
+
 	if majorVersion > 6 {
 		return fmt.Errorf("Django version %s is not yet supported (maximum: 6.x)", version)
 	}
@@ -216,7 +221,7 @@ func applyVersionSpecificOptions(command []string, framework, version string) []
 	case "django":
 		return applyDjangoVersionOptions(command, version)
 	}
-	
+
 	return command
 }
 
@@ -232,7 +237,7 @@ func applyLaravelVersionOptions(command []string, version string) []string {
 			break
 		}
 	}
-	
+
 	return command
 }
 
@@ -244,17 +249,17 @@ func applyDjangoVersionOptions(command []string, version string) []string {
 }
 
 // copyTemplateFiles copies AI context, Docker setup, and other template files (embedded or filesystem)
-func copyTemplateFiles(log *logger.Logger, step *logger.Step, projectDir, framework string, templatesFS, mcpServersFS embed.FS) error {
+func copyTemplateFiles(log *logger.Logger, step *logger.Step, projectDir, projectName, framework, version string, templatesFS, mcpServersFS embed.FS) error {
 	// Copy AI context directory
 	aiDstPath := filepath.Join(projectDir, "ai")
-	
+
 	// Try embedded first, fallback to filesystem
-	embeddedAiPath := fmt.Sprintf("templates/%s/ai", framework)
-	if err := copyEmbeddedDir(templatesFS, embeddedAiPath, aiDstPath); err != nil {
+	embeddedAiPath := fmt.Sprintf("templates/frameworks/%s/ai", framework)
+	if err := copyEmbeddedDirWithContext(templatesFS, embeddedAiPath, aiDstPath, projectName, projectDir, version); err != nil {
 		// Fallback to filesystem
 		aiSrcPath, pathErr := getFilesystemTemplateDir(framework, "ai")
 		if pathErr == nil {
-			if err := utils.CopyDir(aiSrcPath, aiDstPath); err != nil {
+			if err := copyFilesystemDirWithContext(aiSrcPath, aiDstPath, projectName, projectDir, version); err != nil {
 				return fmt.Errorf("failed to copy AI context: %w", err)
 			}
 		}
@@ -268,14 +273,14 @@ func copyTemplateFiles(log *logger.Logger, step *logger.Step, projectDir, framew
 
 	// Copy infrastructure directory (Docker setup)
 	infraDstPath := filepath.Join(projectDir, "infra")
-	
+
 	// Try embedded first, fallback to filesystem
-	embeddedInfraPath := fmt.Sprintf("templates/%s/infra", framework)
-	if err := copyEmbeddedDir(templatesFS, embeddedInfraPath, infraDstPath); err != nil {
+	embeddedInfraPath := fmt.Sprintf("templates/frameworks/%s/infra", framework)
+	if err := copyEmbeddedDirWithContext(templatesFS, embeddedInfraPath, infraDstPath, projectName, projectDir, version); err != nil {
 		// Fallback to filesystem
 		infraSrcPath, pathErr := getFilesystemTemplateDir(framework, "infra")
 		if pathErr == nil {
-			if err := utils.CopyDir(infraSrcPath, infraDstPath); err != nil {
+			if err := copyFilesystemDirWithContext(infraSrcPath, infraDstPath, projectName, projectDir, version); err != nil {
 				return fmt.Errorf("failed to copy infrastructure: %w", err)
 			}
 		}
@@ -283,14 +288,14 @@ func copyTemplateFiles(log *logger.Logger, step *logger.Step, projectDir, framew
 
 	// Copy README.md
 	readmeDstPath := filepath.Join(projectDir, "README.md")
-	
+
 	// Try embedded first, fallback to filesystem
-	embeddedReadmePath := fmt.Sprintf("templates/%s/README.md", framework)
-	if err := copyEmbeddedFile(templatesFS, embeddedReadmePath, readmeDstPath); err != nil {
+	embeddedReadmePath := fmt.Sprintf("templates/frameworks/%s/README.md", framework)
+	if err := copyEmbeddedFileWithContext(templatesFS, embeddedReadmePath, readmeDstPath, projectName, projectDir, version); err != nil {
 		// Fallback to filesystem
 		readmeSrcPath, pathErr := getFilesystemTemplatePath(framework, "README.md")
 		if pathErr == nil {
-			if err := utils.CopyFile(readmeSrcPath, readmeDstPath); err != nil {
+			if err := copyFilesystemFileWithContext(readmeSrcPath, readmeDstPath, projectName, projectDir, version); err != nil {
 				return fmt.Errorf("failed to copy README: %w", err)
 			}
 		}
@@ -302,7 +307,7 @@ func copyTemplateFiles(log *logger.Logger, step *logger.Step, projectDir, framew
 // copyMCPServer discovers and installs the best available MCP server for the framework
 func copyMCPServer(log *logger.Logger, step *logger.Step, framework, projectDir string, mcpServersFS embed.FS) error {
 	mcpDstPath := filepath.Join(projectDir, "ai", "mcp-server")
-	
+
 	// Discover available MCP servers
 	discovery, err := mcp.DiscoverMCPServers(framework)
 	if err != nil {
@@ -334,7 +339,7 @@ func copyMCPServer(log *logger.Logger, step *logger.Step, framework, projectDir 
 			Framework: framework,
 			Path:      projectDir,
 		}
-		
+
 		if err := mcp.GenerateServerFromTemplate(selectedServer, projectInfo, mcpDstPath); err != nil {
 			return fmt.Errorf("failed to generate MCP server: %w", err)
 		}
@@ -366,6 +371,10 @@ func finalizeProject(log *logger.Logger, step *logger.Step, meta Metadata, proje
 			resolvedName = projectName
 		}
 	}
+	
+	// Use the basename of the project directory as the registry name
+	// This ensures projects work with simple names even if created with paths
+	registryName := filepath.Base(projectDir)
 
 	// Register project in registry
 	reg, err := registry.LoadRegistry()
@@ -373,7 +382,7 @@ func finalizeProject(log *logger.Logger, step *logger.Step, meta Metadata, proje
 		return fmt.Errorf("failed to load registry: %w", err)
 	}
 
-	if err := reg.AddProject(resolvedName, projectDir, meta.Framework, version); err != nil {
+	if err := reg.AddProject(registryName, projectDir, meta.Framework, version); err != nil {
 		return fmt.Errorf("failed to register project: %w", err)
 	}
 
@@ -406,11 +415,11 @@ func runPostInstall(log *logger.Logger, step *logger.Step, meta Metadata, projec
 // setupLaravel performs Laravel-specific post-installation setup
 func setupLaravel(log *logger.Logger, step *logger.Step, projectDir string) error {
 	srcDir := filepath.Join(projectDir, "src")
-	
+
 	// Copy .env.example to .env
 	envExample := filepath.Join(srcDir, ".env.example")
 	envFile := filepath.Join(srcDir, ".env")
-	
+
 	if utils.FileExists(envExample) && !utils.FileExists(envFile) {
 		if err := utils.CopyFile(envExample, envFile); err != nil {
 			return fmt.Errorf("failed to create .env file: %w", err)
@@ -441,18 +450,18 @@ func updateLaravelEnv(envFile string) error {
 	}
 
 	envContent := string(content)
-	
+
 	// Update database configuration for Docker
 	envContent = strings.ReplaceAll(envContent, "DB_HOST=127.0.0.1", "DB_HOST=mysql")
 	envContent = strings.ReplaceAll(envContent, "DB_DATABASE=laravel", "DB_DATABASE=laravel")
 	envContent = strings.ReplaceAll(envContent, "DB_USERNAME=root", "DB_USERNAME=laravel")
 	envContent = strings.ReplaceAll(envContent, "DB_PASSWORD=", "DB_PASSWORD=laravel")
-	
+
 	// Add Redis configuration
 	if !strings.Contains(envContent, "REDIS_HOST=") {
 		envContent += "\nREDIS_HOST=redis\n"
 	}
-	
+
 	return os.WriteFile(envFile, []byte(envContent), 0644)
 }
 
@@ -460,7 +469,7 @@ func updateLaravelEnv(envFile string) error {
 func startDockerServices(log *logger.Logger, step *logger.Step, projectDir string) error {
 	cmd := exec.Command("docker-compose", "up", "-d")
 	cmd.Dir = projectDir
-	
+
 	return log.RunCommand(step, cmd)
 }
 
@@ -475,7 +484,7 @@ func runLaravelSetup(log *logger.Logger, step *logger.Step, projectDir string) e
 	for _, command := range commands {
 		cmd := exec.Command(command[0], command[1:]...)
 		cmd.Dir = projectDir
-		
+
 		if err := log.RunCommand(step, cmd); err != nil {
 			log.WarningStep(step, fmt.Sprintf("Command failed: %s - you may need to run this manually", strings.Join(command, " ")))
 			continue // Continue with other commands
@@ -488,11 +497,11 @@ func runLaravelSetup(log *logger.Logger, step *logger.Step, projectDir string) e
 // setupDjango performs Django-specific post-installation setup
 func setupDjango(log *logger.Logger, step *logger.Step, projectDir string) error {
 	srcDir := filepath.Join(projectDir, "src")
-	
+
 	// Copy and update requirements.txt from Docker template
 	requirementsSrc := filepath.Join(projectDir, "infra", "docker", "requirements.txt")
 	requirementsDst := filepath.Join(srcDir, "requirements.txt")
-	
+
 	if utils.FileExists(requirementsSrc) {
 		if err := copyAndUpdateRequirements(requirementsSrc, requirementsDst, projectDir); err != nil {
 			return fmt.Errorf("failed to copy requirements.txt: %w", err)
@@ -519,18 +528,18 @@ func copyAndUpdateRequirements(src, dst, projectDir string) error {
 
 	// Get the requested Django version from the project name or context
 	version := extractVersionFromProject(projectDir)
-	
+
 	if version != "" {
 		// Update Django version in requirements
 		reqContent := string(content)
 		majorVersion := strings.Split(version, ".")[0]
 		nextMajorVersion := fmt.Sprintf("%d", utils.ParseVersionPart(majorVersion)+1)
-		
+
 		// Replace Django version constraint
 		oldConstraint := "Django>=5.0,<6.0"
 		newConstraint := fmt.Sprintf("Django>=%s.0,<%s.0", majorVersion, nextMajorVersion)
 		reqContent = strings.ReplaceAll(reqContent, oldConstraint, newConstraint)
-		
+
 		content = []byte(reqContent)
 	}
 
@@ -556,7 +565,7 @@ func runDjangoSetup(log *logger.Logger, step *logger.Step, projectDir string) er
 	for _, command := range commands {
 		cmd := exec.Command(command[0], command[1:]...)
 		cmd.Dir = projectDir
-		
+
 		if err := log.RunCommand(step, cmd); err != nil {
 			log.WarningStep(step, fmt.Sprintf("Command failed: %s - you may need to run this manually", strings.Join(command, " ")))
 			continue // Continue with other commands
@@ -566,9 +575,22 @@ func runDjangoSetup(log *logger.Logger, step *logger.Step, projectDir string) er
 	return nil
 }
 
+// processTemplateContent processes template variables in content
+func processTemplateContent(content string, projectName, projectDir, version string) string {
+	content = strings.ReplaceAll(content, "{{project}}", projectName)
+	content = strings.ReplaceAll(content, "{{name}}", "src")
+	content = strings.ReplaceAll(content, "{{cwd}}", projectDir)
+	content = strings.ReplaceAll(content, "{{version}}", version)
+	return content
+}
 
-// copyEmbeddedFile copies a single file from embedded filesystem to local filesystem
+// copyEmbeddedFile copies a single file from embedded filesystem to local filesystem with template processing
 func copyEmbeddedFile(fsys embed.FS, srcPath, dstPath string) error {
+	return copyEmbeddedFileWithContext(fsys, srcPath, dstPath, "", "", "")
+}
+
+// copyEmbeddedFileWithContext copies a file with template variable processing
+func copyEmbeddedFileWithContext(fsys embed.FS, srcPath, dstPath, projectName, projectDir, version string) error {
 	// Read file from embedded filesystem
 	data, err := fsys.ReadFile(srcPath)
 	if err != nil {
@@ -580,8 +602,18 @@ func copyEmbeddedFile(fsys embed.FS, srcPath, dstPath string) error {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
+	// Process template variables if context is provided
+	var processedData []byte
+	if projectName != "" {
+		content := string(data)
+		processedContent := processTemplateContent(content, projectName, projectDir, version)
+		processedData = []byte(processedContent)
+	} else {
+		processedData = data
+	}
+
 	// Write file to local filesystem
-	if err := os.WriteFile(dstPath, data, 0644); err != nil {
+	if err := os.WriteFile(dstPath, processedData, 0644); err != nil {
 		return fmt.Errorf("failed to write file %s: %w", dstPath, err)
 	}
 
@@ -590,6 +622,11 @@ func copyEmbeddedFile(fsys embed.FS, srcPath, dstPath string) error {
 
 // copyEmbeddedDir recursively copies a directory from embedded filesystem to local filesystem
 func copyEmbeddedDir(fsys embed.FS, srcPath, dstPath string) error {
+	return copyEmbeddedDirWithContext(fsys, srcPath, dstPath, "", "", "")
+}
+
+// copyEmbeddedDirWithContext recursively copies a directory with template variable processing
+func copyEmbeddedDirWithContext(fsys embed.FS, srcPath, dstPath, projectName, projectDir, version string) error {
 	// Create destination directory
 	if err := os.MkdirAll(dstPath, 0755); err != nil {
 		return fmt.Errorf("failed to create destination directory: %w", err)
@@ -619,10 +656,78 @@ func copyEmbeddedDir(fsys embed.FS, srcPath, dstPath string) error {
 			// Create directory
 			return os.MkdirAll(destPath, 0755)
 		} else {
-			// Copy file
-			return copyEmbeddedFile(fsys, path, destPath)
+			// Copy file with template processing
+			return copyEmbeddedFileWithContext(fsys, path, destPath, projectName, projectDir, version)
 		}
 	})
+}
+
+// copyFilesystemDirWithContext copies a directory from filesystem with template processing
+func copyFilesystemDirWithContext(srcPath, dstPath, projectName, projectDir, version string) error {
+	// Create destination directory
+	if err := os.MkdirAll(dstPath, 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Walk through filesystem directory
+	return filepath.Walk(srcPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Calculate relative path from source
+		relPath, err := filepath.Rel(srcPath, path)
+		if err != nil {
+			return fmt.Errorf("failed to calculate relative path: %w", err)
+		}
+
+		// Skip the root directory itself
+		if relPath == "." {
+			return nil
+		}
+
+		// Calculate destination path
+		destPath := filepath.Join(dstPath, relPath)
+
+		if info.IsDir() {
+			// Create directory
+			return os.MkdirAll(destPath, 0755)
+		} else {
+			// Copy file with template processing
+			return copyFilesystemFileWithContext(path, destPath, projectName, projectDir, version)
+		}
+	})
+}
+
+// copyFilesystemFileWithContext copies a file from filesystem with template processing
+func copyFilesystemFileWithContext(srcPath, dstPath, projectName, projectDir, version string) error {
+	// Read file from filesystem
+	data, err := os.ReadFile(srcPath)
+	if err != nil {
+		return fmt.Errorf("failed to read file %s: %w", srcPath, err)
+	}
+
+	// Create destination directory if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(dstPath), 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Process template variables
+	var processedData []byte
+	if projectName != "" {
+		content := string(data)
+		processedContent := processTemplateContent(content, projectName, projectDir, version)
+		processedData = []byte(processedContent)
+	} else {
+		processedData = data
+	}
+
+	// Write file to destination
+	if err := os.WriteFile(dstPath, processedData, 0644); err != nil {
+		return fmt.Errorf("failed to write file %s: %w", dstPath, err)
+	}
+
+	return nil
 }
 
 // getFilesystemTemplatePath finds template files relative to the binary location
@@ -635,26 +740,26 @@ func getFilesystemTemplatePath(framework, filename string) (string, error) {
 
 	// Get the directory containing the executable
 	execDir := filepath.Dir(executable)
-	
+
 	// Look for templates in the same directory as the binary
-	templatePath := filepath.Join(execDir, "templates", framework, filename)
+	templatePath := filepath.Join(execDir, "templates", "frameworks", framework, filename)
 	if utils.FileExists(templatePath) {
 		return templatePath, nil
 	}
-	
+
 	// If not found, try looking in the parent directory (development mode)
-	parentTemplateDir := filepath.Join(filepath.Dir(execDir), "templates", framework, filename)
+	parentTemplateDir := filepath.Join(filepath.Dir(execDir), "templates", "frameworks", framework, filename)
 	if utils.FileExists(parentTemplateDir) {
 		return parentTemplateDir, nil
 	}
-	
+
 	// Try looking in the current working directory (fallback)
 	cwd, _ := os.Getwd()
-	cwdTemplateDir := filepath.Join(cwd, "templates", framework, filename)
+	cwdTemplateDir := filepath.Join(cwd, "templates", "frameworks", framework, filename)
 	if utils.FileExists(cwdTemplateDir) {
 		return cwdTemplateDir, nil
 	}
-	
+
 	return "", fmt.Errorf("template file %s not found for framework %s", filename, framework)
 }
 
@@ -668,26 +773,26 @@ func getFilesystemTemplateDir(framework, subdir string) (string, error) {
 
 	// Get the directory containing the executable
 	execDir := filepath.Dir(executable)
-	
+
 	// Look for templates in the same directory as the binary
-	templatePath := filepath.Join(execDir, "templates", framework, subdir)
+	templatePath := filepath.Join(execDir, "templates", "frameworks", framework, subdir)
 	if utils.FileExists(templatePath) {
 		return templatePath, nil
 	}
-	
+
 	// If not found, try looking in the parent directory (development mode)
-	parentTemplateDir := filepath.Join(filepath.Dir(execDir), "templates", framework, subdir)
+	parentTemplateDir := filepath.Join(filepath.Dir(execDir), "templates", "frameworks", framework, subdir)
 	if utils.FileExists(parentTemplateDir) {
 		return parentTemplateDir, nil
 	}
-	
+
 	// Try looking in the current working directory (fallback)
 	cwd, _ := os.Getwd()
-	cwdTemplateDir := filepath.Join(cwd, "templates", framework, subdir)
+	cwdTemplateDir := filepath.Join(cwd, "templates", "frameworks", framework, subdir)
 	if utils.FileExists(cwdTemplateDir) {
 		return cwdTemplateDir, nil
 	}
-	
+
 	return "", fmt.Errorf("template directory %s not found for framework %s", subdir, framework)
 }
 
@@ -701,25 +806,41 @@ func getFilesystemMCPPath(framework string) (string, error) {
 
 	// Get the directory containing the executable
 	execDir := filepath.Dir(executable)
-	
+
 	// Look for MCP servers in the same directory as the binary
 	mcpPath := filepath.Join(execDir, "mcp-servers", framework)
 	if utils.FileExists(mcpPath) {
 		return mcpPath, nil
 	}
-	
+
 	// If not found, try looking in the parent directory (development mode)
 	parentMCPDir := filepath.Join(filepath.Dir(execDir), "mcp-servers", framework)
 	if utils.FileExists(parentMCPDir) {
 		return parentMCPDir, nil
 	}
-	
+
 	// Try looking in the current working directory (fallback)
 	cwd, _ := os.Getwd()
 	cwdMCPDir := filepath.Join(cwd, "mcp-servers", framework)
 	if utils.FileExists(cwdMCPDir) {
 		return cwdMCPDir, nil
 	}
-	
+
 	return "", fmt.Errorf("MCP server directory not found for framework %s", framework)
+}
+
+// checkDockerAvailability verifies that Docker is installed and running
+func checkDockerAvailability() error {
+	// First check if docker command is available
+	if _, err := exec.LookPath("docker"); err != nil {
+		return fmt.Errorf("docker command not found in PATH")
+	}
+	
+	// Check if Docker daemon is running by running a simple command
+	cmd := exec.Command("docker", "info")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("docker daemon is not running")
+	}
+	
+	return nil
 }

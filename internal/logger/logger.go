@@ -17,6 +17,7 @@ type Logger struct {
 	LogFile     *os.File
 	LogPath     string
 	StartTime   time.Time
+	Quiet       bool // When true, suppresses progress indicators to stdout
 }
 
 // StepStatus represents the status of a setup step
@@ -41,6 +42,16 @@ type Step struct {
 
 // New creates a new logger for a project
 func New(projectName string) (*Logger, error) {
+	return newLogger(projectName, false)
+}
+
+// NewQuiet creates a new logger in quiet mode (no stdout progress indicators)
+func NewQuiet(projectName string) (*Logger, error) {
+	return newLogger(projectName, true)
+}
+
+// newLogger creates a new logger with the specified quiet mode
+func newLogger(projectName string, quiet bool) (*Logger, error) {
 	// Create logs directory in the project or home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -67,6 +78,7 @@ func New(projectName string) (*Logger, error) {
 		LogFile:     logFile,
 		LogPath:     logPath,
 		StartTime:   time.Now(),
+		Quiet:       quiet,
 	}
 
 	// Write header to log file
@@ -244,6 +256,11 @@ func (l *Logger) logf(format string, args ...interface{}) {
 
 // showProgress displays a progress indicator for the current step
 func (l *Logger) showProgress(step *Step) {
+	// Skip progress indicators if in quiet mode
+	if l.Quiet {
+		return
+	}
+	
 	switch step.Status {
 	case StepRunning:
 		// Don't show running state - just completion
@@ -262,6 +279,11 @@ func (l *Logger) showProgress(step *Step) {
 
 // PrintSummary prints a final summary with log file location
 func (l *Logger) PrintSummary() {
+	// Skip summary if in quiet mode
+	if l.Quiet {
+		return
+	}
+	
 	totalDuration := time.Since(l.StartTime)
 	fmt.Printf("\n🎉 Setup completed in %s\n", totalDuration.Round(time.Second))
 	fmt.Printf("📄 Full logs: %s\n", l.LogPath)

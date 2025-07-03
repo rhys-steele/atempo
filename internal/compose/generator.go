@@ -91,9 +91,15 @@ func GenerateDockerCompose(projectPath string) error {
 		Networks: make(map[string]interface{}),
 	}
 
+	// Extract project name from config name or use directory name
+	projectName := config.Name
+	if projectName == "" {
+		projectName = filepath.Base(projectPath)
+	}
+
 	// Convert services
 	for serviceName, service := range config.Services {
-		dockerService := convertService(service, config.Framework)
+		dockerService := convertService(service, serviceName, projectName, config.Framework)
 		compose.Services[serviceName] = dockerService
 	}
 
@@ -127,11 +133,15 @@ func GenerateDockerCompose(projectPath string) error {
 }
 
 // convertService converts a Atempo service to Docker Compose service
-func convertService(service Service, framework string) map[string]interface{} {
+func convertService(service Service, serviceName, projectName, framework string) map[string]interface{} {
 	dockerService := make(map[string]interface{})
 
 	// Handle build vs image
 	if service.Type == "build" {
+		// Generate project-specific image name
+		imageName := fmt.Sprintf("%s-%s-%s", projectName, framework, serviceName)
+		dockerService["image"] = imageName
+		
 		if service.Context != "" {
 			dockerService["build"] = map[string]interface{}{
 				"context":    service.Context,
@@ -147,10 +157,8 @@ func convertService(service Service, framework string) map[string]interface{} {
 		dockerService["image"] = service.Image
 	}
 
-	// Add container name
-	if containerName, ok := dockerService["container_name"]; !ok || containerName == "" {
-		dockerService["container_name"] = fmt.Sprintf("%s-%s", framework, getServiceKey(dockerService))
-	}
+	// Add container name with project prefix
+	dockerService["container_name"] = fmt.Sprintf("%s-%s", projectName, serviceName)
 
 	// Add restart policy
 	if service.Restart != "" {

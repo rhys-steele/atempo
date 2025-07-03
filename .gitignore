@@ -11,6 +11,7 @@ atempo.exe
 # Test binary, built with `go test -c` & Test files
 *.test
 testing/
+my-app/
 
 # Output of the go coverage tool
 *.out

@@ -34,7 +34,7 @@ func (c *ProjectsCommand) Execute(ctx context.Context, args []string) error {
 	projects := reg.ListProjects()
 	if len(projects) == 0 {
 		fmt.Println("No projects registered yet.")
-		fmt.Println("Projects are automatically registered when you run 'atempo start'")
+		fmt.Println("Projects are automatically registered when you run 'atempo create'")
 		return nil
 	}
 

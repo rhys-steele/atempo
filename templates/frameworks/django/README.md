@@ -32,7 +32,7 @@ This template creates a comprehensive Django development environment with Docker
 ### Installation with Atempo
 ```bash
 mkdir my-django-app && cd my-django-app
-atempo start django:5
+atempo create django:5
 ```
 
 ### Manual Setup After Installation

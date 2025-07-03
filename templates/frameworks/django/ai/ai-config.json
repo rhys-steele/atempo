@@ -1,0 +1,152 @@
+{
+  "framework": "django",
+  "language": "Python",
+  "latest_version": "5",
+  "ai_features": {
+    "default_project_types": ["Web Application", "REST API", "Admin Dashboard"],
+    "core_features": [
+      "Django ORM",
+      "Django Templates",
+      "Django Forms",
+      "Management Commands",
+      "Django Admin",
+      "Authentication System"
+    ],
+    "architecture_patterns": {
+      "mvt_pattern": "Follow Django MVT with Views handling logic, Models for data, Templates for presentation",
+      "apps_structure": "Organize functionality into focused Django apps for better modularity",
+      "forms": "Use Django Forms for data validation and HTML generation",
+      "querysets": "Optimize database queries using select_related and prefetch_related",
+      "middleware": "Implement Django middleware for request/response processing"
+    },
+    "framework_patterns_template": "\n**Django Patterns:**\n- Views: Handle requests and return responses\n- Models: Define data structure and business logic\n- Templates: Render HTML responses\n- Forms: Handle user input validation\n- Middleware: Process requests/responses\n- Signals: Decouple applications\n- Management Commands: Custom admin tasks\n- Apps: Modular functionality organization\n",
+    "technical_stack": [
+      "Database (PostgreSQL/MySQL)",
+      "Redis (caching/sessions)",
+      "Celery (background tasks)",
+      "File Storage (Local/S3)",
+      "Email Service (SMTP/API)"
+    ],
+    "project_analysis_keywords": {
+      "api": "REST API",
+      "crud": "CRUD Application",
+      "dashboard": "Admin Dashboard", 
+      "ecommerce": "E-commerce Platform",
+      "blog": "Content Management System",
+      "cms": "Content Management System"
+    }
+  },
+  "development_context": {
+    "package_manager": "pip",
+    "structure": {
+      "source_root": "src/",
+      "settings_dir": "src/config/settings/",
+      "apps_dir": "src/apps/",
+      "templates_dir": "src/templates/",
+      "static_dir": "src/static/",
+      "media_dir": "src/media/",
+      "requirements_file": "src/requirements.txt",
+      "manage_py": "src/manage.py"
+    },
+    "commands": {
+      "install_dependencies": "pip install -r requirements.txt",
+      "run_migrations": "python manage.py migrate",
+      "create_migration": "python manage.py makemigrations {app_name}",
+      "create_app": "python manage.py startapp {app_name}",
+      "create_superuser": "python manage.py createsuperuser",
+      "run_tests": "python manage.py test",
+      "serve_dev": "python manage.py runserver",
+      "collect_static": "python manage.py collectstatic",
+      "shell": "python manage.py shell",
+      "check_deployment": "python manage.py check --deploy"
+    },
+    "docker": {
+      "app_container": "web",
+      "database_container": "postgres",
+      "redis_container": "redis",
+      "working_directory": "/app"
+    },
+    "patterns": {
+      "models": [
+        "Models should inherit from django.db.models.Model",
+        "Use Django's built-in field types (CharField, IntegerField, etc.)",
+        "Define __str__ methods for readable object representations",
+        "Use Meta class for model options (ordering, verbose_name, etc.)"
+      ],
+      "views": [
+        "Use class-based views for complex logic, function views for simple cases",
+        "Always validate and sanitize user input",
+        "Use Django's built-in authentication and permissions",
+        "Return HttpResponse objects or use shortcuts like render()"
+      ],
+      "urls": [
+        "Define URL patterns in urls.py files",
+        "Use path() for simple patterns, re_path() for regex",
+        "Include app URLs in main project urls.py",
+        "Use URL names for reverse lookups"
+      ],
+      "templates": [
+        "Use Django template language with proper escaping",
+        "Extend base templates and use blocks for content",
+        "Load static files with {% load static %}",
+        "Use template filters and tags for data manipulation"
+      ]
+    },
+    "best_practices": [
+      "Use Django's built-in user authentication system",
+      "Implement proper error handling with try-except blocks",
+      "Use Django's ORM instead of raw SQL when possible",
+      "Follow Django's naming conventions for models, views, and URLs",
+      "Use Django's built-in security features (CSRF, XSS protection)",
+      "Implement proper logging throughout your application",
+      "Use Django's migration system for database schema changes",
+      "Write comprehensive tests for models, views, and forms",
+      "Use environment variables for sensitive configuration",
+      "Follow the DRY (Don't Repeat Yourself) principle"
+    ],
+    "environment": {
+      "required_env_vars": [
+        "SECRET_KEY", "DEBUG", "DATABASE_URL", "ALLOWED_HOSTS", "REDIS_URL"
+      ],
+      "development_tools": [
+        "Django Debug Toolbar",
+        "Django Extensions", 
+        "pytest-django (testing)",
+        "black (code formatting)",
+        "flake8 (linting)"
+      ]
+    },
+    "troubleshooting": {
+      "migration_issues": "Run 'python manage.py makemigrations' then 'python manage.py migrate'",
+      "static_files": "Run 'python manage.py collectstatic' and check STATIC_ROOT setting",
+      "database_connection": "Check DATABASE_URL and ensure database server is running",
+      "import_errors": "Verify PYTHONPATH and app registration in INSTALLED_APPS",
+      "csrf_errors": "Ensure {% csrf_token %} is included in forms"
+    },
+    "code_templates": {
+      "model": "from django.db import models\nfrom django.contrib.auth.models import User\n\n\nclass {ClassName}(models.Model):\n    name = models.CharField(max_length=255)\n    created_at = models.DateTimeField(auto_now_add=True)\n    updated_at = models.DateTimeField(auto_now=True)\n    \n    class Meta:\n        ordering = ['-created_at']\n        verbose_name = '{ClassName}'\n        verbose_name_plural = '{ClassName}s'\n    \n    def __str__(self):\n        return self.name",
+      "view": "from django.shortcuts import render, get_object_or_404\nfrom django.http import HttpResponse, JsonResponse\nfrom django.views.generic import ListView, DetailView\nfrom django.contrib.auth.decorators import login_required\nfrom django.utils.decorators import method_decorator\n\n\nclass {ClassName}ListView(ListView):\n    model = {ModelName}\n    template_name = '{app_name}/{model_name}_list.html'\n    context_object_name = '{model_name}s'\n    paginate_by = 20\n\n\nclass {ClassName}DetailView(DetailView):\n    model = {ModelName}\n    template_name = '{app_name}/{model_name}_detail.html'\n    context_object_name = '{model_name}'",
+      "form": "from django import forms\nfrom .models import {ModelName}\n\n\nclass {ClassName}Form(forms.ModelForm):\n    class Meta:\n        model = {ModelName}\n        fields = ['name', 'description']\n        widgets = {\n            'description': forms.Textarea(attrs={'rows': 4}),\n        }\n    \n    def clean_name(self):\n        name = self.cleaned_data['name']\n        if len(name) < 2:\n            raise forms.ValidationError('Name must be at least 2 characters long.')\n        return name"
+    },
+    "apps_structure": {
+      "recommended_apps": [
+        "accounts (user management)",
+        "core (shared utilities)",
+        "api (REST API endpoints)"
+      ],
+      "app_structure": "app_name/\n├── __init__.py\n├── admin.py\n├── apps.py\n├── models.py\n├── views.py\n├── urls.py\n├── forms.py\n├── serializers.py (for DRF)\n├── tests/\n│   ├── __init__.py\n│   ├── test_models.py\n│   ├── test_views.py\n│   └── test_forms.py\n├── templates/app_name/\n└── migrations/"
+    }
+  },
+  "mcp_config": {
+    "servers": {
+      "atempo-django": {
+        "command": "node",
+        "args": ["ai/mcp-server/index.js"],
+        "cwd": ".",
+        "env": {
+          "NODE_ENV": "development"
+        }
+      }
+    }
+  }
+}

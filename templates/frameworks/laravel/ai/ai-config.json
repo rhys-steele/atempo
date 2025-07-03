@@ -1,0 +1,136 @@
+{
+  "framework": "laravel",
+  "language": "PHP",
+  "latest_version": "11",
+  "ai_features": {
+    "default_project_types": ["Web Application", "REST API", "Admin Dashboard"],
+    "core_features": [
+      "Eloquent ORM",
+      "Blade Templates", 
+      "Laravel Validation",
+      "Artisan Commands",
+      "Laravel Mix/Vite",
+      "Authentication System"
+    ],
+    "architecture_patterns": {
+      "mvc_pattern": "Follow Laravel MVC with Controllers handling requests, Models for data, Views for presentation",
+      "service_layer": "Use Service classes for complex business logic to keep controllers thin",
+      "repository_pattern": "Consider Repository pattern for data access abstraction when needed",
+      "validation": "Utilize Laravel Form Requests for input validation and authorization",
+      "eloquent_optimization": "Leverage Eloquent relationships and query optimization techniques"
+    },
+    "framework_patterns_template": "\n**Laravel Patterns:**\n- Controllers: Handle HTTP requests and responses\n- Models: Represent data and business logic with Eloquent\n- Services: Complex business operations and third-party integrations\n- Repositories: Data access abstraction (when needed)\n- Middleware: Request/response filtering and processing\n- Jobs: Background processing and queued tasks\n- Events/Listeners: Decoupled event handling\n- Form Requests: Input validation and authorization\n- Resources: API response transformation\n",
+    "technical_stack": [
+      "Database (MySQL/PostgreSQL)",
+      "Redis (caching/sessions)",
+      "Queue System (Redis/Database)",
+      "File Storage (Local/S3)",
+      "Mail Service (SMTP/API)"
+    ],
+    "project_analysis_keywords": {
+      "api": "REST API",
+      "crud": "CRUD Application", 
+      "dashboard": "Admin Dashboard",
+      "ecommerce": "E-commerce Platform",
+      "blog": "Content Management System",
+      "cms": "Content Management System"
+    }
+  },
+  "development_context": {
+    "package_manager": "Composer",
+    "structure": {
+      "source_root": "src/",
+      "config_dir": "src/config/",
+      "routes_dir": "src/routes/",
+      "controllers_dir": "src/app/Http/Controllers/",
+      "models_dir": "src/app/Models/",
+      "views_dir": "src/resources/views/",
+      "migrations_dir": "src/database/migrations/",
+      "tests_dir": "src/tests/"
+    },
+    "commands": {
+      "install_dependencies": "composer install",
+      "run_migrations": "php artisan migrate",
+      "create_migration": "php artisan make:migration {name}",
+      "create_controller": "php artisan make:controller {name}",
+      "create_model": "php artisan make:model {name}",
+      "create_middleware": "php artisan make:middleware {name}",
+      "run_tests": "php artisan test",
+      "serve_dev": "php artisan serve",
+      "clear_cache": "php artisan cache:clear",
+      "generate_key": "php artisan key:generate"
+    },
+    "docker": {
+      "app_container": "app",
+      "database_container": "mysql",
+      "redis_container": "redis",
+      "working_directory": "/var/www"
+    },
+    "patterns": {
+      "controllers": [
+        "Controllers should extend the base Controller class",
+        "Use resource controllers for CRUD operations",
+        "Return responses using response() helpers or view() for templates"
+      ],
+      "models": [
+        "Models should extend Illuminate\\Database\\Eloquent\\Model",
+        "Define fillable or guarded properties for mass assignment",
+        "Use relationships (hasOne, hasMany, belongsTo, etc.)"
+      ],
+      "migrations": [
+        "Use Schema::create() for new tables",
+        "Use Schema::table() for modifying existing tables",
+        "Always create rollback methods in down()"
+      ],
+      "routes": [
+        "Web routes in routes/web.php for browser requests",
+        "API routes in routes/api.php for API endpoints",
+        "Use Route::resource() for RESTful controllers"
+      ]
+    },
+    "best_practices": [
+      "Use Laravel's built-in validation in form requests",
+      "Implement proper error handling with try-catch blocks",
+      "Use Laravel's queue system for time-consuming tasks",
+      "Follow PSR-4 autoloading standards",
+      "Use dependency injection in controllers and services",
+      "Implement proper database relationships",
+      "Use Laravel's built-in authentication system",
+      "Write comprehensive tests for your application logic"
+    ],
+    "environment": {
+      "required_env_vars": [
+        "APP_NAME", "APP_ENV", "APP_KEY", "DB_CONNECTION", 
+        "DB_HOST", "DB_PORT", "DB_DATABASE", "DB_USERNAME", "DB_PASSWORD"
+      ],
+      "development_tools": [
+        "Laravel Telescope (debugging)",
+        "Laravel Tinker (REPL)",
+        "PHPUnit (testing)",
+        "Laravel Dusk (browser testing)"
+      ]
+    },
+    "troubleshooting": {
+      "permission_issues": "Set proper permissions: chmod -R 775 storage bootstrap/cache",
+      "cache_issues": "Clear all caches: php artisan optimize:clear",
+      "database_connection": "Check .env database credentials and ensure MySQL is running",
+      "composer_issues": "Run composer dump-autoload to regenerate autoload files"
+    },
+    "code_templates": {
+      "controller": "<?php\n\nnamespace App\\Http\\Controllers;\n\nuse Illuminate\\Http\\Request;\n\nclass {ClassName}Controller extends Controller\n{\n    public function index()\n    {\n        //\n    }\n    \n    public function store(Request $request)\n    {\n        //\n    }\n    \n    public function show($id)\n    {\n        //\n    }\n    \n    public function update(Request $request, $id)\n    {\n        //\n    }\n    \n    public function destroy($id)\n    {\n        //\n    }\n}",
+      "model": "<?php\n\nnamespace App\\Models;\n\nuse Illuminate\\Database\\Eloquent\\Factories\\HasFactory;\nuse Illuminate\\Database\\Eloquent\\Model;\n\nclass {ClassName} extends Model\n{\n    use HasFactory;\n    \n    protected $fillable = [\n        //\n    ];\n}"
+    }
+  },
+  "mcp_config": {
+    "servers": {
+      "atempo-laravel": {
+        "command": "node",
+        "args": ["ai/mcp-server/index.js"],
+        "cwd": ".",
+        "env": {
+          "NODE_ENV": "development"
+        }
+      }
+    }
+  }
+}

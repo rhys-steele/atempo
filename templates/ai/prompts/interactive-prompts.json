@@ -1,0 +1,60 @@
+{
+  "prompts": {
+    "project_description": {
+      "question": "What kind of application would you like to build?",
+      "subtitle": "Be as descriptive as possible - this helps AI understand your vision",
+      "examples": [
+        "A CRUD API for managing music recordings from live events",
+        "An e-commerce platform for selling handmade crafts",
+        "A project management dashboard for small teams"
+      ]
+    },
+    "additional_features": {
+      "question": "Would you like to include any of these common features?",
+      "subtitle": "(Enter numbers separated by commas, or 'none')",
+      "options": [
+        "User Authentication & Authorization",
+        "File Upload & Management", 
+        "Email Notifications",
+        "Real-time Features (WebSockets)",
+        "Search Functionality",
+        "Admin Dashboard",
+        "API Documentation (Swagger/OpenAPI)",
+        "Background Job Processing",
+        "Caching Layer",
+        "Multi-language Support"
+      ]
+    },
+    "complexity": {
+      "question": "How complex do you expect this project to be?",
+      "options": [
+        {
+          "key": "1",
+          "label": "Simple",
+          "description": "Basic CRUD, minimal features"
+        },
+        {
+          "key": "2", 
+          "label": "Medium",
+          "description": "Multiple features, some integrations"
+        },
+        {
+          "key": "3",
+          "label": "Complex", 
+          "description": "Advanced features, multiple integrations, high scalability"
+        }
+      ]
+    }
+  },
+  "ui_elements": {
+    "header": "🚀 AI-Powered Project Setup",
+    "separator": "═══════════════════════════════════════════════════════════",
+    "subtitle": "Let's create an intelligent, AI-first development experience!",
+    "auth_required": {
+      "title": "🔐 Authentication Required for AI Features",
+      "message": "AI-powered project manifests require authentication.",
+      "action": "Run 'atempo auth' to connect your AI provider.",
+      "fallback": "Proceeding with basic project setup..."
+    }
+  }
+}

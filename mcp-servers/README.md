@@ -11,7 +11,7 @@ cd mcp-servers
 ```
 
 ### 2. Auto-Installation (Recommended)
-When you run `atempo start laravel:11` or `atempo start django:5`, the appropriate MCP server is automatically copied to your project and configured.
+When you run `atempo create laravel:11` or `atempo create django:5`, the appropriate MCP server is automatically copied to your project and configured.
 
 ### 3. Manual Installation
 If you need to add an MCP server to an existing project:
