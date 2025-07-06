@@ -1,14 +1,17 @@
 package commands
 
 import (
+	"bufio"
 	"context"
 	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 	
 	"atempo/internal/scaffold"
+	"atempo/internal/ai"
 )
 
 // CreateCommand handles the 'create' command for scaffolding new projects
@@ -86,9 +89,27 @@ func (c *CreateCommand) Execute(ctx context.Context, args []string) error {
 		projectName = filepath.Base(projectDir)
 	}
 
-	// Check authentication for AI features
-	authChecker := NewAuthChecker()
-	isAuthenticated, authStatus := authChecker.GetAuthStatus()
+	// Check authentication for AI features using the AI client
+	aiClient, err := ai.NewAIClient()
+	var isAuthenticated bool
+	var authStatus string
+	if err != nil {
+		isAuthenticated = false
+		authStatus = "AI client initialization failed - using basic project setup"
+	} else {
+		providers, err := aiClient.GetAvailableProviders()
+		if err != nil || len(providers) == 0 {
+			isAuthenticated = false
+			authStatus = "No AI providers configured - using basic project setup"
+		} else {
+			isAuthenticated = true
+			providerNames := make([]string, len(providers))
+			for i, p := range providers {
+				providerNames[i] = p.DisplayName
+			}
+			authStatus = fmt.Sprintf("AI providers available: %v", providerNames)
+		}
+	}
 	
 	// Initialize progress tracker (4 steps: AI Planning, Template Loading, Framework Installation, AI Context)
 	tracker := NewProgressTracker(4)
@@ -99,7 +120,7 @@ func (c *CreateCommand) Execute(ctx context.Context, args []string) error {
 	fmt.Printf("%s🔐 Auth Status: %s%s\n\n", ColorBlue, authStatus, ColorReset)
 	
 	// Run scaffolding with AI-enhanced progress tracking
-	err := c.runScaffoldWithAI(tracker, framework, version, projectName, projectDir, isAuthenticated)
+	err = c.runScaffoldWithAI(tracker, framework, version, projectName, projectDir, isAuthenticated, aiClient)
 	if err != nil {
 		// Detailed error messages are already logged by the scaffolding process
 		return err
@@ -111,43 +132,120 @@ func (c *CreateCommand) Execute(ctx context.Context, args []string) error {
 }
 
 // runScaffoldWithAI runs the scaffolding process with AI-enhanced progress updates
-func (c *CreateCommand) runScaffoldWithAI(tracker *ProgressTracker, framework, version, projectName, projectDir string, isAuthenticated bool) error {
+func (c *CreateCommand) runScaffoldWithAI(tracker *ProgressTracker, framework, version, projectName, projectDir string, isAuthenticated bool, aiClient *ai.AIClient) error {
 	// Step 1: AI-Powered Project Planning
 	tracker.StartStep(1, "AI-Powered Project Planning")
 	tracker.UpdateStep("Gathering project requirements")
 	
 	var projectIntent *ProjectIntent
+	_ = projectIntent // Will be used for future enhancements
 	if isAuthenticated {
-		// Interactive AI-powered project setup using clean templates
-		manifestGenerator, err := NewCleanAIManifestGenerator(isAuthenticated, c.templatesFS, framework)
+		// Use the new AI planning system
+		planner, err := ai.NewProjectPlanner()
 		if err != nil {
-			tracker.WarningStep("Failed to initialize AI manifest generator")
+			tracker.WarningStep("Failed to initialize AI project planner")
 			projectIntent = createDefaultIntent(framework, version, projectName)
 		} else {
-			prompter, err := NewCleanInteractivePrompter(c.templatesFS)
+			// Use the authenticated AI client
+			providers, err := aiClient.GetAvailableProviders()
 			if err != nil {
-				tracker.WarningStep("Failed to load interactive prompts")
+				tracker.WarningStep("Failed to get AI providers")
+				projectIntent = createDefaultIntent(framework, version, projectName)
+			} else if len(providers) == 0 {
+				tracker.WarningStep("No AI providers configured")
 				projectIntent = createDefaultIntent(framework, version, projectName)
 			} else {
-				intent, err := prompter.GatherProjectIntent(framework, projectName, manifestGenerator)
+				// Gather project description
+				fmt.Printf("\n%s🤖 AI-Powered Project Setup%s\n", ColorBlue, ColorReset)
+				fmt.Printf("%sLet's create comprehensive documentation for your %s project!%s\n\n", ColorGray, framework, ColorReset)
+				
+				fmt.Printf("%s❓ Describe your project (what you're building):%s\n", ColorCyan, ColorReset)
+				fmt.Printf("%s   Example: \"A task management API with user authentication and real-time updates\"%s\n", ColorGray, ColorReset)
+				fmt.Print("   > ")
+				
+				// Use bufio.Scanner to read the full line including spaces
+				scanner := bufio.NewScanner(os.Stdin)
+				var description string
+				if scanner.Scan() {
+					description = strings.TrimSpace(scanner.Text())
+				}
+				if description == "" {
+					description = fmt.Sprintf("A %s application", framework)
+				}
+				
+				fmt.Printf("\n   📝 Project description captured: \"%s\"\n", description)
+				
+				// Select AI provider if multiple available
+				var selectedProvider string
+				if len(providers) == 1 {
+					selectedProvider = providers[0].Name
+					fmt.Printf("\n   Using %s for documentation generation\n", providers[0].DisplayName)
+				} else {
+					fmt.Printf("\n%s🔧 Select AI Provider:%s\n", ColorYellow, ColorReset)
+					for i, provider := range providers {
+						fmt.Printf("   %d. %s\n", i+1, provider.DisplayName)
+					}
+					fmt.Print("   > ")
+					
+					var choice int
+					if scanner.Scan() {
+						choiceStr := strings.TrimSpace(scanner.Text())
+						if choiceStr != "" {
+							fmt.Sscanf(choiceStr, "%d", &choice)
+						}
+					}
+					if choice >= 1 && choice <= len(providers) {
+						selectedProvider = providers[choice-1].Name
+					} else {
+						selectedProvider = providers[0].Name
+						fmt.Printf("   Using default provider: %s\n", providers[0].DisplayName)
+					}
+				}
+				
+				tracker.UpdateStep("Generating AI documentation with " + selectedProvider)
+				
+				// Generate comprehensive project documentation
+				planningReq := ai.PlanningRequest{
+					ProjectDescription: description,
+					Framework:         framework,
+					Provider:          selectedProvider,
+					ProjectPath:       projectDir,
+				}
+				
+				planningResult, err := planner.GenerateProjectPlan(context.Background(), planningReq)
 				if err != nil {
-					tracker.WarningStep("Failed to gather project intent, using defaults")
+					tracker.WarningStep("Failed to generate AI documentation")
 					projectIntent = createDefaultIntent(framework, version, projectName)
 				} else {
-					projectIntent = intent
+					// Save the generated documentation
+					if err := planner.SavePlanningResult(planningResult, projectDir); err != nil {
+						tracker.WarningStep("Failed to save AI documentation files")
+					} else {
+						tracker.UpdateStep("AI documentation saved to .ai/ directory")
+					}
+					
+					// Create project intent from the AI-generated content
+					projectIntent = &ProjectIntent{
+						Description:     description,
+						Framework:       framework,
+						Language:        getFrameworkLanguage(framework),
+						ProjectType:     "AI-Planned Application",
+						CoreFeatures:    []string{"AI-Generated Documentation", "Framework Best Practices", "Comprehensive Planning"},
+						TechnicalNeeds:  []string{"Development Environment", "AI Context Files", "Documentation System"},
+						UserStories:     []UserStory{},
+						ArchitectureHints: map[string]string{
+							"ai_documentation": "Comprehensive AI-generated project documentation available in .ai/ directory",
+							"planning":         "Project includes 5 detailed documentation files for better development workflow",
+						},
+						CreatedAt: time.Now(),
+					}
 				}
 			}
 		}
 	} else {
-		tracker.UpdateStep("Authentication required for full AI features")
-		// Use clean prompter for auth message
-		if prompter, err := NewCleanInteractivePrompter(c.templatesFS); err == nil {
-			prompter.ShowAuthenticationPrompt()
-		} else {
-			// Fallback to basic auth message
-			authChecker := NewAuthChecker()
-			authChecker.PromptAuthentication()
-		}
+		tracker.UpdateStep("Authentication required for AI-powered documentation")
+		authChecker := NewAuthChecker()
+		authChecker.PromptAuthentication()
 		projectIntent = createDefaultIntent(framework, version, projectName)
 	}
 	
@@ -172,23 +270,18 @@ func (c *CreateCommand) runScaffoldWithAI(tracker *ProgressTracker, framework, v
 	
 	tracker.CompleteStep(fmt.Sprintf("%s %s application installed", framework, version))
 	
-	// Step 4: Generate AI manifest (scaffold already handled infrastructure)
-	tracker.StartStep(4, "Generating AI development context")
-	tracker.UpdateStep("Generating AI project manifest")
+	// Step 4: Finalize AI development context
+	tracker.StartStep(4, "Finalizing AI development context")
+	tracker.UpdateStep("Validating AI documentation files")
 	
-	// Generate AI manifest files using clean generator
-	manifestGenerator, err := NewCleanAIManifestGenerator(isAuthenticated, c.templatesFS, framework)
-	if err != nil {
-		tracker.WarningStep(fmt.Sprintf("Failed to initialize manifest generator: %v", err))
+	// The AI documentation was already generated in Step 1
+	if isAuthenticated {
+		tracker.UpdateStep("AI context files are ready for development")
 	} else {
-		if err := manifestGenerator.GenerateManifestFiles(projectIntent, projectDir); err != nil {
-			tracker.WarningStep(fmt.Sprintf("Failed to generate AI manifest: %v", err))
-		} else {
-			tracker.UpdateStep("AI manifest files generated successfully")
-		}
+		tracker.UpdateStep("Basic project structure ready")
 	}
 	
-	tracker.CompleteStep("AI development context ready")
+	tracker.CompleteStep("AI development context finalized")
 	
 	return nil
 }

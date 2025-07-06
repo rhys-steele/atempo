@@ -38,6 +38,9 @@ func NewCommandRegistry(templatesFS, mcpServersFS embed.FS) *CommandRegistry {
 	registry.register(NewLogsCommand(ctx))
 	registry.register(NewDescribeCommand(ctx))
 	registry.register(NewRemoveCommand(ctx))
+	registry.register(NewStopCommand(ctx))
+	registry.register(NewTestCommand(ctx))
+	registry.register(NewResetCommand(ctx))
 	registry.register(NewShellCommand(ctx, registry))
 	
 	return registry
@@ -103,7 +106,7 @@ Commands:`)
 	// Display commands in a logical order
 	commandOrder := []string{
 		"create", "auth", "status", "describe", "docker", 
-		"reconfigure", "add-service", "projects", "remove", "logs",
+		"reconfigure", "add-service", "projects", "remove", "logs", "stop", "test", "reset",
 	}
 	
 	for _, cmdName := range commandOrder {
@@ -127,6 +130,11 @@ Examples:
   atempo add-service minio              Add MinIO object storage service
   atempo projects                       List all registered projects
   atempo logs my-app                    View setup logs for 'my-app' project
+  atempo stop                           Stop all running projects
+  atempo test                           Run all tests in current project
+  atempo test my-app                    Run all tests for 'my-app' project
+  atempo test my-app UserTest           Run specific test suite for Laravel
+  atempo test accounts                  Run tests for Django 'accounts' app
 
 Project Management:
   - Projects are automatically registered when created with 'atempo create'

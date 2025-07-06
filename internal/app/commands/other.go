@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	"atempo/internal/compose"
+	"atempo/internal/docker"
 	"atempo/internal/logger"
+	"atempo/internal/mcp"
 	"atempo/internal/registry"
 	"atempo/internal/utils"
 )
@@ -438,4 +440,290 @@ func (c *RemoveCommand) Execute(ctx context.Context, args []string) error {
 	fmt.Printf("💡 Project files at %s are still intact.\n", project.Path)
 	
 	return nil
+}
+
+// StopCommand stops all running projects
+type StopCommand struct {
+	*BaseCommand
+}
+
+// NewStopCommand creates a new stop command
+func NewStopCommand(ctx *CommandContext) *StopCommand {
+	return &StopCommand{
+		BaseCommand: NewBaseCommand(
+			"stop",
+			"Stop all running projects",
+			"atempo stop",
+			ctx,
+		),
+	}
+}
+
+// Execute runs the stop command
+func (c *StopCommand) Execute(ctx context.Context, args []string) error {
+	// Load registry to get all projects
+	reg, err := registry.LoadRegistry()
+	if err != nil {
+		return fmt.Errorf("failed to load registry: %w", err)
+	}
+
+	projects := reg.ListProjects()
+	if len(projects) == 0 {
+		fmt.Println("No projects found in registry.")
+		return nil
+	}
+
+	// Filter for running projects
+	runningProjects := []registry.Project{}
+	for _, project := range projects {
+		if project.Status == "running" || project.Status == "partial" {
+			runningProjects = append(runningProjects, project)
+		}
+	}
+
+	if len(runningProjects) == 0 {
+		fmt.Println("No running projects found.")
+		return nil
+	}
+
+	fmt.Printf("Found %d running project(s):\n", len(runningProjects))
+	for _, project := range runningProjects {
+		fmt.Printf("  • %s (%s)\n", project.Name, project.Status)
+	}
+	fmt.Println()
+
+	// Stop each running project
+	stoppedCount := 0
+	for _, project := range runningProjects {
+		fmt.Printf("→ Stopping %s...\n", project.Name)
+		
+		// Use docker-compose down to stop all services
+		if err := docker.ExecuteCommand("down", project.Path, []string{}); err != nil {
+			fmt.Printf("❌ Failed to stop %s: %v\n", project.Name, err)
+			continue
+		}
+		
+		fmt.Printf("✅ Stopped %s\n", project.Name)
+		stoppedCount++
+	}
+
+	fmt.Printf("\n🎉 Successfully stopped %d of %d running projects.\n", stoppedCount, len(runningProjects))
+	return nil
+}
+
+// TestCommand runs tests for a project using framework-specific test commands
+type TestCommand struct {
+	*BaseCommand
+}
+
+// NewTestCommand creates a new test command
+func NewTestCommand(ctx *CommandContext) *TestCommand {
+	return &TestCommand{
+		BaseCommand: NewBaseCommand(
+			"test",
+			"Run tests for a project using framework-specific commands",
+			"atempo test [project] [suite]",
+			ctx,
+		),
+	}
+}
+
+// Execute runs the test command
+func (c *TestCommand) Execute(ctx context.Context, args []string) error {
+	var projectPath string
+	var testSuite string
+
+	// Parse arguments
+	if len(args) > 0 {
+		// Check if first arg is a project name/path or test suite
+		// Try to resolve as project first, but only if it looks like a project identifier
+		firstArg := args[0]
+		
+		// If it contains path separators or is known project, treat as project
+		if strings.Contains(firstArg, "/") || strings.Contains(firstArg, "\\") {
+			// Looks like a path
+			resolvedPath, err := registry.ResolveProjectPath(firstArg)
+			if err != nil {
+				return fmt.Errorf("failed to resolve project path: %w", err)
+			}
+			projectPath = resolvedPath
+			
+			// Second arg could be test suite
+			if len(args) > 1 {
+				testSuite = args[1]
+			}
+		} else {
+			// Try to find as registered project
+			reg, err := registry.LoadRegistry()
+			if err != nil {
+				return fmt.Errorf("failed to load registry: %w", err)
+			}
+			
+			_, err = reg.FindProject(firstArg)
+			if err == nil {
+				// Found as registered project
+				resolvedPath, err := registry.ResolveProjectPath(firstArg)
+				if err != nil {
+					return fmt.Errorf("failed to resolve project: %w", err)
+				}
+				projectPath = resolvedPath
+				
+				// Second arg could be test suite
+				if len(args) > 1 {
+					testSuite = args[1]
+				}
+			} else {
+				// Not a registered project, treat as test suite
+				cwd, err := os.Getwd()
+				if err != nil {
+					return fmt.Errorf("failed to get current directory: %w", err)
+				}
+				projectPath = cwd
+				testSuite = firstArg
+			}
+		}
+	} else {
+		// No args, use current directory
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get current directory: %w", err)
+		}
+		projectPath = cwd
+	}
+
+	// Check if project has atempo.json
+	atempoJSONPath := filepath.Join(projectPath, "atempo.json")
+	if !utils.FileExists(atempoJSONPath) {
+		return fmt.Errorf("no atempo.json found in %s - this doesn't appear to be an Atempo project", projectPath)
+	}
+
+	// Try to use MCP server for framework-agnostic testing
+	fmt.Printf("→ Initializing MCP server for testing...\n")
+	
+	mcpClient, err := mcp.NewMCPClient(projectPath)
+	if err != nil {
+		// Fallback to legacy approach if MCP server not available
+		fmt.Printf("⚠️  MCP server not available, falling back to legacy testing: %v\n", err)
+		return c.runLegacyTest(projectPath, testSuite)
+	}
+	
+	// Start the MCP server
+	if err := mcpClient.Start(); err != nil {
+		fmt.Printf("⚠️  Failed to start MCP server, falling back to legacy testing: %v\n", err)
+		return c.runLegacyTest(projectPath, testSuite)
+	}
+	defer mcpClient.Close()
+	
+	fmt.Printf("→ Running tests via MCP server...\n")
+	if testSuite != "" {
+		fmt.Printf("→ Test suite: %s\n", testSuite)
+	}
+	
+	// Execute tests through MCP server
+	err = mcpClient.RunTests(testSuite)
+	if err != nil {
+		fmt.Printf("❌ Tests failed: %v\n", err)
+		return err
+	}
+	
+	fmt.Printf("✅ Tests completed successfully!\n")
+	return nil
+}
+
+// runLegacyTest executes tests using the legacy approach (fallback when MCP not available)
+func (c *TestCommand) runLegacyTest(projectPath, testSuite string) error {
+	// Get framework information
+	framework, err := c.detectFramework(projectPath)
+	if err != nil {
+		return fmt.Errorf("failed to detect framework: %w", err)
+	}
+
+	// Get framework-specific test command
+	testCommand, containerName, err := c.getTestCommand(framework, testSuite)
+	if err != nil {
+		return fmt.Errorf("failed to get test command for %s: %w", framework, err)
+	}
+
+	fmt.Printf("→ Running tests for %s project...\n", framework)
+	if testSuite != "" {
+		fmt.Printf("→ Test suite: %s\n", testSuite)
+	}
+	fmt.Printf("→ Command: %s\n", testCommand)
+
+	// Execute the test command in the appropriate container
+	err = c.runTestInContainer(projectPath, containerName, testCommand)
+	if err != nil {
+		fmt.Printf("❌ Tests failed: %v\n", err)
+		return err
+	}
+
+	fmt.Printf("✅ Tests completed successfully!\n")
+	return nil
+}
+
+// detectFramework detects the framework of a project
+func (c *TestCommand) detectFramework(projectPath string) (string, error) {
+	// First try to read atempo.json
+	atempoJSONPath := filepath.Join(projectPath, "atempo.json")
+	if utils.FileExists(atempoJSONPath) {
+		data, err := os.ReadFile(atempoJSONPath)
+		if err == nil {
+			var config struct {
+				Framework string `json:"framework"`
+			}
+			if json.Unmarshal(data, &config) == nil && config.Framework != "" {
+				return config.Framework, nil
+			}
+		}
+	}
+
+	// Fallback to file-based detection
+	srcPath := filepath.Join(projectPath, "src")
+	
+	// Check for Laravel
+	if utils.FileExists(filepath.Join(srcPath, "artisan")) || 
+	   utils.FileExists(filepath.Join(srcPath, "composer.json")) {
+		return "laravel", nil
+	}
+	
+	// Check for Django
+	if utils.FileExists(filepath.Join(srcPath, "manage.py")) ||
+	   utils.FileExists(filepath.Join(srcPath, "requirements.txt")) {
+		return "django", nil
+	}
+
+	return "", fmt.Errorf("unknown framework - unable to detect Laravel or Django")
+}
+
+// getTestCommand returns the appropriate test command and container for the framework
+func (c *TestCommand) getTestCommand(framework, testSuite string) (string, string, error) {
+	switch framework {
+	case "laravel":
+		containerName := "app"
+		if testSuite == "" {
+			return "php artisan test", containerName, nil
+		}
+		// Laravel supports test filtering
+		return fmt.Sprintf("php artisan test --filter=%s", testSuite), containerName, nil
+		
+	case "django":
+		containerName := "web"
+		if testSuite == "" {
+			return "python manage.py test", containerName, nil
+		}
+		// Django supports app-specific testing
+		return fmt.Sprintf("python manage.py test %s", testSuite), containerName, nil
+		
+	default:
+		return "", "", fmt.Errorf("unsupported framework: %s", framework)
+	}
+}
+
+// runTestInContainer executes the test command in the appropriate Docker container
+func (c *TestCommand) runTestInContainer(projectPath, containerName, testCommand string) error {
+	// Use docker-compose exec to run the test command in the running container
+	cmdArgs := []string{"sh", "-c", testCommand}
+	
+	// Use the existing docker exec infrastructure
+	return docker.ExecuteExecCommand(containerName, projectPath, cmdArgs)
 }
