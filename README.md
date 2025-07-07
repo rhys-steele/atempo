@@ -44,6 +44,35 @@ go build -o atempo .
 mv atempo /usr/local/bin/
 ```
 
+### DNS Requirements
+
+Atempo uses DNSmasq for local DNS management to provide clean domain names for your projects (e.g., `myproject.local` instead of `localhost:3000`).
+
+**Required Setup:**
+
+```bash
+# Install DNSmasq (macOS)
+brew install dnsmasq
+
+# Start DNSmasq service
+sudo brew services start dnsmasq
+
+# Create resolver directory
+sudo mkdir -p /etc/resolver
+```
+
+**What this enables:**
+- Access projects via clean URLs like `myproject.local`
+- Automatic service subdomains like `api.myproject.local`
+- No port conflicts between multiple projects
+- Professional local development environment
+
+**DNS Configuration:**
+Atempo automatically configures:
+- DNSmasq configuration files in `/opt/homebrew/etc/dnsmasq.d/`
+- macOS resolvers in `/etc/resolver/`
+- Nginx reverse proxy for domain routing
+
 ---
 
 ## Usage

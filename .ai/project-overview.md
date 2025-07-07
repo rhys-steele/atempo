@@ -59,6 +59,13 @@ cmd/atempo/main.go              # Entry point (65 lines)
 - **Health Monitoring**: Service health checking and status reporting
 - **Development Workflow**: Streamlined Docker-based development
 
+#### 5. DNS Management System
+- **Local Domain Resolution**: DNSmasq-powered custom domains (`.local` TLD)
+- **Service Subdomains**: Automatic subdomain generation for multi-service projects
+- **Nginx Reverse Proxy**: Clean URL routing instead of port numbers
+- **Port Management**: Dynamic port allocation with conflict resolution
+- **macOS Integration**: System-level DNS resolver configuration
+
 ## Current State (Feature/AI-Prompting-Manifests Branch)
 
 ### ✅ Completed Features
@@ -69,6 +76,9 @@ cmd/atempo/main.go              # Entry point (65 lines)
 - Interactive shell mode with progress tracking
 - MCP server discovery framework
 - Basic scaffolding workflow
+- DNS management system with DNSmasq integration
+- Nginx reverse proxy for clean URL routing
+- Dynamic port allocation and conflict resolution
 
 ### 🔄 In Development (Current Branch)
 - AI manifest generation system
@@ -114,6 +124,9 @@ cmd/atempo/main.go              # Entry point (65 lines)
 - `internal/scaffold/scaffold.go`: Project scaffolding engine
 - `internal/registry/registry.go`: Project registry management
 - `internal/compose/generator.go`: Docker Compose generation
+- `internal/docker/dns_manager.go`: DNS management and DNSmasq integration
+- `internal/docker/nginx_proxy.go`: Nginx reverse proxy management
+- `internal/docker/port_manager.go`: Dynamic port allocation system
 
 ### Template System
 - `templates/frameworks/*/atempo.json`: Framework metadata
