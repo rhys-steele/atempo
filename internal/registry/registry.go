@@ -394,7 +394,7 @@ func (r *Registry) checkProjectHealth(projectPath string) (string, []Service, []
 								})
 
 								// Generate URL for web services
-								if isWebPort(int(publishedPort)) {
+								if isWebService(serviceName, int(targetPort), int(publishedPort)) {
 									url := fmt.Sprintf("http://localhost:%d", int(publishedPort))
 									urls = append(urls, url)
 									
@@ -470,6 +470,45 @@ func (r *Registry) getGitInfo(projectPath string) (string, string) {
 	}
 
 	return branch, "clean"
+}
+
+// isWebService determines if a service/port combination represents a web service
+func isWebService(serviceName string, internalPort, externalPort int) bool {
+	// Primary web services (highest priority)
+	primaryWebServices := []string{"webserver", "nginx", "apache", "web", "app", "frontend", "ui"}
+	for _, webService := range primaryWebServices {
+		if strings.Contains(strings.ToLower(serviceName), webService) {
+			// For primary web services, common web ports get priority
+			if internalPort == 80 || internalPort == 443 || internalPort == 8000 {
+				return true
+			}
+		}
+	}
+	
+	// Secondary web services (lower priority)
+	secondaryWebServices := []string{"api", "server", "backend"}
+	for _, webService := range secondaryWebServices {
+		if strings.Contains(strings.ToLower(serviceName), webService) {
+			if isWebPort(internalPort) {
+				return true
+			}
+		}
+	}
+	
+	// Exclude auxiliary services that happen to use web ports
+	auxiliaryServices := []string{"mailhog", "mailcatcher", "mailer", "mail", "phpmyadmin", "adminer"}
+	for _, auxService := range auxiliaryServices {
+		if strings.Contains(strings.ToLower(serviceName), auxService) {
+			// Only include if it's a traditional admin web interface port
+			if internalPort == 8025 || internalPort == 8080 || internalPort == 80 {
+				return true
+			}
+			return false
+		}
+	}
+	
+	// For other services, check if it's a standard web port
+	return isWebPort(internalPort)
 }
 
 // isWebPort determines if a port is typically used for web services

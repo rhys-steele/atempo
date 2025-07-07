@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"atempo/internal/docker"
 	"atempo/internal/registry"
 )
 
@@ -437,12 +438,22 @@ func (r *CommandRegistry) openProjectInBrowser(projectName string, args []string
 	var targetURL string
 	
 	if len(args) == 0 {
-		// Open main application (first available URL)
-		if len(project.URLs) == 0 {
-			return fmt.Errorf("no web URLs found for project '%s'. Make sure services are running and have exposed web ports", projectName)
+		// Try to use DNS URL first, then fall back to port-based URLs
+		dnsURL := r.getDNSURL(projectName)
+		if dnsURL != "" {
+			targetURL = dnsURL
+			ShowInfo(fmt.Sprintf("Opening main application: %s", targetURL))
+		} else {
+			// Fallback to port-based URLs
+			if len(project.URLs) == 0 {
+				return fmt.Errorf("no web URLs found for project '%s'. Make sure services are running and have exposed web ports", projectName)
+			}
+			targetURL = r.findBestPortURL(project)
+			if targetURL == "" {
+				targetURL = project.URLs[0] // Last resort
+			}
+			ShowInfo(fmt.Sprintf("Opening main application: %s (DNS not configured)", targetURL))
 		}
-		targetURL = project.URLs[0]
-		ShowInfo(fmt.Sprintf("Opening main application: %s", targetURL))
 	} else {
 		// Open specific service
 		serviceName := args[0]
@@ -480,6 +491,46 @@ func (r *CommandRegistry) openProjectInBrowser(projectName string, args []string
 	
 	// Open URL in default browser
 	return openURL(targetURL)
+}
+
+// getDNSURL returns the DNS-based URL for a project if available
+func (r *CommandRegistry) getDNSURL(projectName string) string {
+	// Check if we have DNS configuration for this project
+	dnsManager := docker.NewDNSManager()
+	domain := dnsManager.GetProjectDomain(projectName)
+	
+	// Test if DNS is working by trying to resolve the domain
+	if r.isDNSWorking(domain) {
+		return fmt.Sprintf("http://%s", domain)
+	}
+	
+	return ""
+}
+
+// isDNSWorking tests if DNS resolution is working for a domain
+func (r *CommandRegistry) isDNSWorking(domain string) bool {
+	// Try to resolve the domain using nslookup or dig
+	cmd := exec.Command("nslookup", domain, "127.0.0.1")
+	err := cmd.Run()
+	return err == nil
+}
+
+// findBestPortURL finds the best port-based URL from project URLs
+func (r *CommandRegistry) findBestPortURL(project *registry.Project) string {
+	// Look for main web service URLs first
+	for _, url := range project.URLs {
+		// Parse the URL to get the port
+		if strings.Contains(url, ":8000") || strings.Contains(url, ":8001") || strings.Contains(url, ":8080") {
+			return url
+		}
+	}
+	
+	// Return first available URL
+	if len(project.URLs) > 0 {
+		return project.URLs[0]
+	}
+	
+	return ""
 }
 
 // openURL opens a URL in the default browser (cross-platform)

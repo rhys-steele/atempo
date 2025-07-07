@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"atempo/internal/docker"
 	"gopkg.in/yaml.v3"
 )
 
@@ -79,9 +81,52 @@ func LoadAtempoConfig(projectPath string) (*AtempoConfig, error) {
 
 // GenerateDockerCompose generates a docker-compose.yml from atempo.json
 func GenerateDockerCompose(projectPath string) error {
+	return GenerateDockerComposeWithDynamicPorts(projectPath)
+}
+
+// GenerateDockerComposeWithDynamicPorts generates a docker-compose.yml with dynamic port allocation
+func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 	config, err := LoadAtempoConfig(projectPath)
 	if err != nil {
 		return err
+	}
+
+	// Extract project name from config name or use directory name
+	projectName := config.Name
+	if projectName == "" {
+		projectName = filepath.Base(projectPath)
+	}
+
+	// Initialize port and DNS managers
+	portManager := docker.NewPortManager()
+	dnsManager := docker.NewDNSManager()
+
+	// Collect service port requirements
+	servicePorts := make(map[string][]int)
+	for serviceName, service := range config.Services {
+		var ports []int
+		for _, portMapping := range service.Ports {
+			if internalPort := extractInternalPort(portMapping); internalPort > 0 {
+				ports = append(ports, internalPort)
+			}
+		}
+		if len(ports) > 0 {
+			servicePorts[serviceName] = ports
+		}
+	}
+
+	// Allocate ports dynamically
+	allocatedPorts, err := portManager.AllocatePortsForProject(projectName, servicePorts)
+	if err != nil {
+		return fmt.Errorf("failed to allocate ports: %w", err)
+	}
+
+	// Setup DNS routing
+	projectDNS, err := dnsManager.SetupProjectDNS(projectName, allocatedPorts)
+	if err != nil {
+		// DNS setup is optional - continue without it
+		fmt.Printf("Warning: DNS setup failed: %v\n", err)
+		fmt.Println("Projects will be accessible via localhost:PORT instead of custom domains")
 	}
 
 	compose := &DockerCompose{
@@ -91,15 +136,9 @@ func GenerateDockerCompose(projectPath string) error {
 		Networks: make(map[string]interface{}),
 	}
 
-	// Extract project name from config name or use directory name
-	projectName := config.Name
-	if projectName == "" {
-		projectName = filepath.Base(projectPath)
-	}
-
-	// Convert services
+	// Convert services with dynamic ports
 	for serviceName, service := range config.Services {
-		dockerService := convertService(service, serviceName, projectName, config.Framework)
+		dockerService := convertServiceWithDynamicPorts(service, serviceName, projectName, config.Framework, allocatedPorts[serviceName])
 		compose.Services[serviceName] = dockerService
 	}
 
@@ -113,23 +152,33 @@ func GenerateDockerCompose(projectPath string) error {
 		compose.Networks[networkName] = convertNetwork(network)
 	}
 
-	// Add default network if none specified
+	// Add project-specific network if none specified
 	if len(compose.Networks) == 0 {
-		compose.Networks[config.Framework] = map[string]interface{}{
+		networkName := fmt.Sprintf("%s-network", projectName)
+		compose.Networks[networkName] = map[string]interface{}{
 			"driver": "bridge",
 		}
 		
 		// Add network to all services
 		for _, serviceInterface := range compose.Services {
 			if serviceMap, ok := serviceInterface.(map[string]interface{}); ok {
-				serviceMap["networks"] = []string{config.Framework}
+				serviceMap["networks"] = []string{networkName}
 			}
 		}
 	}
 
 	// Write docker-compose.yml
 	composePath := filepath.Join(projectPath, "docker-compose.yml")
-	return writeDockerCompose(compose, composePath)
+	if err := writeDockerCompose(compose, composePath); err != nil {
+		return err
+	}
+
+	// Generate access information
+	if err := generateAccessInfo(projectPath, projectName, allocatedPorts, projectDNS); err != nil {
+		fmt.Printf("Warning: failed to generate access info: %v\n", err)
+	}
+
+	return nil
 }
 
 // convertService converts a Atempo service to Docker Compose service
@@ -375,4 +424,126 @@ func GetPredefinedService(serviceType string) (Service, bool) {
 // ListPredefinedServices returns available predefined services
 func ListPredefinedServices() []string {
 	return []string{"minio", "elasticsearch", "rabbitmq", "mongodb"}
+}
+
+// extractInternalPort extracts the internal port from a port mapping string
+func extractInternalPort(portMapping string) int {
+	parts := strings.Split(portMapping, ":")
+	if len(parts) >= 2 {
+		if port, err := strconv.Atoi(parts[len(parts)-1]); err == nil {
+			return port
+		}
+	}
+	return 0
+}
+
+// convertServiceWithDynamicPorts converts a service with dynamically allocated ports
+func convertServiceWithDynamicPorts(service Service, serviceName, projectName, framework string, portMapping map[int]int) map[string]interface{} {
+	dockerService := make(map[string]interface{})
+
+	// Handle build vs image
+	if service.Type == "build" {
+		// Generate project-specific image name
+		imageName := fmt.Sprintf("%s-%s-%s", projectName, framework, serviceName)
+		dockerService["image"] = imageName
+		
+		if service.Context != "" {
+			dockerService["build"] = map[string]interface{}{
+				"context":    service.Context,
+				"dockerfile": service.Dockerfile,
+			}
+		} else {
+			dockerService["build"] = map[string]interface{}{
+				"context":    ".",
+				"dockerfile": service.Dockerfile,
+			}
+		}
+	} else if service.Image != "" {
+		dockerService["image"] = service.Image
+	}
+
+	// Add container name with project prefix
+	dockerService["container_name"] = fmt.Sprintf("%s-%s", projectName, serviceName)
+
+	// Add restart policy
+	if service.Restart != "" {
+		dockerService["restart"] = service.Restart
+	} else {
+		dockerService["restart"] = "unless-stopped"
+	}
+
+	// Add optional fields
+	if service.Command != nil {
+		dockerService["command"] = service.Command
+	}
+	
+	if service.WorkingDir != "" {
+		dockerService["working_dir"] = service.WorkingDir
+	}
+
+	// Handle dynamic ports
+	if len(service.Ports) > 0 && portMapping != nil {
+		var dynamicPorts []string
+		for _, originalPort := range service.Ports {
+			internalPort := extractInternalPort(originalPort)
+			if externalPort, exists := portMapping[internalPort]; exists {
+				dynamicPorts = append(dynamicPorts, fmt.Sprintf("%d:%d", externalPort, internalPort))
+			} else {
+				// Keep original mapping if no dynamic allocation
+				dynamicPorts = append(dynamicPorts, originalPort)
+			}
+		}
+		dockerService["ports"] = dynamicPorts
+	}
+
+	if len(service.Volumes) > 0 {
+		dockerService["volumes"] = service.Volumes
+	}
+
+	if len(service.Environment) > 0 {
+		dockerService["environment"] = service.Environment
+	}
+
+	if len(service.DependsOn) > 0 {
+		dockerService["depends_on"] = service.DependsOn
+	}
+
+	if len(service.Networks) > 0 {
+		dockerService["networks"] = service.Networks
+	}
+
+	return dockerService
+}
+
+// generateAccessInfo creates a file with access information for the project
+func generateAccessInfo(projectPath, projectName string, allocatedPorts map[string]map[int]int, projectDNS *docker.ProjectDNS) error {
+	var info strings.Builder
+	
+	info.WriteString(fmt.Sprintf("# Access Information for %s\n\n", projectName))
+	info.WriteString("## Service URLs\n\n")
+
+	// Generate URLs for each service
+	for serviceName, portMapping := range allocatedPorts {
+		if len(portMapping) > 0 {
+			info.WriteString(fmt.Sprintf("### %s\n", serviceName))
+			
+			// Port-based access
+			for internalPort, externalPort := range portMapping {
+				info.WriteString(fmt.Sprintf("- Port-based: http://localhost:%d (internal port %d)\n", externalPort, internalPort))
+			}
+			
+			// Domain-based access (if DNS is configured)
+			if projectDNS != nil {
+				if domain, exists := projectDNS.Services[serviceName]; exists {
+					info.WriteString(fmt.Sprintf("- Domain-based: http://%s\n", domain))
+				}
+			}
+			
+			info.WriteString("\n")
+		}
+	}
+
+	// Write to file
+	accessFile := filepath.Join(projectPath, ".atempo-access.md")
+	return os.WriteFile(accessFile, []byte(info.String()), 0644)
 }
