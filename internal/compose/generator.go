@@ -121,7 +121,7 @@ func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 	}
 
 	// Setup DNS routing with simplified system
-	simpleDNS := docker.NewSimpleDNS()
+	dnsService := docker.NewDNSService()
 	
 	// Convert allocated ports to simple map for DNS system
 	services := make(map[string]int)
@@ -133,7 +133,7 @@ func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 		}
 	}
 	
-	if err := simpleDNS.AddProject(projectName, services); err != nil {
+	if err := dnsService.AddProject(projectName, services); err != nil {
 		// DNS setup is optional - continue without it
 		fmt.Printf("Warning: DNS setup incomplete: %v\n", err)
 		fmt.Printf("Run 'atempo dns setup' to enable custom domains like %s.local\n", projectName)

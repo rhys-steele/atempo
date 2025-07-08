@@ -8,30 +8,30 @@ import (
 	"strings"
 )
 
-// SimpleDNS manages a single container with dnsmasq + nginx for local development
-type SimpleDNS struct {
+// DNSService manages a single container with dnsmasq + nginx for local development
+type DNSService struct {
 	configDir string
 }
 
 const (
-	SimpleDNSContainerName = "atempo-dns"
-	SimpleDNSImage         = "nginx:alpine"
-	DNSPort                = "5353"
-	HTTPPort               = "80"
+	DNSContainerName = "atempo-dns"
+	DNSImage         = "nginx:alpine"
+	DNSPort          = "5353"
+	HTTPPort         = "80"
 )
 
-// NewSimpleDNS creates a new simple DNS manager
-func NewSimpleDNS() *SimpleDNS {
+// NewDNSService creates a new DNS service manager
+func NewDNSService() *DNSService {
 	homeDir, _ := os.UserHomeDir()
 	configDir := filepath.Join(homeDir, ".atempo", "dns")
 	
-	return &SimpleDNS{
+	return &DNSService{
 		configDir: configDir,
 	}
 }
 
 // Setup performs one-time DNS setup
-func (s *SimpleDNS) Setup() error {
+func (s *DNSService) Setup() error {
 	fmt.Println("DNS Setup")
 	fmt.Println(strings.Repeat("─", 50))
 	
@@ -61,7 +61,7 @@ func (s *SimpleDNS) Setup() error {
 }
 
 // createResolver creates the macOS DNS resolver configuration
-func (s *SimpleDNS) createResolver() error {
+func (s *DNSService) createResolver() error {
 	fmt.Println("Creating DNS resolver...")
 	
 	// Create resolver directory
@@ -98,7 +98,7 @@ port 5353`
 }
 
 // Start starts the DNS container
-func (s *SimpleDNS) Start() error {
+func (s *DNSService) Start() error {
 	if s.IsRunning() {
 		return nil // Already running
 	}
@@ -152,25 +152,25 @@ exec dnsmasq --conf-file=/etc/atempo/dnsmasq.conf --no-daemon
 
 	// Create and start container
 	cmd := exec.Command("docker", "run", "-d",
-		"--name", SimpleDNSContainerName,
+		"--name", DNSContainerName,
 		"-p", fmt.Sprintf("%s:53/udp", DNSPort),
 		"-p", fmt.Sprintf("%s:53/tcp", DNSPort),
 		"-p", fmt.Sprintf("%s:80", HTTPPort),
 		"-v", fmt.Sprintf("%s:/etc/atempo", s.configDir),
 		"--restart", "unless-stopped",
-		SimpleDNSImage,
+		DNSImage,
 		"/etc/atempo/startup.sh")
 	
 	return cmd.Run()
 }
 
 // Stop stops the DNS container
-func (s *SimpleDNS) Stop() error {
+func (s *DNSService) Stop() error {
 	if !s.IsRunning() {
 		return nil
 	}
 	
-	cmd := exec.Command("docker", "stop", SimpleDNSContainerName)
+	cmd := exec.Command("docker", "stop", DNSContainerName)
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -180,17 +180,17 @@ func (s *SimpleDNS) Stop() error {
 }
 
 // IsRunning checks if the DNS container is running
-func (s *SimpleDNS) IsRunning() bool {
-	cmd := exec.Command("docker", "ps", "--filter", fmt.Sprintf("name=%s", SimpleDNSContainerName), "--format", "{{.Names}}")
+func (s *DNSService) IsRunning() bool {
+	cmd := exec.Command("docker", "ps", "--filter", fmt.Sprintf("name=%s", DNSContainerName), "--format", "{{.Names}}")
 	output, err := cmd.Output()
 	if err != nil {
 		return false
 	}
-	return strings.Contains(string(output), SimpleDNSContainerName)
+	return strings.Contains(string(output), DNSContainerName)
 }
 
 // AddProject adds DNS configuration for a project
-func (s *SimpleDNS) AddProject(projectName string, services map[string]int) error {
+func (s *DNSService) AddProject(projectName string, services map[string]int) error {
 	// Create DNS config
 	dnsConfig := fmt.Sprintf("address=/%s.local/127.0.0.1\n", projectName)
 	for serviceName := range services {
@@ -216,7 +216,7 @@ func (s *SimpleDNS) AddProject(projectName string, services map[string]int) erro
 }
 
 // RemoveProject removes DNS configuration for a project
-func (s *SimpleDNS) RemoveProject(projectName string) error {
+func (s *DNSService) RemoveProject(projectName string) error {
 	dnsFile := filepath.Join(s.configDir, "projects", fmt.Sprintf("%s.dns", projectName))
 	nginxFile := filepath.Join(s.configDir, "projects", fmt.Sprintf("%s.nginx", projectName))
 	
@@ -227,7 +227,7 @@ func (s *SimpleDNS) RemoveProject(projectName string) error {
 }
 
 // Status returns DNS system status
-func (s *SimpleDNS) Status() error {
+func (s *DNSService) Status() error {
 	fmt.Println("DNS Configuration")
 	fmt.Println(strings.Repeat("─", 50))
 	
@@ -261,7 +261,7 @@ func (s *SimpleDNS) Status() error {
 }
 
 // createConfigDirectories creates the DNS configuration structure
-func (s *SimpleDNS) createConfigDirectories() error {
+func (s *DNSService) createConfigDirectories() error {
 	dirs := []string{
 		s.configDir,
 		filepath.Join(s.configDir, "projects"),
@@ -289,7 +289,7 @@ conf-dir=/etc/atempo/projects,*.dns
 }
 
 // generateNginxConfig generates nginx configuration for a project
-func (s *SimpleDNS) generateNginxConfig(projectName string, services map[string]int) string {
+func (s *DNSService) generateNginxConfig(projectName string, services map[string]int) string {
 	config := fmt.Sprintf(`# Nginx config for %s
 server {
     listen 80;
@@ -326,7 +326,7 @@ server {
 }
 
 // getMainPort returns the main web port for a project
-func (s *SimpleDNS) getMainPort(services map[string]int) int {
+func (s *DNSService) getMainPort(services map[string]int) int {
 	// Look for main web service
 	if port, exists := services["webserver"]; exists {
 		return port
@@ -344,7 +344,7 @@ func (s *SimpleDNS) getMainPort(services map[string]int) int {
 }
 
 // restart restarts the DNS container
-func (s *SimpleDNS) restart() error {
+func (s *DNSService) restart() error {
 	if s.IsRunning() {
 		s.Stop()
 	}
@@ -352,12 +352,12 @@ func (s *SimpleDNS) restart() error {
 }
 
 // remove removes the DNS container
-func (s *SimpleDNS) remove() {
-	exec.Command("docker", "rm", "-f", SimpleDNSContainerName).Run()
+func (s *DNSService) remove() {
+	exec.Command("docker", "rm", "-f", DNSContainerName).Run()
 }
 
 // listProjects lists configured projects
-func (s *SimpleDNS) listProjects() ([]string, error) {
+func (s *DNSService) listProjects() ([]string, error) {
 	projectsDir := filepath.Join(s.configDir, "projects")
 	files, err := os.ReadDir(projectsDir)
 	if err != nil {
@@ -376,7 +376,7 @@ func (s *SimpleDNS) listProjects() ([]string, error) {
 }
 
 // handlePortConflicts checks for and handles conflicts with existing nginx proxy
-func (s *SimpleDNS) handlePortConflicts() error {
+func (s *DNSService) handlePortConflicts() error {
 	// Check if nginx proxy is running
 	cmd := exec.Command("docker", "ps", "--filter", "name=atempo-nginx-proxy", "--format", "{{.Names}}")
 	output, err := cmd.Output()

@@ -497,10 +497,9 @@ func (r *CommandRegistry) openProjectInBrowser(projectName string, args []string
 
 // getDNSURL returns the DNS-based URL for a project if available and working
 func (r *CommandRegistry) getDNSURL(projectName string) string {
-	// Check if DNS is configured for this project using fast file-based detection
+	// Check if DNS is configured for this project using simple DNS
 	if r.isDNSConfiguredForProject(projectName) {
-		dnsManager := docker.NewDNSManager()
-		domain := dnsManager.GetProjectDomain(projectName)
+		domain := fmt.Sprintf("%s.local", projectName)
 		
 		// Quick test if DNS resolution actually works
 		if r.testDNSResolution(domain) {
@@ -524,66 +523,26 @@ func (r *CommandRegistry) testDNSResolution(domain string) bool {
 	return cmd.Run() == nil
 }
 
-// isDNSConfiguredForProject checks if DNS is configured for a project using file-based detection
+// isDNSConfiguredForProject checks if DNS is configured for a project using simple DNS
 func (r *CommandRegistry) isDNSConfiguredForProject(projectName string) bool {
-	dnsManager := docker.NewDNSManager()
+	dnsService := docker.NewDNSService()
 	
-	// Get DNS status to determine if we're using Docker or local DNS
-	status, err := dnsManager.GetDNSStatus()
-	if err != nil {
+	// Check if DNS service is running
+	if !dnsService.IsRunning() {
 		return false
 	}
 	
-	dnsType, ok := status["type"].(string)
-	if !ok {
-		return false
-	}
-	
-	// Check if DNS system is running
-	running, ok := status["running"].(bool)
-	if !ok || !running {
-		return false
-	}
-	
-	// Check if project has DNS configuration files
-	switch dnsType {
-	case "docker":
-		return r.checkDockerDNSConfig(projectName)
-	case "local":
-		return r.checkLocalDNSConfig(projectName)
-	default:
-		return false
-	}
-}
-
-// checkDockerDNSConfig checks if Docker DNS configuration exists for a project
-func (r *CommandRegistry) checkDockerDNSConfig(projectName string) bool {
+	// Check if project has DNS configuration file in simple DNS
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return false
 	}
 	
-	configFile := filepath.Join(homeDir, ".atempo", "dnsmasq", "conf.d", fmt.Sprintf("%s.conf", projectName))
-	_, err = os.Stat(configFile)
+	dnsFile := filepath.Join(homeDir, ".atempo", "dns", "projects", fmt.Sprintf("%s.dns", projectName))
+	_, err = os.Stat(dnsFile)
 	return err == nil
 }
 
-// checkLocalDNSConfig checks if local DNS configuration exists for a project
-func (r *CommandRegistry) checkLocalDNSConfig(projectName string) bool {
-	configDirs := []string{
-		"/opt/homebrew/etc/dnsmasq.d",
-		"/usr/local/etc/dnsmasq.d",
-	}
-	
-	for _, configDir := range configDirs {
-		configFile := filepath.Join(configDir, fmt.Sprintf("%s.conf", projectName))
-		if _, err := os.Stat(configFile); err == nil {
-			return true
-		}
-	}
-	
-	return false
-}
 
 // findBestPortURL finds the best port-based URL from project URLs
 func (r *CommandRegistry) findBestPortURL(project *registry.Project) string {
