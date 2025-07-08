@@ -97,9 +97,8 @@ func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 		projectName = filepath.Base(projectPath)
 	}
 
-	// Initialize port and DNS managers
+	// Initialize port manager
 	portManager := docker.NewPortManager()
-	dnsManager := docker.NewDNSManager()
 
 	// Collect service port requirements
 	servicePorts := make(map[string][]int)
@@ -121,12 +120,25 @@ func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 		return fmt.Errorf("failed to allocate ports: %w", err)
 	}
 
-	// Setup DNS routing
-	projectDNS, err := dnsManager.SetupProjectDNS(projectName, allocatedPorts)
-	if err != nil {
+	// Setup DNS routing with simplified system
+	simpleDNS := docker.NewSimpleDNS()
+	
+	// Convert allocated ports to simple map for DNS system
+	services := make(map[string]int)
+	for serviceName, portMapping := range allocatedPorts {
+		// Get the main external port for this service
+		for _, externalPort := range portMapping {
+			services[serviceName] = externalPort
+			break // Take first port as main port
+		}
+	}
+	
+	if err := simpleDNS.AddProject(projectName, services); err != nil {
 		// DNS setup is optional - continue without it
-		fmt.Printf("Warning: DNS setup failed: %v\n", err)
-		fmt.Println("Projects will be accessible via localhost:PORT instead of custom domains")
+		fmt.Printf("Warning: DNS setup incomplete: %v\n", err)
+		fmt.Printf("Run 'atempo dns setup' to enable custom domains like %s.local\n", projectName)
+	} else {
+		fmt.Printf("✓ DNS configured: %s.local\n", projectName)
 	}
 
 	compose := &DockerCompose{
@@ -174,7 +186,7 @@ func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 	}
 
 	// Generate access information
-	if err := generateAccessInfo(projectPath, projectName, allocatedPorts, projectDNS); err != nil {
+	if err := generateAccessInfo(projectPath, projectName, allocatedPorts, services); err != nil {
 		fmt.Printf("Warning: failed to generate access info: %v\n", err)
 	}
 
@@ -516,7 +528,7 @@ func convertServiceWithDynamicPorts(service Service, serviceName, projectName, f
 }
 
 // generateAccessInfo creates a file with access information for the project
-func generateAccessInfo(projectPath, projectName string, allocatedPorts map[string]map[int]int, projectDNS *docker.ProjectDNS) error {
+func generateAccessInfo(projectPath, projectName string, allocatedPorts map[string]map[int]int, services map[string]int) error {
 	var info strings.Builder
 	
 	info.WriteString(fmt.Sprintf("# Access Information for %s\n\n", projectName))
@@ -533,10 +545,10 @@ func generateAccessInfo(projectPath, projectName string, allocatedPorts map[stri
 			}
 			
 			// Domain-based access (if DNS is configured)
-			if projectDNS != nil {
-				if domain, exists := projectDNS.Services[serviceName]; exists {
-					info.WriteString(fmt.Sprintf("- Domain-based: http://%s\n", domain))
-				}
+			if serviceName == "webserver" || serviceName == "app" {
+				info.WriteString(fmt.Sprintf("- Domain-based: http://%s.local\n", projectName))
+			} else {
+				info.WriteString(fmt.Sprintf("- Domain-based: http://%s.%s.local\n", serviceName, projectName))
 			}
 			
 			info.WriteString("\n")

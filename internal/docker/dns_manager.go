@@ -11,7 +11,9 @@ import (
 
 // DNSManager handles local DNS routing for projects
 type DNSManager struct {
-	mutex sync.RWMutex
+	mutex            sync.RWMutex
+	containerManager *DNSContainerManager
+	useDocker        bool
 }
 
 // ProjectDNS represents DNS configuration for a project
@@ -36,7 +38,13 @@ const (
 
 // NewDNSManager creates a new DNS manager
 func NewDNSManager() *DNSManager {
-	return &DNSManager{}
+	containerManager := NewDNSContainerManager()
+	useDocker := containerManager.IsDockerAvailable()
+	
+	return &DNSManager{
+		containerManager: containerManager,
+		useDocker:        useDocker,
+	}
 }
 
 // SetupProjectDNS configures DNS routing for a project with nginx proxy integration
@@ -120,8 +128,8 @@ func (dm *DNSManager) SetupProjectDNS(projectName string, servicePorts map[strin
 	}
 
 	// Configure system DNS (points domains to nginx proxy on localhost:80)
-	if err := dm.configureDNSmasq(projectDNS); err != nil {
-		return nil, fmt.Errorf("failed to configure dnsmasq: %w", err)
+	if err := dm.configureDNS(projectDNS); err != nil {
+		return nil, fmt.Errorf("failed to configure DNS: %w", err)
 	}
 
 	if err := dm.configureResolver(projectDNS); err != nil {
@@ -131,8 +139,29 @@ func (dm *DNSManager) SetupProjectDNS(projectName string, servicePorts map[strin
 	return projectDNS, nil
 }
 
-// configureDNSmasq sets up dnsmasq configuration for the project
-func (dm *DNSManager) configureDNSmasq(projectDNS *ProjectDNS) error {
+// configureDNS sets up DNS configuration for the project (Docker or local)
+func (dm *DNSManager) configureDNS(projectDNS *ProjectDNS) error {
+	// Collect all domains for this project
+	domains := []string{projectDNS.Domain}
+	for _, subdomain := range projectDNS.Services {
+		domains = append(domains, subdomain)
+	}
+
+	// Try Docker DNSmasq first if available
+	if dm.useDocker {
+		if err := dm.containerManager.AddProjectConfig(projectDNS.ProjectName, domains); err != nil {
+			fmt.Printf("Warning: Docker DNS setup failed, falling back to local: %v\n", err)
+			return dm.configureDNSmasqLocal(projectDNS)
+		}
+		return nil
+	}
+
+	// Fall back to local DNSmasq
+	return dm.configureDNSmasqLocal(projectDNS)
+}
+
+// configureDNSmasqLocal sets up local dnsmasq configuration for the project
+func (dm *DNSManager) configureDNSmasqLocal(projectDNS *ProjectDNS) error {
 	// Find dnsmasq config directory
 	configDir := DnsmasqConfigDir
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
@@ -166,15 +195,21 @@ func (dm *DNSManager) configureDNSmasq(projectDNS *ProjectDNS) error {
 func (dm *DNSManager) configureResolver(projectDNS *ProjectDNS) error {
 	resolverFile := filepath.Join(ResolverDir, projectDNS.TLD)
 	
-	// Check if resolver already exists
-	if _, err := os.Stat(resolverFile); err == nil {
+	// Check if resolver already exists and is compatible
+	if dm.isResolverConfigured(resolverFile) {
 		return nil // Already configured
 	}
 
-	resolverConfig := `# Atempo DNS resolver
+	// Determine the DNS port based on whether we're using Docker
+	port := "53"
+	if dm.useDocker {
+		port = DNSContainerPort
+	}
+
+	resolverConfig := fmt.Sprintf(`# Atempo DNS resolver
 nameserver 127.0.0.1
-port 53
-`
+port %s
+`, port)
 
 	// Write resolver configuration (requires sudo)
 	tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("atempo-resolver-%s", projectDNS.TLD))
@@ -189,6 +224,22 @@ port 53
 	}
 
 	return nil
+}
+
+// isResolverConfigured checks if the resolver is already properly configured
+func (dm *DNSManager) isResolverConfigured(resolverFile string) bool {
+	content, err := os.ReadFile(resolverFile)
+	if err != nil {
+		return false // File doesn't exist
+	}
+
+	expectedPort := "53"
+	if dm.useDocker {
+		expectedPort = DNSContainerPort
+	}
+
+	// Check if the resolver file contains the correct port
+	return strings.Contains(string(content), fmt.Sprintf("port %s", expectedPort))
 }
 
 // restartDNSmasq restarts the dnsmasq service
@@ -217,6 +268,21 @@ func (dm *DNSManager) RemoveProjectDNS(projectName string) error {
 	dm.mutex.Lock()
 	defer dm.mutex.Unlock()
 
+	// Try Docker DNS removal first if using Docker
+	if dm.useDocker {
+		if err := dm.containerManager.RemoveProjectConfig(projectName); err != nil {
+			fmt.Printf("Warning: Docker DNS removal failed, falling back to local: %v\n", err)
+			return dm.removeProjectDNSLocal(projectName)
+		}
+		return nil
+	}
+
+	// Fall back to local DNSmasq removal
+	return dm.removeProjectDNSLocal(projectName)
+}
+
+// removeProjectDNSLocal removes local dnsmasq configuration for a project
+func (dm *DNSManager) removeProjectDNSLocal(projectName string) error {
 	// Remove dnsmasq configuration
 	configDirs := []string{DnsmasqConfigDir, DnsmasqAltConfigDir}
 	
@@ -269,8 +335,22 @@ func isWebService(serviceName string, portMapping map[int]int) bool {
 	return false
 }
 
-// CheckDNSmasqInstallation checks if dnsmasq is installed and configured
-func (dm *DNSManager) CheckDNSmasqInstallation() error {
+// CheckDNSInstallation checks if DNS (Docker or local) is installed and configured
+func (dm *DNSManager) CheckDNSInstallation() error {
+	// Check Docker DNS first if available
+	if dm.useDocker {
+		if dm.containerManager.IsDockerAvailable() {
+			return nil // Docker is available, no additional setup needed
+		}
+		return fmt.Errorf("Docker is not available for DNS container")
+	}
+
+	// Fall back to local DNSmasq check
+	return dm.checkLocalDNSmasqInstallation()
+}
+
+// checkLocalDNSmasqInstallation checks if local dnsmasq is installed and configured
+func (dm *DNSManager) checkLocalDNSmasqInstallation() error {
 	// Check if dnsmasq is installed
 	if err := exec.Command("which", "dnsmasq").Run(); err != nil {
 		return fmt.Errorf("dnsmasq not installed. Install with: brew install dnsmasq")
@@ -294,18 +374,49 @@ func (dm *DNSManager) CheckDNSmasqInstallation() error {
 	return nil
 }
 
-// SetupDNSmasq provides instructions for dnsmasq setup
-func (dm *DNSManager) SetupDNSmasq() error {
-	fmt.Println("Setting up dnsmasq for local development...")
+// CheckDNSmasqInstallation checks if dnsmasq is installed and configured (deprecated, use CheckDNSInstallation)
+func (dm *DNSManager) CheckDNSmasqInstallation() error {
+	return dm.CheckDNSInstallation()
+}
+
+// SetupDNS provides instructions for DNS setup (Docker or local)
+func (dm *DNSManager) SetupDNS() error {
+	fmt.Println("Setting up DNS for local development...")
 	
-	// Check if already installed
-	if err := dm.CheckDNSmasqInstallation(); err == nil {
-		fmt.Println("✓ dnsmasq is already installed and configured")
+	// Check if already configured
+	if err := dm.CheckDNSInstallation(); err == nil {
+		if dm.useDocker {
+			fmt.Println("✓ Docker DNS container is available and configured")
+		} else {
+			fmt.Println("✓ Local dnsmasq is already installed and configured")
+		}
 		return nil
 	}
 
-	fmt.Println(`
-To enable local DNS routing, please run the following commands:
+	// Show setup instructions based on availability
+	if dm.containerManager.IsDockerAvailable() {
+		fmt.Println(`
+Docker DNS Setup (Recommended):
+✓ Docker is available - Atempo will automatically manage DNS using containers.
+
+No additional setup required! Atempo will:
+1. Create and manage a DNSmasq container automatically
+2. Configure DNS routing for project domains
+3. Integrate with the nginx proxy system
+
+This approach requires:
+- Docker installed and running
+- One-time sudo access for macOS resolver configuration
+
+Benefits:
+- No local DNSmasq installation needed
+- Automatic container management
+- Isolated DNS configuration
+`)
+	} else {
+		fmt.Println(`
+Local DNSmasq Setup:
+Docker is not available. To enable local DNS routing, please run:
 
 1. Install dnsmasq:
    brew install dnsmasq
@@ -318,16 +429,24 @@ To enable local DNS routing, please run the following commands:
 
 4. Create resolver directory (if it doesn't exist):
    sudo mkdir -p /etc/resolver
+`)
+	}
 
+	fmt.Println(`
 This will allow atempo projects to use custom domains like:
 - myproject.local
 - web.myproject.local
 - api.myproject.local
 
-Note: This setup requires sudo access for the initial configuration.
+Note: Initial setup requires sudo access for resolver configuration.
 `)
 
-	return fmt.Errorf("dnsmasq setup required")
+	return fmt.Errorf("DNS setup required")
+}
+
+// SetupDNSmasq provides instructions for dnsmasq setup (deprecated, use SetupDNS)
+func (dm *DNSManager) SetupDNSmasq() error {
+	return dm.SetupDNS()
 }
 
 // GenerateNginxProxy generates an nginx proxy configuration for routing domains to ports
@@ -427,4 +546,72 @@ func (dm *DNSManager) ListProjectDomains() (map[string][]string, error) {
 	}
 	
 	return domains, nil
+}
+
+// GetDNSStatus returns the status of the DNS system (Docker or local)
+func (dm *DNSManager) GetDNSStatus() (map[string]interface{}, error) {
+	status := make(map[string]interface{})
+	
+	if dm.useDocker {
+		status["type"] = "docker"
+		status["container_name"] = DNSContainerName
+		status["port"] = DNSContainerPort
+		
+		running, err := dm.containerManager.GetDNSContainerStatus()
+		status["running"] = running
+		if err != nil {
+			status["error"] = err.Error()
+		}
+		
+		if running {
+			// Get container logs for debugging
+			logs, err := dm.containerManager.GetDNSContainerLogs(10)
+			if err == nil && logs != "" {
+				status["recent_logs"] = logs
+			}
+		}
+	} else {
+		status["type"] = "local"
+		status["port"] = "53"
+		
+		// Check if local dnsmasq is running
+		cmd := exec.Command("pgrep", "dnsmasq")
+		running := cmd.Run() == nil
+		status["running"] = running
+		
+		// Check installation
+		err := dm.checkLocalDNSmasqInstallation()
+		if err != nil {
+			status["error"] = err.Error()
+		}
+	}
+	
+	return status, nil
+}
+
+// StopDNS stops the DNS system (Docker container or local service)
+func (dm *DNSManager) StopDNS() error {
+	if dm.useDocker {
+		return dm.containerManager.StopDNSContainer()
+	}
+	
+	// For local DNSmasq, we don't stop the service as it may be used by other apps
+	fmt.Println("Note: Local DNSmasq service not stopped as it may be used by other applications")
+	return nil
+}
+
+// RestartDNS restarts the DNS system
+func (dm *DNSManager) RestartDNS() error {
+	if dm.useDocker {
+		return dm.containerManager.restartDNSContainer()
+	}
+	
+	return dm.restartDNSmasq()
+}
+
+// SetUseDocker allows manual override of Docker usage
+func (dm *DNSManager) SetUseDocker(useDocker bool) {
+	dm.mutex.Lock()
+	defer dm.mutex.Unlock()
+	dm.useDocker = useDocker
 }

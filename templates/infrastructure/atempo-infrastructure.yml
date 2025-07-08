@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Nginx reverse proxy for routing custom domains
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: atempo-nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ~/.atempo/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ~/.atempo/nginx/sites-enabled:/etc/nginx/sites-enabled:ro
+      - ~/.atempo/nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - atempo-proxy-network
+    depends_on:
+      - dnsmasq
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # DNSmasq for local domain resolution
+  dnsmasq:
+    image: jpillora/dnsmasq:latest
+    container_name: atempo-dnsmasq
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "5353:53/udp"
+      - "5353:53/tcp"
+    volumes:
+      - ~/.atempo/dnsmasq/dnsmasq.conf:/etc/dnsmasq.conf:ro
+      - ~/.atempo/dnsmasq/conf.d:/etc/dnsmasq.d:ro
+    networks:
+      - atempo-proxy-network
+    environment:
+      # Optional web interface for DNSmasq management
+      - HTTP_USER=atempo
+      - HTTP_PASS=atempo123
+    healthcheck:
+      test: ["CMD", "nslookup", "localhost", "127.0.0.1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  atempo-proxy-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

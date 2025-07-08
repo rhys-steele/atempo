@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"atempo/internal/docker"
 	"atempo/internal/registry"
@@ -42,6 +43,7 @@ func NewCommandRegistry(templatesFS, mcpServersFS embed.FS) *CommandRegistry {
 	registry.register(NewStopCommand(ctx))
 	registry.register(NewTestCommand(ctx))
 	registry.register(NewResetCommand(ctx))
+	registry.register(NewDNSCommand(ctx))
 	registry.register(NewShellCommand(ctx, registry))
 	
 	return registry
@@ -106,7 +108,7 @@ Commands:`)
 
 	// Display commands in a logical order
 	commandOrder := []string{
-		"create", "auth", "status", "describe", "docker", 
+		"create", "auth", "status", "describe", "docker", "dns",
 		"reconfigure", "add-service", "projects", "remove", "logs", "stop", "test", "reset",
 	}
 	
@@ -493,26 +495,94 @@ func (r *CommandRegistry) openProjectInBrowser(projectName string, args []string
 	return openURL(targetURL)
 }
 
-// getDNSURL returns the DNS-based URL for a project if available
+// getDNSURL returns the DNS-based URL for a project if available and working
 func (r *CommandRegistry) getDNSURL(projectName string) string {
-	// Check if we have DNS configuration for this project
-	dnsManager := docker.NewDNSManager()
-	domain := dnsManager.GetProjectDomain(projectName)
-	
-	// Test if DNS is working by trying to resolve the domain
-	if r.isDNSWorking(domain) {
-		return fmt.Sprintf("http://%s", domain)
+	// Check if DNS is configured for this project using fast file-based detection
+	if r.isDNSConfiguredForProject(projectName) {
+		dnsManager := docker.NewDNSManager()
+		domain := dnsManager.GetProjectDomain(projectName)
+		
+		// Quick test if DNS resolution actually works
+		if r.testDNSResolution(domain) {
+			return fmt.Sprintf("http://%s", domain)
+		}
 	}
 	
 	return ""
 }
 
-// isDNSWorking tests if DNS resolution is working for a domain
-func (r *CommandRegistry) isDNSWorking(domain string) bool {
-	// Try to resolve the domain using nslookup or dig
-	cmd := exec.Command("nslookup", domain, "127.0.0.1")
-	err := cmd.Run()
+// testDNSResolution quickly tests if a domain resolves (with timeout)
+func (r *CommandRegistry) testDNSResolution(domain string) bool {
+	// Try a quick nslookup with very short timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, "nslookup", domain, "127.0.0.1")
+	cmd.Stdout = nil // Suppress output
+	cmd.Stderr = nil // Suppress errors
+	
+	return cmd.Run() == nil
+}
+
+// isDNSConfiguredForProject checks if DNS is configured for a project using file-based detection
+func (r *CommandRegistry) isDNSConfiguredForProject(projectName string) bool {
+	dnsManager := docker.NewDNSManager()
+	
+	// Get DNS status to determine if we're using Docker or local DNS
+	status, err := dnsManager.GetDNSStatus()
+	if err != nil {
+		return false
+	}
+	
+	dnsType, ok := status["type"].(string)
+	if !ok {
+		return false
+	}
+	
+	// Check if DNS system is running
+	running, ok := status["running"].(bool)
+	if !ok || !running {
+		return false
+	}
+	
+	// Check if project has DNS configuration files
+	switch dnsType {
+	case "docker":
+		return r.checkDockerDNSConfig(projectName)
+	case "local":
+		return r.checkLocalDNSConfig(projectName)
+	default:
+		return false
+	}
+}
+
+// checkDockerDNSConfig checks if Docker DNS configuration exists for a project
+func (r *CommandRegistry) checkDockerDNSConfig(projectName string) bool {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return false
+	}
+	
+	configFile := filepath.Join(homeDir, ".atempo", "dnsmasq", "conf.d", fmt.Sprintf("%s.conf", projectName))
+	_, err = os.Stat(configFile)
 	return err == nil
+}
+
+// checkLocalDNSConfig checks if local DNS configuration exists for a project
+func (r *CommandRegistry) checkLocalDNSConfig(projectName string) bool {
+	configDirs := []string{
+		"/opt/homebrew/etc/dnsmasq.d",
+		"/usr/local/etc/dnsmasq.d",
+	}
+	
+	for _, configDir := range configDirs {
+		configFile := filepath.Join(configDir, fmt.Sprintf("%s.conf", projectName))
+		if _, err := os.Stat(configFile); err == nil {
+			return true
+		}
+	}
+	
+	return false
 }
 
 // findBestPortURL finds the best port-based URL from project URLs

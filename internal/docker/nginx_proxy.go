@@ -67,6 +67,11 @@ func (npm *NginxProxyManager) EnsureNginxProxy() error {
 	npm.mutex.Lock()
 	defer npm.mutex.Unlock()
 
+	return npm.ensureNginxProxyUnsafe()
+}
+
+// ensureNginxProxyUnsafe ensures the nginx proxy container is running without acquiring mutex
+func (npm *NginxProxyManager) ensureNginxProxyUnsafe() error {
 	// Create nginx config directories
 	if err := npm.createConfigDirectories(); err != nil {
 		return fmt.Errorf("failed to create nginx config directories: %w", err)
@@ -218,8 +223,8 @@ func (npm *NginxProxyManager) AddProjectConfig(projectName string, serviceMappin
 	npm.mutex.Lock()
 	defer npm.mutex.Unlock()
 
-	// Ensure nginx proxy is running
-	if err := npm.EnsureNginxProxy(); err != nil {
+	// Ensure nginx proxy is running (use unsafe version since we already have the mutex)
+	if err := npm.ensureNginxProxyUnsafe(); err != nil {
 		return fmt.Errorf("failed to ensure nginx proxy: %w", err)
 	}
 

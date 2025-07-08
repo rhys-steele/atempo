@@ -148,3 +148,22 @@ func ParseVersionPart(part string) int {
 	
 	return result
 }
+
+// FindDockerComposeFile finds the docker-compose.yml file in a project directory
+// Returns the relative path to use with -f flag, or empty string if not found
+func FindDockerComposeFile(projectPath string) string {
+	// Check project root first (new architecture)
+	rootComposePath := filepath.Join(projectPath, "docker-compose.yml")
+	if FileExists(rootComposePath) {
+		return "docker-compose.yml"
+	}
+	
+	// Fallback: check infra/docker subdirectory (legacy projects)
+	legacyComposePath := filepath.Join(projectPath, "infra", "docker", "docker-compose.yml")
+	if FileExists(legacyComposePath) {
+		return "infra/docker/docker-compose.yml"
+	}
+	
+	// Not found
+	return ""
+}

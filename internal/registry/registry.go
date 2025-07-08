@@ -329,14 +329,14 @@ func (r *Registry) checkProjectHealth(projectPath string) (string, []Service, []
 	var urls []string
 	var overallStatus string = "stopped"
 
-	// Check if docker-compose.yml exists
-	composePath := filepath.Join(projectPath, "docker-compose.yml")
-	if !utils.FileExists(composePath) {
+	// Find docker-compose.yml file (check both root and infra/docker locations)
+	composeFile := utils.FindDockerComposeFile(projectPath)
+	if composeFile == "" {
 		return "no-docker", services, ports, urls
 	}
 
-	// Run docker-compose ps to get service status
-	cmd := exec.Command("docker-compose", "ps", "--format", "json")
+	// Run docker-compose ps to get service status with proper -f flag
+	cmd := exec.Command("docker-compose", "-f", composeFile, "ps", "--format", "json")
 	cmd.Dir = projectPath
 	output, err := cmd.Output()
 	if err != nil {

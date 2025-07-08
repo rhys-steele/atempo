@@ -31,9 +31,9 @@ type DockerCommand struct {
 var SupportedCommands = map[string]DockerCommand{
 	"up": {
 		Name:        "up",
-		Description: "Build and start services in detached mode",
-		Args:        []string{"up", "-d", "--build"},
-		Timeout:     10 * time.Minute, // Long timeout for building + pulling images
+		Description: "Start services in detached mode (use --build to force rebuild)",
+		Args:        []string{"up", "-d"},
+		Timeout:     3 * time.Minute, // Shorter timeout since no building by default
 	},
 	"down": {
 		Name:        "down",
@@ -107,30 +107,22 @@ func ExecuteWithCustomTimeout(command string, projectPath string, additionalArgs
 
 // executeWithCommand is the core execution logic extracted for reuse
 func executeWithCommand(dockerCmd DockerCommand, projectPath string, additionalArgs []string) error {
+	// Check if --build flag is present for up command and adjust timeout
+	if dockerCmd.Name == "up" && containsBuildFlag(additionalArgs) {
+		dockerCmd.Timeout = 10 * time.Minute // Increase timeout when building
+	}
 	// Resolve project path
 	resolvedPath, err := resolveProjectPath(projectPath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve project path: %w", err)
 	}
 
-	// Look for docker-compose.yml in project root first (new architecture)
-	rootComposePath := filepath.Join(resolvedPath, "docker-compose.yml")
-	dockerDir := resolvedPath
-	var composeFile string
-	
-	if utils.FileExists(rootComposePath) {
-		// Use compose file in project root
-		composeFile = "docker-compose.yml"
-	} else {
-		// Fallback: check infra/docker subdirectory for legacy projects
-		legacyDockerDir := filepath.Join(resolvedPath, "infra", "docker")
-		legacyComposePath := filepath.Join(legacyDockerDir, "docker-compose.yml")
-		if !utils.FileExists(legacyComposePath) {
-			return fmt.Errorf("docker-compose.yml not found in %s or %s", resolvedPath, legacyDockerDir)
-		}
-		// Use compose file in subdirectory with -f flag, but run from project root
-		composeFile = "infra/docker/docker-compose.yml"
+	// Find docker-compose.yml file using shared utility
+	composeFile := utils.FindDockerComposeFile(resolvedPath)
+	if composeFile == "" {
+		return fmt.Errorf("docker-compose.yml not found in %s or %s/infra/docker", resolvedPath, resolvedPath)
 	}
+	dockerDir := resolvedPath
 
 	// Build the full command with -f flag for compose file location
 	baseArgs := []string{"-f", composeFile}
@@ -364,4 +356,14 @@ func setupBakeEnvironment(cmd *exec.Cmd) {
 			cmd.Env = append(cmd.Env, "COMPOSE_BAKE=false")
 		}
 	}
+}
+
+// containsBuildFlag checks if --build flag is present in additional arguments
+func containsBuildFlag(args []string) bool {
+	for _, arg := range args {
+		if arg == "--build" {
+			return true
+		}
+	}
+	return false
 }

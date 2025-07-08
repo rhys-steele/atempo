@@ -301,6 +301,22 @@ func copyTemplateFiles(log *logger.Logger, step *logger.Step, projectDir, projec
 		}
 	}
 
+	// Copy atempo.json for Docker Compose and DNS setup
+	atempoJsonDstPath := filepath.Join(projectDir, "atempo.json")
+
+	// Try embedded first, fallback to filesystem
+	embeddedAtempoJsonPath := fmt.Sprintf("templates/frameworks/%s/atempo.json", framework)
+	if err := copyEmbeddedFileWithContext(templatesFS, embeddedAtempoJsonPath, atempoJsonDstPath, projectName, projectDir, version); err != nil {
+		// Fallback to filesystem
+		atempoJsonSrcPath, pathErr := getFilesystemTemplatePath(framework, "atempo.json")
+		if pathErr != nil {
+			return fmt.Errorf("failed to find atempo.json template: embedded error: %v, filesystem error: %w", err, pathErr)
+		}
+		if err := copyFilesystemFileWithContext(atempoJsonSrcPath, atempoJsonDstPath, projectName, projectDir, version); err != nil {
+			return fmt.Errorf("failed to copy atempo.json from filesystem: %w", err)
+		}
+	}
+
 	return nil
 }
 
