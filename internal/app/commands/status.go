@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"atempo/internal/registry"
+	"atempo/internal/utils"
 )
 
 // StatusCommand displays project status dashboard
@@ -136,7 +137,7 @@ func (c *StatusCommand) Execute(ctx context.Context, args []string) error {
 			validURLs := []string{}
 			for _, url := range project.URLs {
 				// Filter out invalid URLs (port 0, duplicates)
-				if !strings.Contains(url, ":0") && !contains(validURLs, url) {
+				if !strings.Contains(url, ":0") && !utils.Contains(validURLs, url) {
 					validURLs = append(validURLs, url)
 				}
 			}

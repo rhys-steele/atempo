@@ -35,7 +35,7 @@ func MoveToTrash(path string) error {
 	}
 
 	basename := filepath.Base(path)
-	
+
 	// Generate unique name if file already exists in trash
 	targetPath := filepath.Join(trashDir, basename)
 	if _, err := os.Stat(targetPath); err == nil {

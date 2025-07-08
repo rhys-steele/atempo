@@ -360,10 +360,5 @@ func setupBakeEnvironment(cmd *exec.Cmd) {
 
 // containsBuildFlag checks if --build flag is present in additional arguments
 func containsBuildFlag(args []string) bool {
-	for _, arg := range args {
-		if arg == "--build" {
-			return true
-		}
-	}
-	return false
+	return utils.ContainsFlag(args, "--build")
 }

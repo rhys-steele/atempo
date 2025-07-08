@@ -12,6 +12,7 @@ import (
 
 	"atempo/internal/ai"
 	"atempo/internal/scaffold"
+	"atempo/internal/utils"
 )
 
 // CreateCommand handles the 'create' command for scaffolding new projects
@@ -228,7 +229,7 @@ func (c *CreateCommand) runScaffoldWithAI(tracker *ProgressTracker, framework, v
 					projectIntent = &ProjectIntent{
 						Description:    description,
 						Framework:      framework,
-						Language:       getFrameworkLanguage(framework),
+						Language:       utils.GetFrameworkLanguage(framework),
 						ProjectType:    "AI-Planned Application",
 						CoreFeatures:   []string{"AI-Generated Documentation", "Framework Best Practices", "Comprehensive Planning"},
 						TechnicalNeeds: []string{"Development Environment", "AI Context Files", "Documentation System"},
@@ -291,7 +292,7 @@ func createDefaultIntent(framework, version, projectName string) *ProjectIntent 
 	return &ProjectIntent{
 		Description:    fmt.Sprintf("A %s application built with %s %s", projectName, framework, version),
 		Framework:      framework,
-		Language:       getFrameworkLanguage(framework),
+		Language:       utils.GetFrameworkLanguage(framework),
 		ProjectType:    "Web Application",
 		CoreFeatures:   []string{"Basic CRUD Operations", "Database Integration", "Error Handling"},
 		TechnicalNeeds: []string{"Database", "Development Environment", "Testing Framework"},

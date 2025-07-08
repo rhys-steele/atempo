@@ -1,0 +1,1 @@
+Read the .ai/context.md file and any associated files within the .ai directory to learn about this project, it's structure and the guidelines for developing

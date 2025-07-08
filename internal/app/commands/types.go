@@ -24,27 +24,3 @@ type ProjectIntent struct {
 	ArchitectureHints map[string]string `json:"architecture_hints"`
 	CreatedAt         time.Time         `json:"created_at"`
 }
-
-// getFrameworkLanguage returns the programming language for a given framework
-func getFrameworkLanguage(framework string) string {
-	switch framework {
-	case "laravel":
-		return "php"
-	case "django":
-		return "python"
-	case "nextjs", "react", "vue", "nuxt":
-		return "javascript"
-	case "fastapi":
-		return "python"
-	case "express":
-		return "javascript"
-	case "rails":
-		return "ruby"
-	case "spring":
-		return "java"
-	case "dotnet":
-		return "csharp"
-	default:
-		return "unknown"
-	}
-}

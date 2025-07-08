@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"strings"
 	"time"
+
+	"atempo/internal/utils"
 )
 
 // CleanAIManifestGenerator generates AI-friendly project guidance using external templates
@@ -25,7 +27,7 @@ func NewCleanAIManifestGenerator(isAuthenticated bool, templatesFS fs.FS, framew
 		// Create basic fallback config
 		frameworkConfig = &FrameworkConfig{
 			Framework: framework,
-			Language:  getFrameworkLanguage(framework),
+			Language:  utils.GetFrameworkLanguage(framework),
 			AIFeatures: AIFeatures{
 				DefaultProjectTypes: []string{"Web Application"},
 				CoreFeatures:        []string{"Basic CRUD Operations", "Database Integration"},

@@ -71,11 +71,11 @@ func (c *DNSCommand) testDNS(domain string) error {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("✗ DNS test failed: %v\n", err)
+		ShowError("DNS test failed", fmt.Sprintf("%v", err))
 		return err
 	}
 
-	fmt.Printf("✓ DNS resolution successful for %s\n", domain)
+	ShowSuccess(fmt.Sprintf("DNS resolution successful for %s", domain), "")
 	return nil
 }
 

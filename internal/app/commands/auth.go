@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"atempo/internal/auth"
+	"atempo/internal/utils"
 	"golang.org/x/term"
 )
 
@@ -114,7 +115,7 @@ func (c *AuthCommand) handleLogin(args []string) error {
 
 	// Get API key if not provided and provider requires it
 	requiredFields := selectedProvider.RequiredFields()
-	if contains(requiredFields, "api_key") && options.APIKey == "" {
+	if utils.Contains(requiredFields, "api_key") && options.APIKey == "" {
 		if options.Interactive {
 			var err error
 			options.APIKey, err = c.promptForAPIKey(provider)
@@ -267,11 +268,3 @@ func (c *AuthCommand) getProviderNames() string {
 }
 
 // contains checks if a slice contains a string
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
