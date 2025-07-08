@@ -103,6 +103,11 @@ func (s *SimpleDNS) Start() error {
 		return nil // Already running
 	}
 	
+	// Check for port conflicts and clean up
+	if err := s.handlePortConflicts(); err != nil {
+		return fmt.Errorf("failed to handle port conflicts: %w", err)
+	}
+	
 	// Create config directories
 	if err := s.createConfigDirectories(); err != nil {
 		return err
@@ -368,4 +373,32 @@ func (s *SimpleDNS) listProjects() ([]string, error) {
 	}
 	
 	return projects, nil
+}
+
+// handlePortConflicts checks for and handles conflicts with existing nginx proxy
+func (s *SimpleDNS) handlePortConflicts() error {
+	// Check if nginx proxy is running
+	cmd := exec.Command("docker", "ps", "--filter", "name=atempo-nginx-proxy", "--format", "{{.Names}}")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil // No conflict if command fails
+	}
+	
+	if strings.Contains(string(output), "atempo-nginx-proxy") {
+		fmt.Println("Found existing nginx proxy - stopping to avoid conflicts...")
+		
+		// Stop the existing nginx proxy
+		cmd = exec.Command("docker", "stop", "atempo-nginx-proxy")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to stop existing nginx proxy: %w", err)
+		}
+		
+		// Remove the container
+		cmd = exec.Command("docker", "rm", "atempo-nginx-proxy")
+		cmd.Run() // Ignore errors
+		
+		fmt.Println("✓ Existing nginx proxy stopped")
+	}
+	
+	return nil
 }
