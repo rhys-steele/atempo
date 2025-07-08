@@ -31,45 +31,45 @@ func NewAIClient() (*AIClient, error) {
 
 // ProviderInfo represents information about an available AI provider
 type ProviderInfo struct {
-	Name        string
-	DisplayName string
-	Description string
+	Name          string
+	DisplayName   string
+	Description   string
 	Authenticated bool
 }
 
 // GetAvailableProviders returns a list of authenticated AI providers
 func (c *AIClient) GetAvailableProviders() ([]ProviderInfo, error) {
 	providers := []ProviderInfo{}
-	
+
 	// Check Claude
 	if c.authService.IsAuthenticated("claude") {
 		providers = append(providers, ProviderInfo{
-			Name:        "claude",
-			DisplayName: "Claude (Anthropic)",
-			Description: "Advanced AI assistant by Anthropic",
+			Name:          "claude",
+			DisplayName:   "Claude (Anthropic)",
+			Description:   "Advanced AI assistant by Anthropic",
 			Authenticated: true,
 		})
 	}
-	
+
 	// Check OpenAI
 	if c.authService.IsAuthenticated("openai") {
 		providers = append(providers, ProviderInfo{
-			Name:        "openai",
-			DisplayName: "GPT (OpenAI)",
-			Description: "GPT models by OpenAI",
+			Name:          "openai",
+			DisplayName:   "GPT (OpenAI)",
+			Description:   "GPT models by OpenAI",
 			Authenticated: true,
 		})
 	}
-	
+
 	return providers, nil
 }
 
 // ChatRequest represents a request to an AI provider
 type ChatRequest struct {
-	Provider string
-	Messages []Message
+	Provider    string
+	Messages    []Message
 	Temperature float64
-	MaxTokens int
+	MaxTokens   int
 }
 
 // Message represents a chat message

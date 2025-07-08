@@ -71,7 +71,7 @@ func (p *ProjectPlanner) GenerateProjectPlan(ctx context.Context, req PlanningRe
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	errs := make([]error, len(documents))
-	
+
 	fmt.Printf("🚀 Starting concurrent generation of %d documents...\n", len(documents))
 
 	// Generate each document concurrently
@@ -79,9 +79,9 @@ func (p *ProjectPlanner) GenerateProjectPlan(ctx context.Context, req PlanningRe
 		wg.Add(1)
 		go func(index int, task documentTask) {
 			defer wg.Done()
-			
+
 			fmt.Printf("→ Generating %s...\n", task.name)
-			
+
 			content, err := p.generateDocument(ctx, req, task.template)
 			if err != nil {
 				mu.Lock()
@@ -90,11 +90,11 @@ func (p *ProjectPlanner) GenerateProjectPlan(ctx context.Context, req PlanningRe
 				fmt.Printf("❌ %s generation failed\n", task.name)
 				return
 			}
-			
+
 			mu.Lock()
 			*task.field = content
 			mu.Unlock()
-			
+
 			fmt.Printf("✅ %s generated (%d tokens)\n", task.name, len(content)/4)
 		}(i, doc)
 	}

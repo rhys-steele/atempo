@@ -97,24 +97,24 @@ func CompareVersions(v1, v2 string) int {
 	// Simple version comparison for major.minor format
 	parts1 := strings.Split(v1, ".")
 	parts2 := strings.Split(v2, ".")
-	
+
 	// Pad shorter version with zeros
 	maxLen := len(parts1)
 	if len(parts2) > maxLen {
 		maxLen = len(parts2)
 	}
-	
+
 	for len(parts1) < maxLen {
 		parts1 = append(parts1, "0")
 	}
 	for len(parts2) < maxLen {
 		parts2 = append(parts2, "0")
 	}
-	
+
 	for i := 0; i < maxLen; i++ {
 		num1 := ParseVersionPart(parts1[i])
 		num2 := ParseVersionPart(parts2[i])
-		
+
 		if num1 < num2 {
 			return -1
 		}
@@ -122,7 +122,7 @@ func CompareVersions(v1, v2 string) int {
 			return 1
 		}
 	}
-	
+
 	return 0
 }
 
@@ -135,17 +135,17 @@ func ParseVersionPart(part string) int {
 			numStr += string(r)
 		}
 	}
-	
+
 	if numStr == "" {
 		return 0
 	}
-	
+
 	// Simple integer parsing
 	result := 0
 	for _, r := range numStr {
 		result = result*10 + int(r-'0')
 	}
-	
+
 	return result
 }
 
@@ -157,13 +157,13 @@ func FindDockerComposeFile(projectPath string) string {
 	if FileExists(rootComposePath) {
 		return "docker-compose.yml"
 	}
-	
+
 	// Fallback: check infra/docker subdirectory (legacy projects)
 	legacyComposePath := filepath.Join(projectPath, "infra", "docker", "docker-compose.yml")
 	if FileExists(legacyComposePath) {
 		return "infra/docker/docker-compose.yml"
 	}
-	
+
 	// Not found
 	return ""
 }

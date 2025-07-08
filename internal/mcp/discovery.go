@@ -25,8 +25,8 @@ type MCPServer struct {
 
 // MCPRegistry holds information about available MCP servers
 type MCPRegistry struct {
-	LastUpdated time.Time             `json:"last_updated"`
-	Servers     map[string]MCPServer  `json:"servers"`
+	LastUpdated time.Time            `json:"last_updated"`
+	Servers     map[string]MCPServer `json:"servers"`
 }
 
 // DiscoveryResult contains the result of MCP server discovery
@@ -159,7 +159,7 @@ func addKnownServers(registry *MCPRegistry) {
 		},
 		{
 			Name:        "database",
-			Type:        "official", 
+			Type:        "official",
 			Framework:   "universal",
 			Repository:  "https://github.com/modelcontextprotocol/servers",
 			NPMPackage:  "@modelcontextprotocol/server-database",
@@ -292,7 +292,7 @@ func generateUniversalServer(framework string) *MCPServer {
 // InstallMCPServer installs the selected MCP server
 func InstallMCPServer(server MCPServer, projectDir string) error {
 	mcpDir := filepath.Join(projectDir, "ai", "mcp-server")
-	
+
 	switch server.Type {
 	case "official", "community":
 		return installOfficialServer(server, mcpDir)

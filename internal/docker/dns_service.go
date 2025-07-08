@@ -24,7 +24,7 @@ const (
 func NewDNSService() *DNSService {
 	homeDir, _ := os.UserHomeDir()
 	configDir := filepath.Join(homeDir, ".atempo", "dns")
-	
+
 	return &DNSService{
 		configDir: configDir,
 	}
@@ -34,7 +34,7 @@ func NewDNSService() *DNSService {
 func (s *DNSService) Setup() error {
 	fmt.Println("DNS Setup")
 	fmt.Println(strings.Repeat("─", 50))
-	
+
 	// Check if already configured
 	resolverFile := "/etc/resolver/local"
 	if _, err := os.Stat(resolverFile); err == nil {
@@ -44,56 +44,56 @@ func (s *DNSService) Setup() error {
 			return nil
 		}
 	}
-	
+
 	fmt.Println("This configures macOS to resolve .local domains")
 	fmt.Println("through Atempo's DNS system.")
 	fmt.Printf("\nConfigure DNS resolver? [y/N]: ")
-	
+
 	var response string
 	fmt.Scanln(&response)
-	
+
 	if response != "y" && response != "Y" && response != "yes" {
 		fmt.Println("DNS setup cancelled")
 		return nil
 	}
-	
+
 	return s.createResolver()
 }
 
 // createResolver creates the macOS DNS resolver configuration
 func (s *DNSService) createResolver() error {
 	fmt.Println("Creating DNS resolver...")
-	
+
 	// Create resolver directory
 	cmd := exec.Command("sudo", "mkdir", "-p", "/etc/resolver")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create resolver directory: %w", err)
 	}
-	
+
 	// Create resolver config
 	resolverConfig := `nameserver 127.0.0.1
 port 5353`
-	
+
 	tempFile := filepath.Join(os.TempDir(), "atempo-resolver")
 	if err := os.WriteFile(tempFile, []byte(resolverConfig), 0644); err != nil {
 		return fmt.Errorf("failed to create resolver config: %w", err)
 	}
-	
+
 	cmd = exec.Command("sudo", "mv", tempFile, "/etc/resolver/local")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to install resolver: %w", err)
 	}
-	
+
 	fmt.Println("✓ DNS resolver configured")
-	
+
 	// Start DNS service
 	if err := s.Start(); err != nil {
 		return fmt.Errorf("failed to start DNS service: %w", err)
 	}
-	
+
 	fmt.Println("✓ DNS service started")
 	fmt.Println("✓ Setup complete - new projects will use custom domains")
-	
+
 	return nil
 }
 
@@ -102,20 +102,20 @@ func (s *DNSService) Start() error {
 	if s.IsRunning() {
 		return nil // Already running
 	}
-	
+
 	// Check for port conflicts and clean up
 	if err := s.handlePortConflicts(); err != nil {
 		return fmt.Errorf("failed to handle port conflicts: %w", err)
 	}
-	
+
 	// Create config directories
 	if err := s.createConfigDirectories(); err != nil {
 		return err
 	}
-	
+
 	// Remove any existing container
 	s.remove()
-	
+
 	// Create startup script that runs both services
 	startupScript := `#!/bin/sh
 set -e
@@ -160,7 +160,7 @@ exec dnsmasq --conf-file=/etc/atempo/dnsmasq.conf --no-daemon
 		"--restart", "unless-stopped",
 		DNSImage,
 		"/etc/atempo/startup.sh")
-	
+
 	return cmd.Run()
 }
 
@@ -169,12 +169,12 @@ func (s *DNSService) Stop() error {
 	if !s.IsRunning() {
 		return nil
 	}
-	
+
 	cmd := exec.Command("docker", "stop", DNSContainerName)
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-	
+
 	s.remove()
 	return nil
 }
@@ -198,19 +198,19 @@ func (s *DNSService) AddProject(projectName string, services map[string]int) err
 			dnsConfig += fmt.Sprintf("address=/%s.%s.local/127.0.0.1\n", serviceName, projectName)
 		}
 	}
-	
+
 	dnsFile := filepath.Join(s.configDir, "projects", fmt.Sprintf("%s.dns", projectName))
 	if err := os.WriteFile(dnsFile, []byte(dnsConfig), 0644); err != nil {
 		return fmt.Errorf("failed to write DNS config: %w", err)
 	}
-	
+
 	// Create nginx config
 	nginxConfig := s.generateNginxConfig(projectName, services)
 	nginxFile := filepath.Join(s.configDir, "projects", fmt.Sprintf("%s.nginx", projectName))
 	if err := os.WriteFile(nginxFile, []byte(nginxConfig), 0644); err != nil {
 		return fmt.Errorf("failed to write nginx config: %w", err)
 	}
-	
+
 	// Restart container to reload configs
 	return s.restart()
 }
@@ -219,10 +219,10 @@ func (s *DNSService) AddProject(projectName string, services map[string]int) err
 func (s *DNSService) RemoveProject(projectName string) error {
 	dnsFile := filepath.Join(s.configDir, "projects", fmt.Sprintf("%s.dns", projectName))
 	nginxFile := filepath.Join(s.configDir, "projects", fmt.Sprintf("%s.nginx", projectName))
-	
+
 	os.Remove(dnsFile)
 	os.Remove(nginxFile)
-	
+
 	return s.restart()
 }
 
@@ -230,14 +230,14 @@ func (s *DNSService) RemoveProject(projectName string) error {
 func (s *DNSService) Status() error {
 	fmt.Println("DNS Configuration")
 	fmt.Println(strings.Repeat("─", 50))
-	
+
 	// Check service status
 	if s.IsRunning() {
 		fmt.Println("✓ DNS service: running")
 	} else {
 		fmt.Println("✗ DNS service: not running")
 	}
-	
+
 	// Check resolver
 	resolverFile := "/etc/resolver/local"
 	if _, err := os.Stat(resolverFile); err == nil {
@@ -245,7 +245,7 @@ func (s *DNSService) Status() error {
 	} else {
 		fmt.Println("✗ Resolver: not configured")
 	}
-	
+
 	// List projects
 	projects, err := s.listProjects()
 	if err != nil || len(projects) == 0 {
@@ -256,7 +256,7 @@ func (s *DNSService) Status() error {
 			fmt.Printf("  %s.local\n", project)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -266,13 +266,13 @@ func (s *DNSService) createConfigDirectories() error {
 		s.configDir,
 		filepath.Join(s.configDir, "projects"),
 	}
-	
+
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 	}
-	
+
 	// Create main dnsmasq config
 	dnsmasqConfig := `# Atempo DNS Configuration
 listen-address=0.0.0.0
@@ -283,7 +283,7 @@ domain-needed
 bogus-priv
 conf-dir=/etc/atempo/projects,*.dns
 `
-	
+
 	configFile := filepath.Join(s.configDir, "dnsmasq.conf")
 	return os.WriteFile(configFile, []byte(dnsmasqConfig), 0644)
 }
@@ -303,7 +303,7 @@ server {
 }
 
 `, projectName, projectName, s.getMainPort(services))
-	
+
 	// Add service subdomains
 	for serviceName, port := range services {
 		if serviceName != "app" && serviceName != "webserver" {
@@ -321,7 +321,7 @@ server {
 `, serviceName, projectName, port)
 		}
 	}
-	
+
 	return config
 }
 
@@ -334,12 +334,12 @@ func (s *DNSService) getMainPort(services map[string]int) int {
 	if port, exists := services["app"]; exists {
 		return port
 	}
-	
+
 	// Return first port as fallback
 	for _, port := range services {
 		return port
 	}
-	
+
 	return 8000 // Default fallback
 }
 
@@ -363,7 +363,7 @@ func (s *DNSService) listProjects() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var projects []string
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".dns") {
@@ -371,7 +371,7 @@ func (s *DNSService) listProjects() ([]string, error) {
 			projects = append(projects, project)
 		}
 	}
-	
+
 	return projects, nil
 }
 
@@ -383,22 +383,22 @@ func (s *DNSService) handlePortConflicts() error {
 	if err != nil {
 		return nil // No conflict if command fails
 	}
-	
+
 	if strings.Contains(string(output), "atempo-nginx-proxy") {
 		fmt.Println("Found existing nginx proxy - stopping to avoid conflicts...")
-		
+
 		// Stop the existing nginx proxy
 		cmd = exec.Command("docker", "stop", "atempo-nginx-proxy")
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to stop existing nginx proxy: %w", err)
 		}
-		
+
 		// Remove the container
 		cmd = exec.Command("docker", "rm", "atempo-nginx-proxy")
 		cmd.Run() // Ignore errors
-		
+
 		fmt.Println("✓ Existing nginx proxy stopped")
 	}
-	
+
 	return nil
 }

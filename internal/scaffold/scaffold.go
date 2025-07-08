@@ -387,7 +387,7 @@ func finalizeProject(log *logger.Logger, step *logger.Step, meta Metadata, proje
 			resolvedName = projectName
 		}
 	}
-	
+
 	// Use the basename of the project directory as the registry name
 	// This ensures projects work with simple names even if created with paths
 	registryName := filepath.Base(projectDir)
@@ -851,12 +851,12 @@ func checkDockerAvailability() error {
 	if _, err := exec.LookPath("docker"); err != nil {
 		return fmt.Errorf("docker command not found in PATH")
 	}
-	
+
 	// Check if Docker daemon is running by running a simple command
 	cmd := exec.Command("docker", "info")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("docker daemon is not running")
 	}
-	
+
 	return nil
 }

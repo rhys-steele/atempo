@@ -40,8 +40,8 @@ type MCPResponse struct {
 
 // MCPError represents an error in MCP communication
 type MCPError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
 }
 
@@ -71,24 +71,24 @@ func (c *MCPClient) Start() error {
 	// Start the MCP server process
 	c.Process = exec.Command("node", c.ServerPath)
 	c.Process.Dir = c.ProjectPath
-	
+
 	// Set up pipes for communication
 	var err error
 	c.StdinPipe, err = c.Process.StdinPipe()
 	if err != nil {
 		return fmt.Errorf("failed to create stdin pipe: %w", err)
 	}
-	
+
 	c.StdoutPipe, err = c.Process.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("failed to create stdout pipe: %w", err)
 	}
-	
+
 	// Start the process
 	if err := c.Process.Start(); err != nil {
 		return fmt.Errorf("failed to start MCP server: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -113,7 +113,7 @@ func (c *MCPClient) GetTestCommand(testSuite string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to list MCP tools: %w", err)
 	}
-	
+
 	// Look for test-related tools
 	var testTool string
 	for _, tool := range tools {
@@ -124,17 +124,17 @@ func (c *MCPClient) GetTestCommand(testSuite string) (string, error) {
 			}
 		}
 	}
-	
+
 	if testTool == "" {
 		return "", fmt.Errorf("no test tool found in MCP server")
 	}
-	
+
 	// Prepare test parameters
 	params := TestParams{}
 	if testSuite != "" {
 		params.Path = testSuite
 	}
-	
+
 	// Call the test tool to get the command (we'll simulate this for now)
 	// In a real implementation, we might have a "get_test_command" tool
 	switch testTool {
@@ -160,7 +160,7 @@ func (c *MCPClient) RunTests(testSuite string) error {
 	if err != nil {
 		return fmt.Errorf("failed to list MCP tools: %w", err)
 	}
-	
+
 	// Find test tool
 	var testTool string
 	for _, tool := range tools {
@@ -171,28 +171,28 @@ func (c *MCPClient) RunTests(testSuite string) error {
 			}
 		}
 	}
-	
+
 	if testTool == "" {
 		return fmt.Errorf("no test tool found in MCP server")
 	}
-	
+
 	// Prepare test parameters
 	params := TestParams{}
 	if testSuite != "" {
 		params.Path = testSuite
 	}
-	
+
 	// Execute the test tool
 	response, err := c.CallTool(testTool, params)
 	if err != nil {
 		return fmt.Errorf("test execution failed: %w", err)
 	}
-	
+
 	// Display the test results
 	if response.Error != nil {
 		return fmt.Errorf("test tool error: %s", response.Error.Message)
 	}
-	
+
 	// Extract and display content from response
 	if result, ok := response.Result.(map[string]interface{}); ok {
 		if content, ok := result["content"].([]interface{}); ok {
@@ -205,7 +205,7 @@ func (c *MCPClient) RunTests(testSuite string) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -218,16 +218,16 @@ func (c *MCPClient) ListTools() ([]map[string]interface{}, error) {
 		Params:  map[string]interface{}{},
 	}
 	c.RequestID++
-	
+
 	response, err := c.sendRequest(request)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if response.Error != nil {
 		return nil, fmt.Errorf("MCP error: %s", response.Error.Message)
 	}
-	
+
 	// Extract tools from response
 	if result, ok := response.Result.(map[string]interface{}); ok {
 		if tools, ok := result["tools"].([]interface{}); ok {
@@ -240,7 +240,7 @@ func (c *MCPClient) ListTools() ([]map[string]interface{}, error) {
 			return toolList, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("unexpected response format")
 }
 
@@ -256,7 +256,7 @@ func (c *MCPClient) CallTool(toolName string, args interface{}) (*MCPResponse, e
 		},
 	}
 	c.RequestID++
-	
+
 	return c.sendRequest(request)
 }
 
@@ -267,15 +267,15 @@ func (c *MCPClient) sendRequest(request MCPRequest) (*MCPResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
-	
+
 	// Add newline for line-delimited JSON
 	requestJSON = append(requestJSON, '\n')
-	
+
 	// Send request
 	if _, err := c.StdinPipe.Write(requestJSON); err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	
+
 	// Read response
 	scanner := bufio.NewScanner(c.StdoutPipe)
 	if scanner.Scan() {
@@ -285,10 +285,10 @@ func (c *MCPClient) sendRequest(request MCPRequest) (*MCPResponse, error) {
 		}
 		return &response, nil
 	}
-	
+
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
-	
+
 	return nil, fmt.Errorf("no response received")
 }

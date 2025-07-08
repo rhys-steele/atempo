@@ -12,6 +12,7 @@ import (
 
 	"atempo/internal/docker"
 	"atempo/internal/registry"
+	"atempo/internal/utils"
 )
 
 // CommandRegistry manages all available commands
@@ -23,12 +24,12 @@ type CommandRegistry struct {
 // NewCommandRegistry creates a new command registry
 func NewCommandRegistry(templatesFS, mcpServersFS embed.FS) *CommandRegistry {
 	ctx := &CommandContext{}
-	
+
 	registry := &CommandRegistry{
 		commands: make(map[string]Command),
 		ctx:      ctx,
 	}
-	
+
 	// Register all commands
 	registry.register(NewCreateCommand(ctx, templatesFS, mcpServersFS))
 	registry.register(NewAuthCommand(ctx))
@@ -45,7 +46,7 @@ func NewCommandRegistry(templatesFS, mcpServersFS embed.FS) *CommandRegistry {
 	registry.register(NewResetCommand(ctx))
 	registry.register(NewDNSCommand(ctx))
 	registry.register(NewShellCommand(ctx, registry))
-	
+
 	return registry
 }
 
@@ -60,19 +61,19 @@ func (r *CommandRegistry) Execute(ctx context.Context, commandName string, args 
 	if cmd, exists := r.commands[commandName]; exists {
 		return cmd.Execute(ctx, args)
 	}
-	
+
 	// Check if commandName is a project name
 	if r.IsProjectName(commandName) {
 		if len(args) == 0 {
 			return fmt.Errorf("project command required. Usage: %s <command>", commandName)
 		}
-		
+
 		// Route to project command handler
 		projectCommand := args[0]
 		projectArgs := args[1:]
 		return r.executeProjectCommand(ctx, commandName, projectCommand, projectArgs)
 	}
-	
+
 	return fmt.Errorf("unknown command: %s", commandName)
 }
 
@@ -111,7 +112,7 @@ Commands:`)
 		"create", "auth", "status", "describe", "docker", "dns",
 		"reconfigure", "add-service", "projects", "remove", "logs", "stop", "test", "reset",
 	}
-	
+
 	for _, cmdName := range commandOrder {
 		if cmd, exists := r.commands[cmdName]; exists {
 			fmt.Printf("  %-20s %s\n", cmdName, cmd.Description())
@@ -180,7 +181,7 @@ func (r *CommandRegistry) GetProjectNames() []string {
 	if err != nil {
 		return []string{}
 	}
-	
+
 	projects := reg.ListProjects()
 	names := make([]string, len(projects))
 	for i, project := range projects {
@@ -195,7 +196,7 @@ func (r *CommandRegistry) IsProjectName(name string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	_, err = reg.FindProject(name)
 	return err == nil
 }
@@ -208,53 +209,53 @@ func (r *CommandRegistry) executeProjectCommand(ctx context.Context, projectName
 		// Execute docker up for this project
 		dockerCmd := r.commands["docker"]
 		return dockerCmd.Execute(ctx, append([]string{"up", projectName}, args...))
-	
+
 	case "down", "stop":
-		// Execute docker down for this project  
+		// Execute docker down for this project
 		dockerCmd := r.commands["docker"]
 		return dockerCmd.Execute(ctx, append([]string{"down", projectName}, args...))
-	
+
 	case "status":
 		// Execute status for this project
 		statusCmd := r.commands["status"]
 		return statusCmd.Execute(ctx, append([]string{projectName}, args...))
-	
+
 	case "logs":
 		// Execute logs for this project
 		logsCmd := r.commands["logs"]
 		return logsCmd.Execute(ctx, append([]string{projectName}, args...))
-	
+
 	case "describe", "info":
 		// Execute describe for this project
 		describeCmd := r.commands["describe"]
 		return describeCmd.Execute(ctx, append([]string{projectName}, args...))
-	
+
 	case "shell", "bash", "exec":
 		// Execute shell access for this project
 		dockerCmd := r.commands["docker"]
 		return dockerCmd.Execute(ctx, append([]string{"bash", projectName}, args...))
-	
+
 	case "reconfigure", "reconfig":
 		// Execute reconfigure for this project
 		reconfigCmd := r.commands["reconfigure"]
 		return reconfigCmd.Execute(ctx, append([]string{projectName}, args...))
-	
+
 	case "code":
 		// Open project in VS Code
 		return r.openProjectInVSCode(projectName)
-	
+
 	case "cd":
 		// Change directory to project (note: this only works in shell session)
 		return r.changeToProjectDirectory(projectName)
-	
+
 	case "delete", "remove":
 		// Delete project files and remove from registry
 		return r.deleteProject(projectName)
-	
+
 	case "open":
 		// Open project or specific service in browser
 		return r.openProjectInBrowser(projectName, args)
-	
+
 	default:
 		return fmt.Errorf("unknown project command: %s. Available: up, down, status, logs, describe, shell, reconfigure, code, cd, delete, open", command)
 	}
@@ -267,30 +268,30 @@ func (r *CommandRegistry) openProjectInVSCode(projectName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load project registry: %w", err)
 	}
-	
+
 	// Find the project
 	project, err := reg.FindProject(projectName)
 	if err != nil {
 		return fmt.Errorf("project not found: %s", projectName)
 	}
-	
+
 	// Check if VS Code is installed
 	codePath, err := exec.LookPath("code")
 	if err != nil {
 		return fmt.Errorf("VS Code (code command) not found. Please install VS Code and ensure 'code' is in your PATH")
 	}
-	
+
 	// Open the project directory in VS Code
 	cmd := exec.Command(codePath, project.Path)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to open project in VS Code: %w", err)
 	}
-	
+
 	// Don't wait for VS Code to close - let it run in background
 	go func() {
 		cmd.Wait()
 	}()
-	
+
 	return nil
 }
 
@@ -301,18 +302,18 @@ func (r *CommandRegistry) changeToProjectDirectory(projectName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load project registry: %w", err)
 	}
-	
+
 	// Find the specified project
 	project, err := reg.FindProject(projectName)
 	if err != nil {
 		return fmt.Errorf("project '%s' not found in registry", projectName)
 	}
-	
+
 	// Change to the project directory
 	if err := os.Chdir(project.Path); err != nil {
 		return fmt.Errorf("failed to change to project directory %s: %w", project.Path, err)
 	}
-	
+
 	fmt.Printf("  ⎿ Changed to project directory: %s\n", project.Path)
 	return nil
 }
@@ -324,13 +325,13 @@ func (r *CommandRegistry) deleteProject(projectName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load project registry: %w", err)
 	}
-	
+
 	// Find the specified project
 	project, err := reg.FindProject(projectName)
 	if err != nil {
 		return fmt.Errorf("project '%s' not found in registry", projectName)
 	}
-	
+
 	// Show confirmation prompt with detailed info
 	fmt.Printf("! Are you sure you want to delete project '%s'?\n\n", projectName)
 	fmt.Printf("  Path: %s\n", project.Path)
@@ -344,14 +345,14 @@ func (r *CommandRegistry) deleteProject(projectName string) error {
 
 	var response string
 	fmt.Scanln(&response)
-	
+
 	if strings.ToLower(response) != "delete" {
 		fmt.Println("✗ Cancelled - project not deleted.")
 		return nil
 	}
 
 	// Move to trash using macOS 'trash' command or fallback
-	err = moveToTrash(project.Path)
+	err = utils.MoveToTrash(project.Path)
 	if err != nil {
 		return fmt.Errorf("failed to move project to trash: %w", err)
 	}
@@ -365,46 +366,10 @@ func (r *CommandRegistry) deleteProject(projectName string) error {
 	fmt.Printf("✓ Project '%s' deleted successfully!\n", projectName)
 	fmt.Printf("  ⎿ Files moved to Trash\n")
 	fmt.Printf("  ⎿ Removed from registry\n")
-	
+
 	return nil
 }
 
-// moveToTrash moves a directory to the trash
-func moveToTrash(path string) error {
-	// Try using 'trash' command if available (brew install trash)
-	if _, err := exec.LookPath("trash"); err == nil {
-		cmd := exec.Command("trash", path)
-		return cmd.Run()
-	}
-	
-	// Fallback: use 'mv' to move to ~/.Trash (macOS)
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
-	}
-	
-	trashDir := filepath.Join(home, ".Trash")
-	
-	// Ensure .Trash directory exists
-	if err := os.MkdirAll(trashDir, 0755); err != nil {
-		return fmt.Errorf("failed to create .Trash directory: %w", err)
-	}
-	
-	basename := filepath.Base(path)
-	
-	// Create unique name if file already exists in trash
-	trashPath := filepath.Join(trashDir, basename)
-	counter := 1
-	for {
-		if _, err := os.Stat(trashPath); os.IsNotExist(err) {
-			break
-		}
-		trashPath = filepath.Join(trashDir, fmt.Sprintf("%s (%d)", basename, counter))
-		counter++
-	}
-	
-	return os.Rename(path, trashPath)
-}
 
 // openProjectInBrowser opens the project or specific service in the default browser
 func (r *CommandRegistry) openProjectInBrowser(projectName string, args []string) error {
@@ -413,32 +378,32 @@ func (r *CommandRegistry) openProjectInBrowser(projectName string, args []string
 	if err != nil {
 		return fmt.Errorf("failed to load project registry: %w", err)
 	}
-	
+
 	// Find the project
 	project, err := reg.FindProject(projectName)
 	if err != nil {
 		return fmt.Errorf("project not found: %s", projectName)
 	}
-	
+
 	// Update project status to get current URLs and services
 	err = reg.UpdateProjectStatus(projectName)
 	if err != nil {
 		return fmt.Errorf("failed to update project status: %w", err)
 	}
-	
+
 	// Reload to get updated project info
 	project, err = reg.FindProject(projectName)
 	if err != nil {
 		return fmt.Errorf("failed to reload project: %w", err)
 	}
-	
+
 	// Check if project has running services
 	if project.Status == "stopped" || project.Status == "no-docker" || project.Status == "no-services" {
 		return fmt.Errorf("project '%s' is not running. Start it with: %s up", projectName, projectName)
 	}
-	
+
 	var targetURL string
-	
+
 	if len(args) == 0 {
 		// Try to use DNS URL first, then fall back to port-based URLs
 		dnsURL := r.getDNSURL(projectName)
@@ -460,7 +425,7 @@ func (r *CommandRegistry) openProjectInBrowser(projectName string, args []string
 		// Open specific service
 		serviceName := args[0]
 		found := false
-		
+
 		for _, service := range project.Services {
 			if service.Name == serviceName {
 				if service.URL == "" {
@@ -471,7 +436,7 @@ func (r *CommandRegistry) openProjectInBrowser(projectName string, args []string
 				break
 			}
 		}
-		
+
 		if !found {
 			// List available services for user
 			var availableServices []string
@@ -480,17 +445,17 @@ func (r *CommandRegistry) openProjectInBrowser(projectName string, args []string
 					availableServices = append(availableServices, service.Name)
 				}
 			}
-			
+
 			if len(availableServices) == 0 {
 				return fmt.Errorf("no services with web URLs found for project '%s'", projectName)
 			}
-			
+
 			return fmt.Errorf("service '%s' not found. Available services: %s", serviceName, strings.Join(availableServices, ", "))
 		}
-		
+
 		ShowInfo(fmt.Sprintf("Opening service '%s': %s", serviceName, targetURL))
 	}
-	
+
 	// Open URL in default browser
 	return openURL(targetURL)
 }
@@ -500,13 +465,13 @@ func (r *CommandRegistry) getDNSURL(projectName string) string {
 	// Check if DNS is configured for this project using simple DNS
 	if r.isDNSConfiguredForProject(projectName) {
 		domain := fmt.Sprintf("%s.local", projectName)
-		
+
 		// Quick test if DNS resolution actually works
 		if r.testDNSResolution(domain) {
 			return fmt.Sprintf("http://%s", domain)
 		}
 	}
-	
+
 	return ""
 }
 
@@ -515,34 +480,33 @@ func (r *CommandRegistry) testDNSResolution(domain string) bool {
 	// Try a quick nslookup with very short timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
-	
+
 	cmd := exec.CommandContext(ctx, "nslookup", domain, "127.0.0.1")
 	cmd.Stdout = nil // Suppress output
 	cmd.Stderr = nil // Suppress errors
-	
+
 	return cmd.Run() == nil
 }
 
 // isDNSConfiguredForProject checks if DNS is configured for a project using simple DNS
 func (r *CommandRegistry) isDNSConfiguredForProject(projectName string) bool {
 	dnsService := docker.NewDNSService()
-	
+
 	// Check if DNS service is running
 	if !dnsService.IsRunning() {
 		return false
 	}
-	
+
 	// Check if project has DNS configuration file in simple DNS
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return false
 	}
-	
+
 	dnsFile := filepath.Join(homeDir, ".atempo", "dns", "projects", fmt.Sprintf("%s.dns", projectName))
 	_, err = os.Stat(dnsFile)
 	return err == nil
 }
-
 
 // findBestPortURL finds the best port-based URL from project URLs
 func (r *CommandRegistry) findBestPortURL(project *registry.Project) string {
@@ -553,19 +517,19 @@ func (r *CommandRegistry) findBestPortURL(project *registry.Project) string {
 			return url
 		}
 	}
-	
+
 	// Return first available URL
 	if len(project.URLs) > 0 {
 		return project.URLs[0]
 	}
-	
+
 	return ""
 }
 
 // openURL opens a URL in the default browser (cross-platform)
 func openURL(url string) error {
 	var cmd *exec.Cmd
-	
+
 	// Try platform-specific commands
 	if err := exec.Command("which", "open").Run(); err == nil {
 		// macOS
@@ -579,16 +543,16 @@ func openURL(url string) error {
 	} else {
 		return fmt.Errorf("unable to find browser command (tried: open, xdg-open, cmd)")
 	}
-	
+
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to open URL in browser: %w", err)
 	}
-	
+
 	// Don't wait for browser to close
 	go func() {
 		cmd.Wait()
 	}()
-	
+
 	ShowSuccess("Browser opened", url)
 	return nil
 }

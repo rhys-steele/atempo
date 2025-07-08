@@ -47,7 +47,7 @@ func NewStatusIndicator() *StatusIndicator {
 func (s *StatusIndicator) Start(status StatusType, message string) {
 	s.message = message
 	s.startTime = time.Now()
-	
+
 	symbol, color := s.getStatusSymbolAndColor(status)
 	fmt.Printf("%s%s%s %s\n", color, symbol, ColorReset, message)
 }
@@ -56,9 +56,9 @@ func (s *StatusIndicator) Start(status StatusType, message string) {
 func (s *StatusIndicator) Update(status StatusType, message string) {
 	elapsed := time.Since(s.startTime)
 	symbol, color := s.getStatusSymbolAndColor(status)
-	
-	fmt.Printf("%s%s%s %s %s(%s)%s\n", 
-		color, symbol, ColorReset, 
+
+	fmt.Printf("%s%s%s %s %s(%s)%s\n",
+		color, symbol, ColorReset,
 		message,
 		ColorGray, s.formatDuration(elapsed), ColorReset)
 }
@@ -68,8 +68,8 @@ func (s *StatusIndicator) Success(message, details string) {
 	elapsed := time.Since(s.startTime)
 	fmt.Printf("%s⏺%s %s\n", ColorGreen, ColorReset, message)
 	if details != "" {
-		fmt.Printf("  %s⎿%s  %s %s(%s)%s\n", 
-			ColorGray, ColorReset, 
+		fmt.Printf("  %s⎿%s  %s %s(%s)%s\n",
+			ColorGray, ColorReset,
 			details,
 			ColorGray, s.formatDuration(elapsed), ColorReset)
 	}
@@ -80,8 +80,8 @@ func (s *StatusIndicator) Error(message, details string) {
 	elapsed := time.Since(s.startTime)
 	fmt.Printf("%s⏺%s %s\n", ColorRed, ColorReset, message)
 	if details != "" {
-		fmt.Printf("  %s⎿%s  %s %s(%s)%s\n", 
-			ColorGray, ColorReset, 
+		fmt.Printf("  %s⎿%s  %s %s(%s)%s\n",
+			ColorGray, ColorReset,
 			details,
 			ColorGray, s.formatDuration(elapsed), ColorReset)
 	}

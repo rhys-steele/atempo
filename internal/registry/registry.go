@@ -20,29 +20,29 @@ type Project struct {
 	Version      string    `json:"version"`
 	CreatedAt    time.Time `json:"created_at"`
 	LastAccessed time.Time `json:"last_accessed"`
-	
+
 	// Enhanced project state
-	Status       string    `json:"status"`         // running/stopped/healthy/unhealthy
-	Ports        []Port    `json:"ports"`
-	URLs         []string  `json:"urls"`
-	GitBranch    string    `json:"git_branch,omitempty"`
-	GitStatus    string    `json:"git_status,omitempty"`
-	Services     []Service `json:"services"`
+	Status    string    `json:"status"` // running/stopped/healthy/unhealthy
+	Ports     []Port    `json:"ports"`
+	URLs      []string  `json:"urls"`
+	GitBranch string    `json:"git_branch,omitempty"`
+	GitStatus string    `json:"git_status,omitempty"`
+	Services  []Service `json:"services"`
 }
 
 // Port represents a port mapping for a service
 type Port struct {
-	Service   string `json:"service"`
-	Internal  int    `json:"internal"`
-	External  int    `json:"external"`
-	Protocol  string `json:"protocol"`
+	Service  string `json:"service"`
+	Internal int    `json:"internal"`
+	External int    `json:"external"`
+	Protocol string `json:"protocol"`
 }
 
 // Service represents a Docker service with its status
 type Service struct {
-	Name    string `json:"name"`
-	Status  string `json:"status"`  // running/stopped/healthy/unhealthy
-	URL     string `json:"url,omitempty"`
+	Name   string `json:"name"`
+	Status string `json:"status"` // running/stopped/healthy/unhealthy
+	URL    string `json:"url,omitempty"`
 }
 
 // Registry manages the mapping of project names to paths
@@ -237,7 +237,7 @@ func (r *Registry) ScanForProjects(scanPath string) error {
 // addProjectFromAtempoJson reads a atempo.json file and adds the project to registry
 func (r *Registry) addProjectFromAtempoJson(projectPath string) error {
 	atempoJsonPath := filepath.Join(projectPath, "atempo.json")
-	
+
 	data, err := os.ReadFile(atempoJsonPath)
 	if err != nil {
 		return err
@@ -284,22 +284,22 @@ func (r *Registry) UpdateProjectStatus(name string) error {
 		if project.Name == name {
 			// Check project status
 			status, services, ports, urls := r.checkProjectHealth(project.Path)
-			
+
 			r.Projects[i].Status = status
 			r.Projects[i].Services = services
 			r.Projects[i].Ports = ports
 			r.Projects[i].URLs = urls
 			r.Projects[i].LastAccessed = time.Now()
-			
+
 			// Update Git information if in a Git repository
 			gitBranch, gitStatus := r.getGitInfo(project.Path)
 			r.Projects[i].GitBranch = gitBranch
 			r.Projects[i].GitStatus = gitStatus
-			
+
 			return r.SaveRegistry()
 		}
 	}
-	
+
 	return fmt.Errorf("project '%s' not found", name)
 }
 
@@ -307,18 +307,18 @@ func (r *Registry) UpdateProjectStatus(name string) error {
 func (r *Registry) UpdateAllProjectsStatus() error {
 	for i := range r.Projects {
 		status, services, ports, urls := r.checkProjectHealth(r.Projects[i].Path)
-		
+
 		r.Projects[i].Status = status
 		r.Projects[i].Services = services
 		r.Projects[i].Ports = ports
 		r.Projects[i].URLs = urls
-		
+
 		// Update Git information if in a Git repository
 		gitBranch, gitStatus := r.getGitInfo(r.Projects[i].Path)
 		r.Projects[i].GitBranch = gitBranch
 		r.Projects[i].GitStatus = gitStatus
 	}
-	
+
 	return r.SaveRegistry()
 }
 
@@ -361,7 +361,7 @@ func (r *Registry) checkProjectHealth(projectPath string) (string, []Service, []
 		totalServices++
 		serviceName := serviceData["Service"].(string)
 		state := serviceData["State"].(string)
-		
+
 		// Determine service status
 		var serviceStatus string
 		switch state {
@@ -397,7 +397,7 @@ func (r *Registry) checkProjectHealth(projectPath string) (string, []Service, []
 								if isWebService(serviceName, int(targetPort), int(publishedPort)) {
 									url := fmt.Sprintf("http://localhost:%d", int(publishedPort))
 									urls = append(urls, url)
-									
+
 									// Update service with URL
 									for i := range services {
 										if services[i].Name == serviceName {
@@ -484,7 +484,7 @@ func isWebService(serviceName string, internalPort, externalPort int) bool {
 			}
 		}
 	}
-	
+
 	// Secondary web services (lower priority)
 	secondaryWebServices := []string{"api", "server", "backend"}
 	for _, webService := range secondaryWebServices {
@@ -494,7 +494,7 @@ func isWebService(serviceName string, internalPort, externalPort int) bool {
 			}
 		}
 	}
-	
+
 	// Exclude auxiliary services that happen to use web ports
 	auxiliaryServices := []string{"mailhog", "mailcatcher", "mailer", "mail", "phpmyadmin", "adminer"}
 	for _, auxService := range auxiliaryServices {
@@ -506,7 +506,7 @@ func isWebService(serviceName string, internalPort, externalPort int) bool {
 			return false
 		}
 	}
-	
+
 	// For other services, check if it's a standard web port
 	return isWebPort(internalPort)
 }

@@ -12,16 +12,16 @@ import (
 type CredentialStore interface {
 	// Store saves credentials for a provider
 	Store(provider string, creds *Credentials) error
-	
+
 	// Retrieve gets credentials for a provider
 	Retrieve(provider string) (*Credentials, error)
-	
+
 	// Delete removes credentials for a provider
 	Delete(provider string) error
-	
+
 	// List returns all stored provider names
 	List() ([]string, error)
-	
+
 	// Exists checks if credentials exist for a provider
 	Exists(provider string) bool
 }
@@ -38,14 +38,14 @@ func NewFileCredentialStore() (*FileCredentialStore, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user home directory: %w", err)
 	}
-	
+
 	configDir := filepath.Join(homeDir, ".atempo", "auth")
-	
+
 	// Create config directory if it doesn't exist
 	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
-	
+
 	return &FileCredentialStore{
 		configDir: configDir,
 	}, nil
@@ -54,57 +54,57 @@ func NewFileCredentialStore() (*FileCredentialStore, error) {
 // Store saves credentials for a provider
 func (s *FileCredentialStore) Store(provider string, creds *Credentials) error {
 	filePath := s.getCredentialPath(provider)
-	
+
 	// Marshal credentials to JSON
 	data, err := json.MarshalIndent(creds, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal credentials: %w", err)
 	}
-	
+
 	// Write to file with restricted permissions
 	if err := os.WriteFile(filePath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write credentials file: %w", err)
 	}
-	
+
 	return nil
 }
 
 // Retrieve gets credentials for a provider
 func (s *FileCredentialStore) Retrieve(provider string) (*Credentials, error) {
 	filePath := s.getCredentialPath(provider)
-	
+
 	// Check if file exists
 	if !s.fileExists(filePath) {
 		return nil, fmt.Errorf("no credentials found for provider: %s", provider)
 	}
-	
+
 	// Read file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read credentials file: %w", err)
 	}
-	
+
 	// Unmarshal JSON
 	var creds Credentials
 	if err := json.Unmarshal(data, &creds); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal credentials: %w", err)
 	}
-	
+
 	return &creds, nil
 }
 
 // Delete removes credentials for a provider
 func (s *FileCredentialStore) Delete(provider string) error {
 	filePath := s.getCredentialPath(provider)
-	
+
 	if !s.fileExists(filePath) {
 		return fmt.Errorf("no credentials found for provider: %s", provider)
 	}
-	
+
 	if err := os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to delete credentials file: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -114,7 +114,7 @@ func (s *FileCredentialStore) List() ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config directory: %w", err)
 	}
-	
+
 	var providers []string
 	for _, entry := range entries {
 		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".json" {
@@ -122,7 +122,7 @@ func (s *FileCredentialStore) List() ([]string, error) {
 			providers = append(providers, provider)
 		}
 	}
-	
+
 	return providers, nil
 }
 
@@ -155,9 +155,9 @@ func NewAuthService() (*AuthService, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create credential store: %w", err)
 	}
-	
+
 	registry := NewProviderRegistry()
-	
+
 	return &AuthService{
 		store:    store,
 		registry: registry,
@@ -171,7 +171,7 @@ func (s *AuthService) Authenticate(provider string, options AuthOptions) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Check if credentials already exist and are valid (unless force is true)
 	if !options.Force {
 		if existingCreds, err := s.GetCredentials(provider); err == nil && existingCreds.IsValid() {
@@ -181,18 +181,18 @@ func (s *AuthService) Authenticate(provider string, options AuthOptions) error {
 			}
 		}
 	}
-	
+
 	// Perform authentication
 	creds, err := p.Authenticate(context.Background(), options)
 	if err != nil {
 		return fmt.Errorf("authentication failed: %w", err)
 	}
-	
+
 	// Store credentials
 	if err := s.store.Store(provider, creds); err != nil {
 		return fmt.Errorf("failed to store credentials: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -208,13 +208,13 @@ func (s *AuthService) ValidateCredentials(provider string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Get stored credentials
 	creds, err := s.GetCredentials(provider)
 	if err != nil {
 		return err
 	}
-	
+
 	// Validate credentials
 	return p.Validate(context.Background(), creds)
 }
@@ -239,6 +239,6 @@ func (s *AuthService) IsAuthenticated(provider string) bool {
 	if !s.store.Exists(provider) {
 		return false
 	}
-	
+
 	return s.ValidateCredentials(provider) == nil
 }

@@ -30,10 +30,10 @@ func (p *ProgressTracker) StartStep(stepIndex int, description string) {
 	p.currentIndex = stepIndex
 	p.currentStep = description
 	p.stepStartTime = time.Now()
-	
+
 	// Start the step with a thinking indicator
-	fmt.Printf("%s✶%s %s %s[%d/%d]%s\n", 
-		ColorBlue, ColorReset, 
+	fmt.Printf("%s✶%s %s %s[%d/%d]%s\n",
+		ColorBlue, ColorReset,
 		description,
 		ColorGray, stepIndex, p.totalSteps, ColorReset)
 }
@@ -48,7 +48,7 @@ func (p *ProgressTracker) CompleteStep(details string) {
 	elapsed := time.Since(p.stepStartTime)
 	fmt.Printf("%s⏺%s %s\n", ColorGreen, ColorReset, p.currentStep)
 	if details != "" {
-		fmt.Printf("  %s⎿%s  %s %s(%s)%s\n", 
+		fmt.Printf("  %s⎿%s  %s %s(%s)%s\n",
 			ColorGray, ColorReset,
 			details,
 			ColorGray, p.formatDuration(elapsed), ColorReset)
@@ -60,7 +60,7 @@ func (p *ProgressTracker) CompleteStep(details string) {
 func (p *ProgressTracker) ErrorStep(errorMsg string) {
 	elapsed := time.Since(p.stepStartTime)
 	fmt.Printf("%s⏺%s %s\n", ColorRed, ColorReset, p.currentStep)
-	fmt.Printf("  %s⎿%s  %s %s(%s)%s\n", 
+	fmt.Printf("  %s⎿%s  %s %s(%s)%s\n",
 		ColorGray, ColorReset,
 		errorMsg,
 		ColorGray, p.formatDuration(elapsed), ColorReset)
@@ -76,25 +76,25 @@ func (p *ProgressTracker) WarningStep(warningMsg string) {
 func (p *ProgressTracker) ShowProgress() {
 	totalElapsed := time.Since(p.startTime)
 	percentage := float64(p.currentIndex) / float64(p.totalSteps) * 100
-	
-	fmt.Printf("%sProgress: %.0f%% (%d/%d) • %s elapsed%s\n", 
-		ColorGray, percentage, p.currentIndex, p.totalSteps, 
+
+	fmt.Printf("%sProgress: %.0f%% (%d/%d) • %s elapsed%s\n",
+		ColorGray, percentage, p.currentIndex, p.totalSteps,
 		p.formatDuration(totalElapsed), ColorReset)
 }
 
 // Complete marks the entire process as complete
 func (p *ProgressTracker) Complete(projectName string) {
 	totalElapsed := time.Since(p.startTime)
-	
-	fmt.Printf("\n%s✅ %s created successfully%s %s(%s)%s\n", 
-		ColorGreen, projectName, ColorReset, 
+
+	fmt.Printf("\n%s✅ %s created successfully%s %s(%s)%s\n",
+		ColorGreen, projectName, ColorReset,
 		ColorGray, p.formatDuration(totalElapsed), ColorReset)
-	
+
 	// Show log file for debugging if needed
 	if logPath := p.getLogPath(projectName); logPath != "" {
 		fmt.Printf("%s📄 Logs: %s%s\n", ColorGray, logPath, ColorReset)
 	}
-	
+
 	// Show concise next steps
 	fmt.Printf("\n%sNext steps:%s\n", ColorBlue, ColorReset)
 	fmt.Printf("  %s%s code%s         Open in VS Code\n", ColorCyan, projectName, ColorReset)
@@ -102,7 +102,6 @@ func (p *ProgressTracker) Complete(projectName string) {
 	fmt.Printf("  %s%s status%s       Check status\n", ColorCyan, projectName, ColorReset)
 	fmt.Println()
 }
-
 
 // getLogPath tries to find the latest log file for a project
 func (p *ProgressTracker) getLogPath(projectName string) string {
@@ -112,14 +111,14 @@ func (p *ProgressTracker) getLogPath(projectName string) string {
 	if err != nil {
 		return ""
 	}
-	
+
 	// Try to find the most recent log file
 	logsDir := filepath.Join(homeDir, ".atempo", "logs")
 	files, err := os.ReadDir(logsDir)
 	if err != nil {
 		return ""
 	}
-	
+
 	// Find the most recent log file for this project
 	var latestFile string
 	for _, file := range files {
@@ -127,7 +126,7 @@ func (p *ProgressTracker) getLogPath(projectName string) string {
 			latestFile = filepath.Join(logsDir, file.Name())
 		}
 	}
-	
+
 	return latestFile
 }
 
@@ -147,11 +146,11 @@ func (p *ProgressTracker) DrawProgressBar(width int) string {
 	if p.totalSteps == 0 {
 		return ""
 	}
-	
+
 	filled := int(float64(p.currentIndex) / float64(p.totalSteps) * float64(width))
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
 	percentage := float64(p.currentIndex) / float64(p.totalSteps) * 100
-	
+
 	return fmt.Sprintf("%s[%s] %.0f%%%s", ColorBlue, bar, percentage, ColorReset)
 }
 

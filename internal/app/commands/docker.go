@@ -66,7 +66,7 @@ func (c *DockerCommand) Execute(ctx context.Context, args []string) error {
 
 	// Check for timeout flag in additional args
 	timeout, filteredArgs := c.parseTimeoutFlag(additionalArgs)
-	
+
 	// Handle special commands
 	switch dockerCmd {
 	case "exec":
@@ -151,10 +151,10 @@ Project Resolution:
 func (c *DockerCommand) parseTimeoutFlag(args []string) (time.Duration, []string) {
 	var filteredArgs []string
 	var timeout time.Duration
-	
+
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
-		
+
 		// Check for --timeout flag
 		if arg == "--timeout" && i+1 < len(args) {
 			if duration, err := c.parseTimeoutValue(args[i+1]); err == nil {
@@ -163,7 +163,7 @@ func (c *DockerCommand) parseTimeoutFlag(args []string) (time.Duration, []string
 				continue
 			}
 		}
-		
+
 		// Check for --timeout=value format
 		if strings.HasPrefix(arg, "--timeout=") {
 			value := strings.TrimPrefix(arg, "--timeout=")
@@ -172,11 +172,11 @@ func (c *DockerCommand) parseTimeoutFlag(args []string) (time.Duration, []string
 				continue
 			}
 		}
-		
+
 		// Keep all other arguments
 		filteredArgs = append(filteredArgs, arg)
 	}
-	
+
 	return timeout, filteredArgs
 }
 
@@ -186,11 +186,11 @@ func (c *DockerCommand) parseTimeoutValue(value string) (time.Duration, error) {
 	if duration, err := time.ParseDuration(value); err == nil {
 		return duration, nil
 	}
-	
+
 	// Try parsing as plain number (assume minutes)
 	if minutes, err := strconv.Atoi(value); err == nil {
 		return time.Duration(minutes) * time.Minute, nil
 	}
-	
+
 	return 0, fmt.Errorf("invalid timeout format: %s", value)
 }

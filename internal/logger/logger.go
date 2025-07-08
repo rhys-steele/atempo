@@ -129,13 +129,13 @@ func (l *Logger) StartStep(name string) *Step {
 		Status:    StepRunning,
 		StartTime: time.Now(),
 	}
-	
+
 	// Write to log file
 	l.logf("[%s] STARTED: %s", step.StartTime.Format("15:04:05"), name)
-	
+
 	// Show progress indicator
 	l.showProgress(step)
-	
+
 	return step
 }
 
@@ -143,13 +143,13 @@ func (l *Logger) StartStep(name string) *Step {
 func (l *Logger) CompleteStep(step *Step) {
 	step.Status = StepComplete
 	step.Duration = time.Since(step.StartTime)
-	
+
 	// Write to log file
-	l.logf("[%s] COMPLETED: %s (took %s)", 
-		time.Now().Format("15:04:05"), 
-		step.Name, 
+	l.logf("[%s] COMPLETED: %s (took %s)",
+		time.Now().Format("15:04:05"),
+		step.Name,
 		step.Duration.Round(time.Millisecond))
-	
+
 	// Update progress indicator
 	l.showProgress(step)
 }
@@ -159,14 +159,14 @@ func (l *Logger) WarningStep(step *Step, warning string) {
 	step.Status = StepWarning
 	step.Duration = time.Since(step.StartTime)
 	step.Error = fmt.Errorf("warning: %s", warning)
-	
+
 	// Write to log file
-	l.logf("[%s] WARNING: %s (took %s) - %s", 
-		time.Now().Format("15:04:05"), 
-		step.Name, 
+	l.logf("[%s] WARNING: %s (took %s) - %s",
+		time.Now().Format("15:04:05"),
+		step.Name,
 		step.Duration.Round(time.Millisecond),
 		warning)
-	
+
 	// Update progress indicator
 	l.showProgress(step)
 }
@@ -176,14 +176,14 @@ func (l *Logger) ErrorStep(step *Step, err error) {
 	step.Status = StepError
 	step.Duration = time.Since(step.StartTime)
 	step.Error = err
-	
+
 	// Write to log file
-	l.logf("[%s] ERROR: %s (took %s) - %s", 
-		time.Now().Format("15:04:05"), 
-		step.Name, 
+	l.logf("[%s] ERROR: %s (took %s) - %s",
+		time.Now().Format("15:04:05"),
+		step.Name,
 		step.Duration.Round(time.Millisecond),
 		err.Error())
-	
+
 	// Update progress indicator
 	l.showProgress(step)
 }
@@ -195,35 +195,35 @@ func (l *Logger) RunCommand(step *Step, cmd *exec.Cmd) error {
 	if cmd.Dir != "" {
 		l.logf("WORKING DIR: %s", cmd.Dir)
 	}
-	
+
 	// Create pipes for stdout and stderr
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("failed to create stdout pipe: %w", err)
 	}
-	
+
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
 		return fmt.Errorf("failed to create stderr pipe: %w", err)
 	}
-	
+
 	// Start the command
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start command: %w", err)
 	}
-	
+
 	// Capture output in goroutines
 	done := make(chan struct{})
 	go l.captureOutput(stdoutPipe, "STDOUT", done)
 	go l.captureOutput(stderrPipe, "STDERR", done)
-	
+
 	// Wait for command completion
 	err = cmd.Wait()
-	
+
 	// Wait for output capture to complete
 	<-done
 	<-done
-	
+
 	// Log completion
 	if err != nil {
 		l.logf("COMMAND FAILED: %s", err.Error())
@@ -231,14 +231,14 @@ func (l *Logger) RunCommand(step *Step, cmd *exec.Cmd) error {
 	} else {
 		l.logf("COMMAND COMPLETED SUCCESSFULLY")
 	}
-	
+
 	return nil
 }
 
 // captureOutput captures command output and writes it to the log file
 func (l *Logger) captureOutput(reader io.Reader, prefix string, done chan struct{}) {
 	defer func() { done <- struct{}{} }()
-	
+
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -260,7 +260,7 @@ func (l *Logger) showProgress(step *Step) {
 	if l.Quiet {
 		return
 	}
-	
+
 	switch step.Status {
 	case StepRunning:
 		// Don't show running state - just completion
@@ -283,7 +283,7 @@ func (l *Logger) PrintSummary() {
 	if l.Quiet {
 		return
 	}
-	
+
 	totalDuration := time.Since(l.StartTime)
 	fmt.Printf("\n🎉 Setup completed in %s\n", totalDuration.Round(time.Second))
 	fmt.Printf("📄 Full logs: %s\n", l.LogPath)
@@ -298,18 +298,18 @@ func GetLatestLogFile(projectName string) (string, error) {
 	}
 
 	logsDir := filepath.Join(homeDir, ".atempo", "logs")
-	
+
 	// Find all log files for the project
 	pattern := filepath.Join(logsDir, fmt.Sprintf("%s_*.log", projectName))
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return "", fmt.Errorf("failed to find log files: %w", err)
 	}
-	
+
 	if len(matches) == 0 {
 		return "", fmt.Errorf("no log files found for project %s", projectName)
 	}
-	
+
 	// Return the most recent (last in alphabetical order due to timestamp format)
 	latest := matches[len(matches)-1]
 	return latest, nil
@@ -323,13 +323,13 @@ func GetAllLogFiles(projectName string) ([]string, error) {
 	}
 
 	logsDir := filepath.Join(homeDir, ".atempo", "logs")
-	
+
 	// Find all log files for the project
 	pattern := filepath.Join(logsDir, fmt.Sprintf("%s_*.log", projectName))
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find log files: %w", err)
 	}
-	
+
 	return matches, nil
 }

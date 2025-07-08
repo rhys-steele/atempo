@@ -19,9 +19,9 @@ type PortManager struct {
 
 // PortAllocation represents allocated ports for a project
 type PortAllocation struct {
-	ProjectName string             `json:"project_name"`
-	Ports       map[string]int     `json:"ports"` // service_name:internal_port -> external_port
-	Reserved    bool               `json:"reserved"`
+	ProjectName string         `json:"project_name"`
+	Ports       map[string]int `json:"ports"` // service_name:internal_port -> external_port
+	Reserved    bool           `json:"reserved"`
 }
 
 // PortRegistry stores all port allocations
@@ -34,9 +34,9 @@ const (
 	// Port range for dynamic allocation (avoiding common system ports)
 	PortRangeStart = 3000
 	PortRangeEnd   = 65535
-	
+
 	// Common web service ports to prioritize
-	DefaultWebPort = 80
+	DefaultWebPort   = 80
 	DefaultHTTPSPort = 443
 )
 
@@ -132,18 +132,18 @@ func (pm *PortManager) AllocatePortsForProject(projectName string, servicePorts 
 
 	for serviceName, internalPorts := range servicePorts {
 		serviceMapping := make(map[int]int)
-		
+
 		for _, internalPort := range internalPorts {
 			externalPort, err := pm.findAvailablePort(registry, internalPort)
 			if err != nil {
 				return nil, fmt.Errorf("failed to allocate port for %s:%d: %w", serviceName, internalPort, err)
 			}
-			
+
 			key := fmt.Sprintf("%s:%d", serviceName, internalPort)
 			allocation.Ports[key] = externalPort
 			serviceMapping[internalPort] = externalPort
 		}
-		
+
 		result[serviceName] = serviceMapping
 	}
 
@@ -202,7 +202,7 @@ func (pm *PortManager) isPortAvailable(port int, registry *PortRegistry) bool {
 		return false
 	}
 	conn.Close()
-	
+
 	return true
 }
 
@@ -212,14 +212,14 @@ func (pm *PortManager) convertAllocationToMapping(allocation PortAllocation, ser
 
 	for serviceName, internalPorts := range servicePorts {
 		serviceMapping := make(map[int]int)
-		
+
 		for _, internalPort := range internalPorts {
 			key := fmt.Sprintf("%s:%d", serviceName, internalPort)
 			if externalPort, exists := allocation.Ports[key]; exists {
 				serviceMapping[internalPort] = externalPort
 			}
 		}
-		
+
 		if len(serviceMapping) > 0 {
 			result[serviceName] = serviceMapping
 		}
@@ -236,7 +236,7 @@ func (pm *PortManager) ReleasePortsForProject(projectName string) error {
 	}
 
 	delete(registry.Allocations, projectName)
-	
+
 	return pm.SavePortRegistry(registry)
 }
 
@@ -297,7 +297,7 @@ func (pm *PortManager) GetProjectURLs(projectName string) ([]string, error) {
 func isWebServicePort(serviceKey string, externalPort int) bool {
 	// Common web service indicators
 	webServices := []string{"web:", "webserver:", "nginx:", "apache:", "app:80", "frontend:"}
-	
+
 	for _, indicator := range webServices {
 		if len(serviceKey) > len(indicator) && serviceKey[:len(indicator)] == indicator {
 			return true

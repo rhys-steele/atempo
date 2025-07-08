@@ -40,7 +40,7 @@ func (c *ProjectsCommand) Execute(ctx context.Context, args []string) error {
 
 	fmt.Println("Registered Atempo Projects:")
 	fmt.Println()
-	
+
 	for _, project := range projects {
 		fmt.Printf("  %s\n", project.Name)
 		fmt.Printf("    Framework: %s %s\n", project.Framework, project.Version)

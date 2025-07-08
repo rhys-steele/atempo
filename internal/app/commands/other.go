@@ -36,7 +36,7 @@ func NewReconfigureCommand(ctx *CommandContext) *ReconfigureCommand {
 // Execute runs the reconfigure command
 func (c *ReconfigureCommand) Execute(ctx context.Context, args []string) error {
 	var projectPath string
-	
+
 	if len(args) > 0 {
 		resolvedPath, err := registry.ResolveProjectPath(args[0])
 		if err != nil {
@@ -52,7 +52,7 @@ func (c *ReconfigureCommand) Execute(ctx context.Context, args []string) error {
 	}
 
 	fmt.Printf("→ Regenerating docker-compose.yml from atempo.json in %s...\n", projectPath)
-	
+
 	if err := compose.GenerateDockerCompose(projectPath); err != nil {
 		return fmt.Errorf("failed to regenerate docker-compose.yml: %w", err)
 	}
@@ -107,7 +107,7 @@ func (c *AddServiceCommand) Execute(ctx context.Context, args []string) error {
 	}
 
 	fmt.Printf("→ Adding %s service to project...\n", serviceType)
-	
+
 	if err := compose.AddPredefinedService(projectPath, serviceType); err != nil {
 		return fmt.Errorf("failed to add service: %w", err)
 	}
@@ -149,7 +149,7 @@ func (c *LogsCommand) Execute(ctx context.Context, args []string) error {
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		fmt.Println("\nTip: Project logs are created during 'atempo create'. Available projects:")
-		
+
 		// Show available projects
 		reg, regErr := registry.LoadRegistry()
 		if regErr == nil {
@@ -208,7 +208,7 @@ func NewDescribeCommand(ctx *CommandContext) *DescribeCommand {
 func (c *DescribeCommand) Execute(ctx context.Context, args []string) error {
 	var projectPath string
 	var projectName string
-	
+
 	// Parse optional project argument
 	if len(args) >= 1 {
 		// Try to resolve project by name or path
@@ -239,20 +239,20 @@ func (c *DescribeCommand) Execute(ctx context.Context, args []string) error {
 		// Try to find project by name first
 		project, _ = reg.FindProject(projectName)
 	}
-	
+
 	// If not found in registry, scan directory for atempo.json
 	if project == nil {
 		atempoJsonPath := filepath.Join(projectPath, "atempo.json")
 		if !utils.FileExists(atempoJsonPath) {
 			return fmt.Errorf("no atempo.json found in %s\nThis doesn't appear to be an Atempo project.\nRun 'atempo create <framework>' to create a new project", projectPath)
 		}
-		
+
 		// Read atempo.json to get basic info
 		project = &registry.Project{
 			Name: filepath.Base(projectPath),
 			Path: projectPath,
 		}
-		
+
 		if content, err := os.ReadFile(atempoJsonPath); err == nil {
 			var config struct {
 				Framework string `json:"framework"`
@@ -286,11 +286,11 @@ func (c *DescribeCommand) Execute(ctx context.Context, args []string) error {
 func (c *DescribeCommand) displayProjectInfo(project *registry.Project) {
 	fmt.Printf("📋 Project Description: %s\n", project.Name)
 	fmt.Println(strings.Repeat("=", 50))
-	
+
 	// Basic project information
 	fmt.Printf("🏷️  Name: %s\n", project.Name)
 	fmt.Printf("📁 Path: %s\n", project.Path)
-	
+
 	if project.Framework != "" {
 		fmt.Printf("🛠️  Framework: %s", project.Framework)
 		if project.Version != "" {
@@ -424,7 +424,7 @@ func (c *RemoveCommand) Execute(ctx context.Context, args []string) error {
 
 	var response string
 	fmt.Scanln(&response)
-	
+
 	if strings.ToLower(response) != "y" && strings.ToLower(response) != "yes" {
 		fmt.Println("Cancelled.")
 		return nil
@@ -438,7 +438,7 @@ func (c *RemoveCommand) Execute(ctx context.Context, args []string) error {
 
 	fmt.Printf("✅ Project '%s' removed from registry successfully!\n", projectName)
 	fmt.Printf("💡 Project files at %s are still intact.\n", project.Path)
-	
+
 	return nil
 }
 
@@ -496,13 +496,13 @@ func (c *StopCommand) Execute(ctx context.Context, args []string) error {
 	stoppedCount := 0
 	for _, project := range runningProjects {
 		fmt.Printf("→ Stopping %s...\n", project.Name)
-		
+
 		// Use docker-compose down to stop all services
 		if err := docker.ExecuteCommand("down", project.Path, []string{}); err != nil {
 			fmt.Printf("❌ Failed to stop %s: %v\n", project.Name, err)
 			continue
 		}
-		
+
 		fmt.Printf("✅ Stopped %s\n", project.Name)
 		stoppedCount++
 	}
@@ -538,7 +538,7 @@ func (c *TestCommand) Execute(ctx context.Context, args []string) error {
 		// Check if first arg is a project name/path or test suite
 		// Try to resolve as project first, but only if it looks like a project identifier
 		firstArg := args[0]
-		
+
 		// If it contains path separators or is known project, treat as project
 		if strings.Contains(firstArg, "/") || strings.Contains(firstArg, "\\") {
 			// Looks like a path
@@ -547,7 +547,7 @@ func (c *TestCommand) Execute(ctx context.Context, args []string) error {
 				return fmt.Errorf("failed to resolve project path: %w", err)
 			}
 			projectPath = resolvedPath
-			
+
 			// Second arg could be test suite
 			if len(args) > 1 {
 				testSuite = args[1]
@@ -558,7 +558,7 @@ func (c *TestCommand) Execute(ctx context.Context, args []string) error {
 			if err != nil {
 				return fmt.Errorf("failed to load registry: %w", err)
 			}
-			
+
 			_, err = reg.FindProject(firstArg)
 			if err == nil {
 				// Found as registered project
@@ -567,7 +567,7 @@ func (c *TestCommand) Execute(ctx context.Context, args []string) error {
 					return fmt.Errorf("failed to resolve project: %w", err)
 				}
 				projectPath = resolvedPath
-				
+
 				// Second arg could be test suite
 				if len(args) > 1 {
 					testSuite = args[1]
@@ -599,33 +599,33 @@ func (c *TestCommand) Execute(ctx context.Context, args []string) error {
 
 	// Try to use MCP server for framework-agnostic testing
 	fmt.Printf("→ Initializing MCP server for testing...\n")
-	
+
 	mcpClient, err := mcp.NewMCPClient(projectPath)
 	if err != nil {
 		// Fallback to legacy approach if MCP server not available
 		fmt.Printf("⚠️  MCP server not available, falling back to legacy testing: %v\n", err)
 		return c.runLegacyTest(projectPath, testSuite)
 	}
-	
+
 	// Start the MCP server
 	if err := mcpClient.Start(); err != nil {
 		fmt.Printf("⚠️  Failed to start MCP server, falling back to legacy testing: %v\n", err)
 		return c.runLegacyTest(projectPath, testSuite)
 	}
 	defer mcpClient.Close()
-	
+
 	fmt.Printf("→ Running tests via MCP server...\n")
 	if testSuite != "" {
 		fmt.Printf("→ Test suite: %s\n", testSuite)
 	}
-	
+
 	// Execute tests through MCP server
 	err = mcpClient.RunTests(testSuite)
 	if err != nil {
 		fmt.Printf("❌ Tests failed: %v\n", err)
 		return err
 	}
-	
+
 	fmt.Printf("✅ Tests completed successfully!\n")
 	return nil
 }
@@ -679,16 +679,16 @@ func (c *TestCommand) detectFramework(projectPath string) (string, error) {
 
 	// Fallback to file-based detection
 	srcPath := filepath.Join(projectPath, "src")
-	
+
 	// Check for Laravel
-	if utils.FileExists(filepath.Join(srcPath, "artisan")) || 
-	   utils.FileExists(filepath.Join(srcPath, "composer.json")) {
+	if utils.FileExists(filepath.Join(srcPath, "artisan")) ||
+		utils.FileExists(filepath.Join(srcPath, "composer.json")) {
 		return "laravel", nil
 	}
-	
+
 	// Check for Django
 	if utils.FileExists(filepath.Join(srcPath, "manage.py")) ||
-	   utils.FileExists(filepath.Join(srcPath, "requirements.txt")) {
+		utils.FileExists(filepath.Join(srcPath, "requirements.txt")) {
 		return "django", nil
 	}
 
@@ -705,7 +705,7 @@ func (c *TestCommand) getTestCommand(framework, testSuite string) (string, strin
 		}
 		// Laravel supports test filtering
 		return fmt.Sprintf("php artisan test --filter=%s", testSuite), containerName, nil
-		
+
 	case "django":
 		containerName := "web"
 		if testSuite == "" {
@@ -713,7 +713,7 @@ func (c *TestCommand) getTestCommand(framework, testSuite string) (string, strin
 		}
 		// Django supports app-specific testing
 		return fmt.Sprintf("python manage.py test %s", testSuite), containerName, nil
-		
+
 	default:
 		return "", "", fmt.Errorf("unsupported framework: %s", framework)
 	}
@@ -723,7 +723,7 @@ func (c *TestCommand) getTestCommand(framework, testSuite string) (string, strin
 func (c *TestCommand) runTestInContainer(projectPath, containerName, testCommand string) error {
 	// Use docker-compose exec to run the test command in the running container
 	cmdArgs := []string{"sh", "-c", testCommand}
-	
+
 	// Use the existing docker exec infrastructure
 	return docker.ExecuteExecCommand(containerName, projectPath, cmdArgs)
 }

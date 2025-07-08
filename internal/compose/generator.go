@@ -14,13 +14,13 @@ import (
 
 // AtempoConfig represents the enhanced atempo.json structure
 type AtempoConfig struct {
-	Name      string                 `json:"name"`
-	Framework string                 `json:"framework"`
-	Language  string                 `json:"language"`
-	Services  map[string]Service     `json:"services"`
-	Volumes   map[string]Volume      `json:"volumes,omitempty"`
-	Networks  map[string]Network     `json:"networks,omitempty"`
-	Version   string                 `json:"version,omitempty"`
+	Name      string             `json:"name"`
+	Framework string             `json:"framework"`
+	Language  string             `json:"language"`
+	Services  map[string]Service `json:"services"`
+	Volumes   map[string]Volume  `json:"volumes,omitempty"`
+	Networks  map[string]Network `json:"networks,omitempty"`
+	Version   string             `json:"version,omitempty"`
 }
 
 // Service represents a Docker service definition
@@ -65,7 +65,7 @@ type DockerCompose struct {
 // LoadAtempoConfig loads and parses the atempo.json file
 func LoadAtempoConfig(projectPath string) (*AtempoConfig, error) {
 	atempoJsonPath := filepath.Join(projectPath, "atempo.json")
-	
+
 	data, err := os.ReadFile(atempoJsonPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read atempo.json: %w", err)
@@ -122,7 +122,7 @@ func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 
 	// Setup DNS routing with simplified system
 	dnsService := docker.NewDNSService()
-	
+
 	// Convert allocated ports to simple map for DNS system
 	services := make(map[string]int)
 	for serviceName, portMapping := range allocatedPorts {
@@ -132,7 +132,7 @@ func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 			break // Take first port as main port
 		}
 	}
-	
+
 	if err := dnsService.AddProject(projectName, services); err != nil {
 		// DNS setup is optional - continue without it
 		fmt.Printf("Warning: DNS setup incomplete: %v\n", err)
@@ -170,7 +170,7 @@ func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 		compose.Networks[networkName] = map[string]interface{}{
 			"driver": "bridge",
 		}
-		
+
 		// Add network to all services
 		for _, serviceInterface := range compose.Services {
 			if serviceMap, ok := serviceInterface.(map[string]interface{}); ok {
@@ -202,7 +202,7 @@ func convertService(service Service, serviceName, projectName, framework string)
 		// Generate project-specific image name
 		imageName := fmt.Sprintf("%s-%s-%s", projectName, framework, serviceName)
 		dockerService["image"] = imageName
-		
+
 		if service.Context != "" {
 			dockerService["build"] = map[string]interface{}{
 				"context":    service.Context,
@@ -232,7 +232,7 @@ func convertService(service Service, serviceName, projectName, framework string)
 	if service.Command != nil {
 		dockerService["command"] = service.Command
 	}
-	
+
 	if service.WorkingDir != "" {
 		dockerService["working_dir"] = service.WorkingDir
 	}
@@ -403,7 +403,7 @@ func GetPredefinedService(serviceType string) (Service, bool) {
 			Environment: map[string]string{
 				"discovery.type":         "single-node",
 				"xpack.security.enabled": "false",
-				"ES_JAVA_OPTS":          "-Xms512m -Xmx512m",
+				"ES_JAVA_OPTS":           "-Xms512m -Xmx512m",
 			},
 			Volumes: []string{"elasticsearch_data:/usr/share/elasticsearch/data"},
 		},
@@ -458,7 +458,7 @@ func convertServiceWithDynamicPorts(service Service, serviceName, projectName, f
 		// Generate project-specific image name
 		imageName := fmt.Sprintf("%s-%s-%s", projectName, framework, serviceName)
 		dockerService["image"] = imageName
-		
+
 		if service.Context != "" {
 			dockerService["build"] = map[string]interface{}{
 				"context":    service.Context,
@@ -488,7 +488,7 @@ func convertServiceWithDynamicPorts(service Service, serviceName, projectName, f
 	if service.Command != nil {
 		dockerService["command"] = service.Command
 	}
-	
+
 	if service.WorkingDir != "" {
 		dockerService["working_dir"] = service.WorkingDir
 	}
@@ -530,7 +530,7 @@ func convertServiceWithDynamicPorts(service Service, serviceName, projectName, f
 // generateAccessInfo creates a file with access information for the project
 func generateAccessInfo(projectPath, projectName string, allocatedPorts map[string]map[int]int, services map[string]int) error {
 	var info strings.Builder
-	
+
 	info.WriteString(fmt.Sprintf("# Access Information for %s\n\n", projectName))
 	info.WriteString("## Service URLs\n\n")
 
@@ -538,19 +538,19 @@ func generateAccessInfo(projectPath, projectName string, allocatedPorts map[stri
 	for serviceName, portMapping := range allocatedPorts {
 		if len(portMapping) > 0 {
 			info.WriteString(fmt.Sprintf("### %s\n", serviceName))
-			
+
 			// Port-based access
 			for internalPort, externalPort := range portMapping {
 				info.WriteString(fmt.Sprintf("- Port-based: http://localhost:%d (internal port %d)\n", externalPort, internalPort))
 			}
-			
+
 			// Domain-based access (if DNS is configured)
 			if serviceName == "webserver" || serviceName == "app" {
 				info.WriteString(fmt.Sprintf("- Domain-based: http://%s.local\n", projectName))
 			} else {
 				info.WriteString(fmt.Sprintf("- Domain-based: http://%s.%s.local\n", serviceName, projectName))
 			}
-			
+
 			info.WriteString("\n")
 		}
 	}

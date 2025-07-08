@@ -33,7 +33,7 @@ func GenerateServerFromTemplate(server MCPServer, projectInfo ProjectInfo, mcpDi
 	}
 
 	template := getServerTemplate(server.Framework)
-	
+
 	// Generate package.json
 	if err := generateFile(mcpDir, "package.json", template.PackageJSON, server, projectInfo); err != nil {
 		return fmt.Errorf("failed to generate package.json: %w", err)

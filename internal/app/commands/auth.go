@@ -50,7 +50,7 @@ func (c *AuthCommand) Execute(ctx context.Context, args []string) error {
 	}
 
 	subcommand := args[0]
-	
+
 	switch subcommand {
 	case "login":
 		return c.handleLogin(args[1:])
@@ -75,12 +75,12 @@ func (c *AuthCommand) handleLogin(args []string) error {
 	}
 
 	provider := args[0]
-	
+
 	// Parse flags
 	options := auth.AuthOptions{
 		Interactive: true,
 	}
-	
+
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
 		case "--force", "-f":
@@ -105,7 +105,7 @@ func (c *AuthCommand) handleLogin(args []string) error {
 			break
 		}
 	}
-	
+
 	if selectedProvider == nil {
 		return fmt.Errorf("unknown provider: %s\nAvailable providers: %s", provider, c.getProviderNames())
 	}
@@ -143,7 +143,7 @@ func (c *AuthCommand) handleLogout(args []string) error {
 	}
 
 	provider := args[0]
-	
+
 	if err := c.authService.Logout(provider); err != nil {
 		return fmt.Errorf("logout failed: %w", err)
 	}
@@ -200,7 +200,7 @@ func (c *AuthCommand) listProviders() error {
 	providers := c.authService.ListProviders()
 	for _, provider := range providers {
 		fmt.Printf("  %-12s %s\n", provider.Name(), provider.Description())
-		
+
 		requiredFields := provider.RequiredFields()
 		if len(requiredFields) > 0 {
 			fmt.Printf("               Required: %s\n", strings.Join(requiredFields, ", "))
@@ -218,9 +218,9 @@ func (c *AuthCommand) validateCredentials(args []string) error {
 	}
 
 	provider := args[0]
-	
+
 	fmt.Printf("→ Validating %s credentials...\n", provider)
-	
+
 	if err := c.authService.ValidateCredentials(provider); err != nil {
 		fmt.Printf("❌ Validation failed: %v\n", err)
 		return nil // Don't return error to avoid double error display
@@ -233,9 +233,9 @@ func (c *AuthCommand) validateCredentials(args []string) error {
 // promptForAPIKey securely prompts for an API key
 func (c *AuthCommand) promptForAPIKey(provider string) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
-	
+
 	fmt.Printf("\nEnter your %s API key: ", strings.ToUpper(provider))
-	
+
 	// Try to read from terminal securely (hidden input)
 	if term.IsTerminal(int(syscall.Stdin)) {
 		keyBytes, err := term.ReadPassword(int(syscall.Stdin))
@@ -245,14 +245,14 @@ func (c *AuthCommand) promptForAPIKey(provider string) (string, error) {
 		fmt.Println() // Add newline after hidden input
 		return strings.TrimSpace(string(keyBytes)), nil
 	}
-	
+
 	// Fallback to regular input if not a terminal
 	fmt.Print("(input will be visible) ")
 	input, err := reader.ReadString('\n')
 	if err != nil {
 		return "", fmt.Errorf("failed to read API key: %w", err)
 	}
-	
+
 	return strings.TrimSpace(input), nil
 }
 

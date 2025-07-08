@@ -24,9 +24,9 @@ func NewTemplateLoader(templatesFS fs.FS) *TemplateLoader {
 
 // ManifestTemplate represents a loaded manifest template
 type ManifestTemplate struct {
-	TemplateVersion string `json:"template_version"`
-	Name            string `json:"name"`
-	Description     string `json:"description,omitempty"`
+	TemplateVersion  string `json:"template_version"`
+	Name             string `json:"name"`
+	Description      string `json:"description,omitempty"`
 	MarkdownTemplate string `json:"markdown_template"`
 }
 
@@ -42,26 +42,26 @@ type FrameworkConfig struct {
 
 // AIFeatures contains AI-specific framework configuration
 type AIFeatures struct {
-	DefaultProjectTypes      []string            `json:"default_project_types"`
-	CoreFeatures            []string            `json:"core_features"`
-	ArchitecturePatterns    map[string]string   `json:"architecture_patterns"`
+	DefaultProjectTypes       []string          `json:"default_project_types"`
+	CoreFeatures              []string          `json:"core_features"`
+	ArchitecturePatterns      map[string]string `json:"architecture_patterns"`
 	FrameworkPatternsTemplate string            `json:"framework_patterns_template"`
-	TechnicalStack          []string            `json:"technical_stack"`
-	ProjectAnalysisKeywords map[string]string   `json:"project_analysis_keywords"`
+	TechnicalStack            []string          `json:"technical_stack"`
+	ProjectAnalysisKeywords   map[string]string `json:"project_analysis_keywords"`
 }
 
 // DevelopmentContext contains development environment configuration
 type DevelopmentContext struct {
-	PackageManager string                   `json:"package_manager"`
-	Structure      map[string]string        `json:"structure"`
-	Commands       map[string]string        `json:"commands"`
-	Docker         DockerConfig             `json:"docker"`
-	Patterns       map[string][]string      `json:"patterns"`
-	BestPractices  []string                 `json:"best_practices"`
-	Environment    EnvironmentConfig        `json:"environment"`
-	Troubleshooting map[string]string       `json:"troubleshooting"`
-	CodeTemplates  map[string]string        `json:"code_templates"`
-	AppsStructure  AppsStructureConfig      `json:"apps_structure,omitempty"`
+	PackageManager  string              `json:"package_manager"`
+	Structure       map[string]string   `json:"structure"`
+	Commands        map[string]string   `json:"commands"`
+	Docker          DockerConfig        `json:"docker"`
+	Patterns        map[string][]string `json:"patterns"`
+	BestPractices   []string            `json:"best_practices"`
+	Environment     EnvironmentConfig   `json:"environment"`
+	Troubleshooting map[string]string   `json:"troubleshooting"`
+	CodeTemplates   map[string]string   `json:"code_templates"`
+	AppsStructure   AppsStructureConfig `json:"apps_structure,omitempty"`
 }
 
 type DockerConfig struct {
@@ -72,8 +72,8 @@ type DockerConfig struct {
 }
 
 type EnvironmentConfig struct {
-	RequiredEnvVars    []string `json:"required_env_vars"`
-	DevelopmentTools   []string `json:"development_tools"`
+	RequiredEnvVars  []string `json:"required_env_vars"`
+	DevelopmentTools []string `json:"development_tools"`
 }
 
 type AppsStructureConfig struct {
@@ -145,7 +145,7 @@ type AuthRequiredElement struct {
 // LoadManifestTemplate loads a manifest template by name
 func (tl *TemplateLoader) LoadManifestTemplate(templateName string) (*ManifestTemplate, error) {
 	templatePath := filepath.Join("ai", "manifests", templateName+".json")
-	
+
 	data, err := fs.ReadFile(tl.templatesFS, templatePath)
 	if err != nil {
 		// Fallback to filesystem for development (when embedding is disabled)
@@ -155,30 +155,30 @@ func (tl *TemplateLoader) LoadManifestTemplate(templateName string) (*ManifestTe
 			filepath.Join("../templates", templatePath),
 			filepath.Join("../../templates", templatePath),
 		}
-		
+
 		for _, fallbackPath := range possiblePaths {
 			if data, err = os.ReadFile(fallbackPath); err == nil {
 				break
 			}
 		}
-		
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to read template %s (tried embedded and filesystem): %w", templateName, err)
 		}
 	}
-	
+
 	var manifestTemplate ManifestTemplate
 	if err := json.Unmarshal(data, &manifestTemplate); err != nil {
 		return nil, fmt.Errorf("failed to parse template %s: %w", templateName, err)
 	}
-	
+
 	return &manifestTemplate, nil
 }
 
 // LoadFrameworkConfig loads framework-specific AI configuration
 func (tl *TemplateLoader) LoadFrameworkConfig(framework string) (*FrameworkConfig, error) {
 	configPath := filepath.Join("frameworks", framework, "ai", "ai-config.json")
-	
+
 	data, err := fs.ReadFile(tl.templatesFS, configPath)
 	if err != nil {
 		// Fallback to filesystem for development
@@ -187,30 +187,30 @@ func (tl *TemplateLoader) LoadFrameworkConfig(framework string) (*FrameworkConfi
 			filepath.Join("../templates", configPath),
 			filepath.Join("../../templates", configPath),
 		}
-		
+
 		for _, fallbackPath := range possiblePaths {
 			if data, err = os.ReadFile(fallbackPath); err == nil {
 				break
 			}
 		}
-		
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to read framework config %s (tried embedded and filesystem): %w", framework, err)
 		}
 	}
-	
+
 	var config FrameworkConfig
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse framework config %s: %w", framework, err)
 	}
-	
+
 	return &config, nil
 }
 
 // LoadInteractivePrompts loads the interactive prompting configuration
 func (tl *TemplateLoader) LoadInteractivePrompts() (*InteractivePrompts, error) {
 	promptsPath := filepath.Join("ai", "prompts", "interactive-prompts.json")
-	
+
 	data, err := fs.ReadFile(tl.templatesFS, promptsPath)
 	if err != nil {
 		// Fallback to filesystem for development
@@ -219,23 +219,23 @@ func (tl *TemplateLoader) LoadInteractivePrompts() (*InteractivePrompts, error) 
 			filepath.Join("../templates", promptsPath),
 			filepath.Join("../../templates", promptsPath),
 		}
-		
+
 		for _, fallbackPath := range possiblePaths {
 			if data, err = os.ReadFile(fallbackPath); err == nil {
 				break
 			}
 		}
-		
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to read interactive prompts (tried embedded and filesystem): %w", err)
 		}
 	}
-	
+
 	var prompts InteractivePrompts
 	if err := json.Unmarshal(data, &prompts); err != nil {
 		return nil, fmt.Errorf("failed to parse interactive prompts: %w", err)
 	}
-	
+
 	return &prompts, nil
 }
 
@@ -247,16 +247,16 @@ func (tl *TemplateLoader) GenerateFromTemplate(templateContent string, data inte
 		"upper": strings.ToUpper,
 		"lower": strings.ToLower,
 	})
-	
+
 	tmpl, err := tmpl.Parse(templateContent)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
-	
+
 	var result strings.Builder
 	if err := tmpl.Execute(&result, data); err != nil {
 		return "", fmt.Errorf("failed to execute template: %w", err)
 	}
-	
+
 	return result.String(), nil
 }

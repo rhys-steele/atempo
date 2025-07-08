@@ -10,36 +10,36 @@ import (
 type Provider interface {
 	// Name returns the provider name (e.g., "openai", "claude", "atempo")
 	Name() string
-	
+
 	// Authenticate performs the authentication flow for this provider
 	Authenticate(ctx context.Context, options AuthOptions) (*Credentials, error)
-	
+
 	// Validate checks if existing credentials are still valid
 	Validate(ctx context.Context, creds *Credentials) error
-	
+
 	// RequiredFields returns the fields required for authentication
 	RequiredFields() []string
-	
+
 	// Description returns a human-readable description of the provider
 	Description() string
 }
 
 // AuthOptions contains authentication options
 type AuthOptions struct {
-	APIKey     string            // API key for providers that use keys
-	Interactive bool             // Whether to prompt user interactively
-	Force      bool             // Force re-authentication even if credentials exist
-	Metadata   map[string]string // Provider-specific metadata
+	APIKey      string            // API key for providers that use keys
+	Interactive bool              // Whether to prompt user interactively
+	Force       bool              // Force re-authentication even if credentials exist
+	Metadata    map[string]string // Provider-specific metadata
 }
 
 // Credentials represents stored authentication credentials
 type Credentials struct {
-	Provider    string            `json:"provider"`
-	APIKey      string            `json:"api_key,omitempty"`
-	AccessToken string            `json:"access_token,omitempty"`
-	RefreshToken string           `json:"refresh_token,omitempty"`
-	ExpiresAt   int64            `json:"expires_at,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	Provider     string            `json:"provider"`
+	APIKey       string            `json:"api_key,omitempty"`
+	AccessToken  string            `json:"access_token,omitempty"`
+	RefreshToken string            `json:"refresh_token,omitempty"`
+	ExpiresAt    int64             `json:"expires_at,omitempty"`
+	Metadata     map[string]string `json:"metadata,omitempty"`
 }
 
 // IsValid checks if credentials are still valid
@@ -47,17 +47,17 @@ func (c *Credentials) IsValid() bool {
 	if c == nil {
 		return false
 	}
-	
+
 	// Check if we have any form of credential
 	if c.APIKey == "" && c.AccessToken == "" {
 		return false
 	}
-	
+
 	// Check expiration if set
 	if c.ExpiresAt > 0 {
 		return c.ExpiresAt > getCurrentUnixTime()
 	}
-	
+
 	return true
 }
 
@@ -71,12 +71,12 @@ func NewProviderRegistry() *ProviderRegistry {
 	registry := &ProviderRegistry{
 		providers: make(map[string]Provider),
 	}
-	
+
 	// Register built-in providers
 	registry.Register(NewOpenAIProvider())
 	registry.Register(NewClaudeProvider())
 	registry.Register(NewAtempoProvider())
-	
+
 	return registry
 }
 

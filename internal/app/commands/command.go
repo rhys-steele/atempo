@@ -8,13 +8,13 @@ import (
 type Command interface {
 	// Execute runs the command with the given arguments
 	Execute(ctx context.Context, args []string) error
-	
+
 	// Name returns the command name (e.g., "start", "docker")
 	Name() string
-	
+
 	// Description returns a brief description of the command
 	Description() string
-	
+
 	// Usage returns usage information for the command
 	Usage() string
 }

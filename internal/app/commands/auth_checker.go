@@ -21,12 +21,12 @@ func (a *AuthChecker) IsAuthenticated() bool {
 	if err != nil {
 		return false
 	}
-	
+
 	tokenPath := filepath.Join(homeDir, ".atempo", "auth.token")
 	if _, err := os.Stat(tokenPath); os.IsNotExist(err) {
 		return false
 	}
-	
+
 	return true
 }
 

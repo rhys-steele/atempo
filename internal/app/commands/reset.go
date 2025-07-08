@@ -3,11 +3,9 @@ package commands
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 
 	"atempo/internal/registry"
+	"atempo/internal/utils"
 )
 
 // ResetCommand implements the reset command
@@ -56,10 +54,10 @@ func (c *ResetCommand) Execute(ctx context.Context, args []string) error {
 		fmt.Printf("⚠️  DANGER: This will permanently delete ALL %d projects!\n\n", len(projects))
 		fmt.Println("Projects to be deleted:")
 		for _, project := range projects {
-			fmt.Printf("  • %s (%s %s) - %s\n", 
-				project.Name, 
-				project.Framework, 
-				project.Version, 
+			fmt.Printf("  • %s (%s %s) - %s\n",
+				project.Name,
+				project.Framework,
+				project.Version,
 				project.Path)
 		}
 		fmt.Printf("\nThis will:\n")
@@ -70,7 +68,7 @@ func (c *ResetCommand) Execute(ctx context.Context, args []string) error {
 
 		var response string
 		fmt.Scanln(&response)
-		
+
 		if response != "RESET" {
 			fmt.Println("✗ Cancelled - no projects were deleted.")
 			return nil
@@ -83,9 +81,9 @@ func (c *ResetCommand) Execute(ctx context.Context, args []string) error {
 
 	for _, project := range projects {
 		fmt.Printf("Deleting %s...", project.Name)
-		
+
 		// Move project directory to trash
-		if err := moveProjectToTrash(project.Path); err != nil {
+		if err := utils.MoveToTrash(project.Path); err != nil {
 			fmt.Printf(" ✗ Failed to delete files: %v\n", err)
 			failedDeletions = append(failedDeletions, fmt.Sprintf("%s (filesystem)", project.Name))
 		} else {
@@ -99,7 +97,7 @@ func (c *ResetCommand) Execute(ctx context.Context, args []string) error {
 		Projects: []registry.Project{},
 		Version:  "1.0",
 	}
-	
+
 	if err := emptyRegistry.SaveRegistry(); err != nil {
 		failedDeletions = append(failedDeletions, "registry clear")
 		fmt.Printf("✗ Failed to clear registry: %v\n", err)
@@ -126,44 +124,3 @@ func (c *ResetCommand) Execute(ctx context.Context, args []string) error {
 	return nil
 }
 
-// moveProjectToTrash moves a directory to the trash
-func moveProjectToTrash(path string) error {
-	// Try using 'trash' command if available (brew install trash)
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return fmt.Errorf("path does not exist: %s", path)
-	}
-
-	// Check if trash command is available
-	if _, err := exec.LookPath("trash"); err == nil {
-		cmd := exec.Command("trash", path)
-		return cmd.Run()
-	}
-	
-	// Fallback: use 'mv' to move to ~/.Trash (macOS)
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
-	}
-	
-	trashDir := filepath.Join(home, ".Trash")
-	
-	// Ensure .Trash directory exists
-	if err := os.MkdirAll(trashDir, 0755); err != nil {
-		return fmt.Errorf("failed to create .Trash directory: %w", err)
-	}
-	
-	basename := filepath.Base(path)
-	
-	// Create unique name if file already exists in trash
-	trashPath := filepath.Join(trashDir, basename)
-	counter := 1
-	for {
-		if _, err := os.Stat(trashPath); os.IsNotExist(err) {
-			break
-		}
-		trashPath = filepath.Join(trashDir, fmt.Sprintf("%s (%d)", basename, counter))
-		counter++
-	}
-	
-	return os.Rename(path, trashPath)
-}

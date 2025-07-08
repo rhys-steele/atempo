@@ -18,7 +18,7 @@ type CleanAIManifestGenerator struct {
 // NewCleanAIManifestGenerator creates a new clean AI manifest generator
 func NewCleanAIManifestGenerator(isAuthenticated bool, templatesFS fs.FS, framework string) (*CleanAIManifestGenerator, error) {
 	loader := NewTemplateLoader(templatesFS)
-	
+
 	// Load framework configuration
 	frameworkConfig, err := loader.LoadFrameworkConfig(framework)
 	if err != nil {
@@ -28,7 +28,7 @@ func NewCleanAIManifestGenerator(isAuthenticated bool, templatesFS fs.FS, framew
 			Language:  getFrameworkLanguage(framework),
 			AIFeatures: AIFeatures{
 				DefaultProjectTypes: []string{"Web Application"},
-				CoreFeatures:       []string{"Basic CRUD Operations", "Database Integration"},
+				CoreFeatures:        []string{"Basic CRUD Operations", "Database Integration"},
 				ArchitecturePatterns: map[string]string{
 					"mvc_pattern": "Follow MVC architecture patterns",
 				},
@@ -36,7 +36,7 @@ func NewCleanAIManifestGenerator(isAuthenticated bool, templatesFS fs.FS, framew
 			},
 		}
 	}
-	
+
 	return &CleanAIManifestGenerator{
 		isAuthenticated: isAuthenticated,
 		templateLoader:  loader,
@@ -47,19 +47,19 @@ func NewCleanAIManifestGenerator(isAuthenticated bool, templatesFS fs.FS, framew
 // AnalyzeProjectType determines project type from description using framework config
 func (g *CleanAIManifestGenerator) AnalyzeProjectType(description string) string {
 	desc := strings.ToLower(description)
-	
+
 	// Use framework-specific keywords
 	for keyword, projectType := range g.frameworkConfig.AIFeatures.ProjectAnalysisKeywords {
 		if strings.Contains(desc, keyword) {
 			return projectType
 		}
 	}
-	
+
 	// Default to first project type for framework
 	if len(g.frameworkConfig.AIFeatures.DefaultProjectTypes) > 0 {
 		return g.frameworkConfig.AIFeatures.DefaultProjectTypes[0]
 	}
-	
+
 	return "Web Application"
 }
 
@@ -67,7 +67,7 @@ func (g *CleanAIManifestGenerator) AnalyzeProjectType(description string) string
 func (g *CleanAIManifestGenerator) GenerateSmartFeatures(description string, additionalFeatures []string) []string {
 	features := []string{}
 	desc := strings.ToLower(description)
-	
+
 	// Core features based on description analysis
 	if strings.Contains(desc, "crud") || strings.Contains(desc, "manage") {
 		features = append(features, "Create/Read/Update/Delete Operations")
@@ -78,16 +78,16 @@ func (g *CleanAIManifestGenerator) GenerateSmartFeatures(description string, add
 	if strings.Contains(desc, "user") || strings.Contains(desc, "auth") {
 		features = append(features, "User Management")
 	}
-	
+
 	// Add framework-specific core features
 	features = append(features, g.frameworkConfig.AIFeatures.CoreFeatures...)
-	
+
 	// Add user-selected features
 	features = append(features, additionalFeatures...)
-	
+
 	// Always include essentials
 	features = append(features, "Error Handling", "Logging System")
-	
+
 	return features
 }
 
@@ -95,10 +95,10 @@ func (g *CleanAIManifestGenerator) GenerateSmartFeatures(description string, add
 func (g *CleanAIManifestGenerator) GenerateTechnicalNeeds(description, complexity string) []string {
 	needs := []string{}
 	desc := strings.ToLower(description)
-	
+
 	// Start with framework technical stack
 	needs = append(needs, g.frameworkConfig.AIFeatures.TechnicalStack...)
-	
+
 	// Analysis-based needs
 	if strings.Contains(desc, "file") || strings.Contains(desc, "upload") || strings.Contains(desc, "image") {
 		needs = append(needs, "File Storage Solution")
@@ -109,7 +109,7 @@ func (g *CleanAIManifestGenerator) GenerateTechnicalNeeds(description, complexit
 	if strings.Contains(desc, "search") {
 		needs = append(needs, "Search Engine (Elasticsearch/Database FTS)")
 	}
-	
+
 	// Complexity-based needs
 	switch complexity {
 	case "Complex":
@@ -117,10 +117,10 @@ func (g *CleanAIManifestGenerator) GenerateTechnicalNeeds(description, complexit
 	case "Medium":
 		needs = append(needs, "Performance Monitoring")
 	}
-	
+
 	// Always include
 	needs = append(needs, "Testing Framework", "CI/CD Pipeline")
-	
+
 	return needs
 }
 
@@ -144,7 +144,7 @@ func (g *CleanAIManifestGenerator) GenerateUserStories(description, projectType 
 			Complexity: "Low",
 		},
 	}
-	
+
 	// Type-specific stories
 	if strings.Contains(strings.ToLower(projectType), "api") {
 		stories = append(stories, UserStory{
@@ -156,19 +156,19 @@ func (g *CleanAIManifestGenerator) GenerateUserStories(description, projectType 
 			Complexity: "Medium",
 		})
 	}
-	
+
 	return stories
 }
 
 // GenerateArchitectureHints creates architecture guidance using framework config
 func (g *CleanAIManifestGenerator) GenerateArchitectureHints(complexity string) map[string]string {
 	hints := make(map[string]string)
-	
+
 	// Use framework-specific patterns
 	for key, value := range g.frameworkConfig.AIFeatures.ArchitecturePatterns {
 		hints[key] = value
 	}
-	
+
 	// Complexity-based hints
 	switch complexity {
 	case "Complex":
@@ -181,28 +181,28 @@ func (g *CleanAIManifestGenerator) GenerateArchitectureHints(complexity string) 
 	default:
 		hints["simplicity"] = "Keep architecture simple and focus on core functionality"
 	}
-	
+
 	// Universal hints
 	hints["security"] = "Implement proper authentication, authorization, and input sanitization"
 	hints["documentation"] = "Maintain up-to-date API documentation and code comments"
-	
+
 	return hints
 }
 
 // GenerateManifestFiles creates AI-friendly files using templates
 func (g *CleanAIManifestGenerator) GenerateManifestFiles(intent *ProjectIntent, projectPath string) error {
 	// Authentication status is handled by the caller
-	
+
 	// Generate project intent file
 	if err := g.generateTemplatedFile("project-intent-template", intent, "project-intent.md"); err != nil {
 		return fmt.Errorf("failed to generate project intent: %w", err)
 	}
-	
+
 	// Generate development guidelines
 	if err := g.generateTemplatedFile("development-guidelines-template", intent, "development-guidelines.md"); err != nil {
 		return fmt.Errorf("failed to generate development guidelines: %w", err)
 	}
-	
+
 	// Generate feature guide with framework patterns
 	featureData := struct {
 		*ProjectIntent
@@ -211,11 +211,11 @@ func (g *CleanAIManifestGenerator) GenerateManifestFiles(intent *ProjectIntent, 
 		ProjectIntent:     intent,
 		FrameworkPatterns: g.frameworkConfig.AIFeatures.FrameworkPatternsTemplate,
 	}
-	
+
 	if err := g.generateTemplatedFile("feature-guide-template", featureData, "feature-guide.md"); err != nil {
 		return fmt.Errorf("failed to generate feature guide: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -225,7 +225,7 @@ func (g *CleanAIManifestGenerator) generateTemplatedFile(templateName string, da
 	if err != nil {
 		return err
 	}
-	
+
 	// Add JSON representation for project intent
 	if templateName == "project-intent-template" {
 		if intentData, ok := data.(*ProjectIntent); ok {
@@ -240,16 +240,16 @@ func (g *CleanAIManifestGenerator) generateTemplatedFile(templateName string, da
 			data = templateData
 		}
 	}
-	
+
 	content, err := g.templateLoader.GenerateFromTemplate(template.MarkdownTemplate, data)
 	if err != nil {
 		return err
 	}
-	
+
 	// In a real implementation, we would write to projectPath/ai/outputName
 	// For demo, we'll just show that content was generated
 	fmt.Printf("%s📄 Generated: ai/%s (%d chars)%s\n", ColorGreen, outputName, len(content), ColorReset)
-	
+
 	return nil
 }
 
@@ -260,7 +260,7 @@ func (g *CleanAIManifestGenerator) CreateProjectIntent(description, projectName,
 	technicalNeeds := g.GenerateTechnicalNeeds(description, complexity)
 	userStories := g.GenerateUserStories(description, projectType)
 	architectureHints := g.GenerateArchitectureHints(complexity)
-	
+
 	return &ProjectIntent{
 		Description:       description,
 		Framework:         g.frameworkConfig.Framework,

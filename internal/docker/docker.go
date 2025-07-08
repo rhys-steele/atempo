@@ -15,8 +15,8 @@ import (
 
 // Bake detection cache
 var (
-	bakeSupported   *bool
-	bakeMutex       sync.Mutex
+	bakeSupported *bool
+	bakeMutex     sync.Mutex
 )
 
 // DockerCommand represents available Docker operations
@@ -85,7 +85,7 @@ func ExecuteCommand(command string, projectPath string, additionalArgs []string)
 	if !exists {
 		return fmt.Errorf("unsupported Docker command: %s", command)
 	}
-	
+
 	// Use the shared execution logic
 	return executeWithCommand(dockerCmd, projectPath, additionalArgs)
 }
@@ -97,10 +97,10 @@ func ExecuteWithCustomTimeout(command string, projectPath string, additionalArgs
 	if !exists {
 		return fmt.Errorf("unsupported Docker command: %s", command)
 	}
-	
+
 	// Override the timeout
 	dockerCmd.Timeout = customTimeout
-	
+
 	// Use the same logic but with custom timeout
 	return executeWithCommand(dockerCmd, projectPath, additionalArgs)
 }
@@ -133,7 +133,7 @@ func executeWithCommand(dockerCmd DockerCommand, projectPath string, additionalA
 	// Create context with timeout
 	var ctx context.Context
 	var cancel context.CancelFunc
-	
+
 	if dockerCmd.Timeout > 0 {
 		ctx, cancel = context.WithTimeout(context.Background(), dockerCmd.Timeout)
 		defer cancel()
@@ -149,19 +149,19 @@ func executeWithCommand(dockerCmd DockerCommand, projectPath string, additionalA
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	
+
 	// Setup Bake environment for build commands
 	if dockerCmd.Name == "up" || dockerCmd.Name == "build" {
 		setupBakeEnvironment(cmd)
 	}
 
 	err = cmd.Run()
-	
+
 	// Check if the command was cancelled due to timeout
 	if ctx.Err() == context.DeadlineExceeded {
 		return fmt.Errorf("command timed out after %v", dockerCmd.Timeout)
 	}
-	
+
 	return err
 }
 
@@ -305,29 +305,29 @@ func GetFrameworkServices(framework string) []string {
 func detectBakeSupport() bool {
 	bakeMutex.Lock()
 	defer bakeMutex.Unlock()
-	
+
 	// Return cached result if we've already checked
 	if bakeSupported != nil {
 		return *bakeSupported
 	}
-	
+
 	supported := false
-	
+
 	// Check if docker buildx is available
 	if _, err := exec.LookPath("docker"); err == nil {
 		// Test if buildx bake command exists
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		
+
 		cmd := exec.CommandContext(ctx, "docker", "buildx", "bake", "--help")
 		cmd.Stdout = nil // Suppress output
 		cmd.Stderr = nil // Suppress errors
-		
+
 		if err := cmd.Run(); err == nil {
 			supported = true
 		}
 	}
-	
+
 	// Cache the result
 	bakeSupported = &supported
 	return supported
@@ -338,7 +338,7 @@ func setupBakeEnvironment(cmd *exec.Cmd) {
 	if cmd.Env == nil {
 		cmd.Env = os.Environ()
 	}
-	
+
 	// Check if COMPOSE_BAKE is already set by user
 	bakeAlreadySet := false
 	for _, env := range cmd.Env {
@@ -347,7 +347,7 @@ func setupBakeEnvironment(cmd *exec.Cmd) {
 			break
 		}
 	}
-	
+
 	// Only set if not already configured by user
 	if !bakeAlreadySet {
 		if detectBakeSupport() {

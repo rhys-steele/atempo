@@ -59,7 +59,7 @@ func (c *StatusCommand) Execute(ctx context.Context, args []string) error {
 	}
 
 	projects = reg.ListProjects()
-	
+
 	fmt.Println("\nProject Status")
 	fmt.Println(strings.Repeat("─", 80))
 
@@ -99,7 +99,7 @@ func (c *StatusCommand) Execute(ctx context.Context, args []string) error {
 
 		// Project header with colored status
 		fmt.Printf("%s %s%s\033[0m\n", project.Name, statusColor, status)
-		
+
 		// Framework on separate line
 		if project.Framework != "" {
 			fmt.Printf("  Framework: %s", project.Framework)
@@ -200,7 +200,7 @@ func (c *StatusCommand) showProjectStatus(reg *registry.Registry, projectName st
 	}
 
 	fmt.Printf("Project: %s %s%s\033[0m\n", project.Name, statusColor, status)
-	
+
 	if project.Framework != "" {
 		fmt.Printf("Framework: %s", project.Framework)
 		if project.Version != "" {
@@ -247,7 +247,7 @@ func (c *StatusCommand) showProjectStatus(reg *registry.Registry, projectName st
 		for _, port := range project.Ports {
 			portKey := fmt.Sprintf("%s:%d→%d", port.Service, port.External, port.Internal)
 			if !seenPorts[portKey] && port.External != 0 {
-				fmt.Printf("  %-15s localhost:%d → container:%d\n", 
+				fmt.Printf("  %-15s localhost:%d → container:%d\n",
 					port.Service, port.External, port.Internal)
 				seenPorts[portKey] = true
 			}

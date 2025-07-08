@@ -101,7 +101,7 @@ func (c *ShellCommand) showTips() {
 func (c *ShellCommand) runInteractiveLoop(ctx context.Context) error {
 	// Print initial directory info
 	c.printDirectoryInfo()
-	
+
 	// Configure readline with history and completion
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:          c.cachedPrompt, // Use cached prompt
@@ -153,7 +153,7 @@ func (c *ShellCommand) runInteractiveLoop(ctx context.Context) error {
 
 		// Execute the command with status indicators (includes bash passthrough)
 		c.executeCommandWithStatus(ctx, commandName, args)
-		
+
 		// Print directory info after command execution
 		c.printDirectoryInfo()
 	}
@@ -245,7 +245,7 @@ func (c *ShellCommand) executeBashCommand(commandName string, args []string) {
 
 	// Execute the command
 	err = cmd.Run()
-	
+
 	// Only show status for commands that might change state
 	// Don't show status for simple commands like ls, pwd, etc.
 	stateChangingCommands := map[string]bool{
@@ -254,7 +254,7 @@ func (c *ShellCommand) executeBashCommand(commandName string, args []string) {
 		"git": true, "npm": true, "yarn": true, "composer": true,
 		"docker": true, "docker-compose": true,
 	}
-	
+
 	if stateChangingCommands[commandName] {
 		if err != nil {
 			ShowError(fmt.Sprintf("Command failed: %s", commandName), err.Error())
@@ -267,7 +267,7 @@ func (c *ShellCommand) executeBashCommand(commandName string, args []string) {
 // handleCdCommand handles directory changes within the shell
 func (c *ShellCommand) handleCdCommand(args []string) {
 	var targetDir string
-	
+
 	if len(args) == 0 {
 		// cd with no arguments goes to home directory
 		home, err := os.UserHomeDir()
@@ -278,7 +278,7 @@ func (c *ShellCommand) handleCdCommand(args []string) {
 		targetDir = home
 	} else {
 		targetDir = args[0]
-		
+
 		// Handle ~ expansion
 		if strings.HasPrefix(targetDir, "~/") {
 			home, err := os.UserHomeDir()
@@ -289,14 +289,14 @@ func (c *ShellCommand) handleCdCommand(args []string) {
 			targetDir = filepath.Join(home, targetDir[2:])
 		}
 	}
-	
+
 	// Change directory
 	err := os.Chdir(targetDir)
 	if err != nil {
 		ShowError(fmt.Sprintf("cd: %s", targetDir), err.Error())
 		return
 	}
-	
+
 	// Show success for cd command
 	pwd, _ := os.Getwd()
 	ShowSuccess("Changed directory", pwd)
@@ -310,7 +310,7 @@ func (c *ShellCommand) createAutoCompleter() readline.AutoCompleter {
 	// Add built-in shell commands
 	builtins := []string{"exit", "quit", "q", "clear", "cls", "help", "tips"}
 	commands = append(commands, builtins...)
-	
+
 	// Add common bash commands for auto-completion
 	bashCommands := []string{
 		"ls", "cd", "pwd", "mkdir", "rmdir", "rm", "cp", "mv", "touch",
@@ -319,18 +319,18 @@ func (c *ShellCommand) createAutoCompleter() readline.AutoCompleter {
 		"chmod", "chown", "ln", "ps", "kill", "top", "df", "du", "free",
 	}
 	commands = append(commands, bashCommands...)
-	
+
 	// Get project names for project-based completion
 	projects := c.registry.GetProjectNames()
-	
+
 	// Create completion items
 	var items []readline.PrefixCompleterInterface
-	
+
 	// Add global commands
 	for _, cmd := range commands {
 		items = append(items, readline.PcItem(cmd))
 	}
-	
+
 	// Add project commands with sub-commands
 	projectCommands := []string{"up", "down", "status", "logs", "describe", "shell", "reconfigure", "code", "cd", "open", "delete"}
 	for _, project := range projects {
@@ -350,17 +350,17 @@ func (c *ShellCommand) printDirectoryInfo() {
 	dir := getCurrentDirShort()
 	branch := getGitBranch()
 	status := getGitStatus()
-	
+
 	// Build the info line
 	var info strings.Builder
-	
+
 	// Directory (cyan)
 	info.WriteString(fmt.Sprintf("%s%s%s", ColorCyan, dir, ColorReset))
-	
+
 	if branch != "" {
 		// Git branch (green for git:)
 		info.WriteString(fmt.Sprintf(" %sgit:(%s%s%s)%s", ColorGreen, ColorYellow, branch, ColorGreen, ColorReset))
-		
+
 		// Git status
 		if status == "✓" {
 			info.WriteString(fmt.Sprintf(" %s%s%s", ColorGreen, status, ColorReset))
@@ -368,18 +368,18 @@ func (c *ShellCommand) printDirectoryInfo() {
 			info.WriteString(fmt.Sprintf(" %s%s%s", ColorRed, status, ColorReset))
 		}
 	}
-	
+
 	fmt.Printf("\n%s\n", info.String())
 }
 
 // updatePromptIfNeeded updates the cached prompt only when needed (like zsh)
 func (c *ShellCommand) updatePromptIfNeeded() {
 	currentDir := getCurrentDirShort()
-	
+
 	// Always check git info fresh after each command (like zsh)
 	currentBranch := getGitBranch()
 	currentStatus := getGitStatus()
-	
+
 	// Only regenerate prompt if something actually changed
 	if currentDir != c.lastDir || currentBranch != c.lastGitBranch || currentStatus != c.lastGitStatus {
 		c.lastDir = currentDir
@@ -397,14 +397,14 @@ func (c *ShellCommand) generateSimplePrompt(dir string) string {
 // generatePrompt creates a zsh-style prompt with provided directory and git info
 func (c *ShellCommand) generatePrompt(dir, branch, status string) string {
 	var prompt strings.Builder
-	
+
 	// Directory (cyan)
 	prompt.WriteString(fmt.Sprintf("%s%s%s", ColorCyan, dir, ColorReset))
-	
+
 	if branch != "" {
 		// Git branch (green for git:)
 		prompt.WriteString(fmt.Sprintf(" %sgit:(%s%s%s)%s", ColorGreen, ColorYellow, branch, ColorGreen, ColorReset))
-		
+
 		// Git status
 		if status == "✓" {
 			prompt.WriteString(fmt.Sprintf(" %s%s%s", ColorGreen, status, ColorReset))
@@ -412,10 +412,10 @@ func (c *ShellCommand) generatePrompt(dir, branch, status string) string {
 			prompt.WriteString(fmt.Sprintf(" %s%s%s", ColorRed, status, ColorReset))
 		}
 	}
-	
+
 	// Prompt character (purple)
 	prompt.WriteString(fmt.Sprintf("\n%s❯%s ", ColorPurple, ColorReset))
-	
+
 	return prompt.String()
 }
 
@@ -427,20 +427,20 @@ func getCurrentDirShort() string {
 	if err != nil {
 		return "~"
 	}
-	
+
 	// Replace home directory with ~
 	if home, err := os.UserHomeDir(); err == nil {
 		if strings.HasPrefix(pwd, home) {
 			pwd = "~" + pwd[len(home):]
 		}
 	}
-	
+
 	// Shorten long paths by showing only last 2 components
 	parts := strings.Split(pwd, string(filepath.Separator))
 	if len(parts) > 3 && !strings.HasPrefix(pwd, "~") {
 		return ".../" + filepath.Join(parts[len(parts)-2:]...)
 	}
-	
+
 	return pwd
 }
 
@@ -463,11 +463,10 @@ func getGitStatus() string {
 	if err != nil {
 		return ""
 	}
-	
+
 	status := strings.TrimSpace(string(output))
 	if status == "" {
 		return "✓" // Clean
 	}
 	return "✗" // Dirty
 }
-
