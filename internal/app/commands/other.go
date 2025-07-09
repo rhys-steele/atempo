@@ -35,21 +35,12 @@ func NewReconfigureCommand(ctx *CommandContext) *ReconfigureCommand {
 
 // Execute runs the reconfigure command
 func (c *ReconfigureCommand) Execute(ctx context.Context, args []string) error {
-	var projectPath string
-
-	if len(args) > 0 {
-		resolvedPath, err := registry.ResolveProjectPath(args[0])
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-		projectPath = resolvedPath
-	} else {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("failed to get current directory: %w", err)
-		}
-		projectPath = cwd
+	// Resolve project path from arguments
+	resolution, err := utils.ResolveProjectPathFromArgs(args)
+	if err != nil {
+		return err
 	}
+	projectPath := resolution.Path
 
 	fmt.Printf("→ Regenerating docker-compose.yml from atempo.json in %s...\n", projectPath)
 
@@ -90,21 +81,16 @@ func (c *AddServiceCommand) Execute(ctx context.Context, args []string) error {
 	}
 
 	serviceType := args[0]
-	var projectPath string
-
+	// Resolve project path from arguments (service is args[0], project is args[1])
+	projectArgs := []string{}
 	if len(args) > 1 {
-		resolvedPath, err := registry.ResolveProjectPath(args[1])
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-		projectPath = resolvedPath
-	} else {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("failed to get current directory: %w", err)
-		}
-		projectPath = cwd
+		projectArgs = args[1:]
 	}
+	resolution, err := utils.ResolveProjectPathFromArgs(projectArgs)
+	if err != nil {
+		return err
+	}
+	projectPath := resolution.Path
 
 	fmt.Printf("→ Adding %s service to project...\n", serviceType)
 
@@ -206,27 +192,13 @@ func NewDescribeCommand(ctx *CommandContext) *DescribeCommand {
 
 // Execute runs the describe command
 func (c *DescribeCommand) Execute(ctx context.Context, args []string) error {
-	var projectPath string
-	var projectName string
-
-	// Parse optional project argument
-	if len(args) >= 1 {
-		// Try to resolve project by name or path
-		resolvedPath, err := registry.ResolveProjectPath(args[0])
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-		projectPath = resolvedPath
-		projectName = args[0]
-	} else {
-		// Use current directory
-		var err error
-		projectPath, err = os.Getwd()
-		if err != nil {
-			return fmt.Errorf("failed to get current directory: %w", err)
-		}
-		projectName = filepath.Base(projectPath)
+	// Resolve project path from arguments
+	resolution, err := utils.ResolveProjectPathFromArgs(args)
+	if err != nil {
+		return err
 	}
+	projectPath := resolution.Path
+	projectName := resolution.Name
 
 	// Load project from registry if available
 	reg, err := registry.LoadRegistry()
@@ -533,27 +505,25 @@ func (c *TestCommand) Execute(ctx context.Context, args []string) error {
 	var projectPath string
 	var testSuite string
 
-	// Parse arguments
+	// Parse arguments to distinguish between project path and test suite
 	if len(args) > 0 {
-		// Check if first arg is a project name/path or test suite
-		// Try to resolve as project first, but only if it looks like a project identifier
 		firstArg := args[0]
 
-		// If it contains path separators or is known project, treat as project
+		// If it contains path separators, treat as project path
 		if strings.Contains(firstArg, "/") || strings.Contains(firstArg, "\\") {
-			// Looks like a path
-			resolvedPath, err := registry.ResolveProjectPath(firstArg)
+			// Resolve as project path
+			resolution, err := utils.ResolveProjectPathFromArgs(args[:1])
 			if err != nil {
 				return fmt.Errorf("failed to resolve project path: %w", err)
 			}
-			projectPath = resolvedPath
+			projectPath = resolution.Path
 
 			// Second arg could be test suite
 			if len(args) > 1 {
 				testSuite = args[1]
 			}
 		} else {
-			// Try to find as registered project
+			// Try to find as registered project first
 			reg, err := registry.LoadRegistry()
 			if err != nil {
 				return fmt.Errorf("failed to load registry: %w", err)
@@ -562,33 +532,33 @@ func (c *TestCommand) Execute(ctx context.Context, args []string) error {
 			_, err = reg.FindProject(firstArg)
 			if err == nil {
 				// Found as registered project
-				resolvedPath, err := registry.ResolveProjectPath(firstArg)
+				resolution, err := utils.ResolveProjectPathFromArgs(args[:1])
 				if err != nil {
 					return fmt.Errorf("failed to resolve project: %w", err)
 				}
-				projectPath = resolvedPath
+				projectPath = resolution.Path
 
 				// Second arg could be test suite
 				if len(args) > 1 {
 					testSuite = args[1]
 				}
 			} else {
-				// Not a registered project, treat as test suite
-				cwd, err := os.Getwd()
+				// Not a registered project, treat as test suite and use current directory
+				resolution, err := utils.ResolveCurrentProjectPath()
 				if err != nil {
 					return fmt.Errorf("failed to get current directory: %w", err)
 				}
-				projectPath = cwd
+				projectPath = resolution.Path
 				testSuite = firstArg
 			}
 		}
 	} else {
 		// No args, use current directory
-		cwd, err := os.Getwd()
+		resolution, err := utils.ResolveCurrentProjectPath()
 		if err != nil {
 			return fmt.Errorf("failed to get current directory: %w", err)
 		}
-		projectPath = cwd
+		projectPath = resolution.Path
 	}
 
 	// Check if project has atempo.json

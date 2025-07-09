@@ -132,7 +132,7 @@ func executeWithCommand(dockerCmd DockerCommand, projectPath string, additionalA
 		dockerCmd.Timeout = 10 * time.Minute // Increase timeout when building
 	}
 	// Resolve project path
-	resolvedPath, err := resolveProjectPath(projectPath)
+	resolvedPath, err := utils.ResolveProjectPath(projectPath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve project path: %w", err)
 	}
@@ -193,7 +193,7 @@ func ExecuteExecCommand(service string, projectPath string, cmdArgs []string) er
 	}
 
 	// Resolve project path
-	resolvedPath, err := resolveProjectPath(projectPath)
+	resolvedPath, err := utils.ResolveProjectPath(projectPath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve project path: %w", err)
 	}
@@ -222,7 +222,7 @@ func ExecuteExecCommand(service string, projectPath string, cmdArgs []string) er
 // ListServices shows available services in the docker-compose.yml
 func ListServices(projectPath string) error {
 	// Resolve project path
-	resolvedPath, err := resolveProjectPath(projectPath)
+	resolvedPath, err := utils.ResolveProjectPath(projectPath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve project path: %w", err)
 	}
@@ -244,38 +244,6 @@ func ListServices(projectPath string) error {
 	return cmd.Run()
 }
 
-// resolveProjectPath determines the correct project directory
-func resolveProjectPath(projectPath string) (string, error) {
-	var targetPath string
-
-	if projectPath == "" {
-		// Use current working directory
-		cwd, err := os.Getwd()
-		if err != nil {
-			return "", fmt.Errorf("failed to get current directory: %w", err)
-		}
-		targetPath = cwd
-	} else {
-		// Use provided path
-		if filepath.IsAbs(projectPath) {
-			targetPath = projectPath
-		} else {
-			// Convert relative path to absolute
-			cwd, err := os.Getwd()
-			if err != nil {
-				return "", fmt.Errorf("failed to get current directory: %w", err)
-			}
-			targetPath = filepath.Join(cwd, projectPath)
-		}
-	}
-
-	// Verify the directory exists
-	if !utils.FileExists(targetPath) {
-		return "", fmt.Errorf("project directory does not exist: %s", targetPath)
-	}
-
-	return targetPath, nil
-}
 
 // ValidateDockerCompose checks if Docker and Docker Compose are available
 func ValidateDockerCompose() error {
@@ -294,7 +262,7 @@ func ValidateDockerCompose() error {
 
 // DetectFramework attempts to detect the framework based on project files
 func DetectFramework(projectPath string) (string, error) {
-	resolvedPath, err := resolveProjectPath(projectPath)
+	resolvedPath, err := utils.ResolveProjectPath(projectPath)
 	if err != nil {
 		return "", err
 	}

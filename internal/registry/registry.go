@@ -183,6 +183,7 @@ func (r *Registry) RemoveProject(name string) error {
 // - A project name (from registry)
 // - A relative path
 // - An absolute path
+// This function enhances utils.ResolveProjectPath with registry lookup
 func ResolveProjectPath(identifier string) (string, error) {
 	// If empty, use current directory
 	if identifier == "" {
@@ -197,18 +198,8 @@ func ResolveProjectPath(identifier string) (string, error) {
 		}
 	}
 
-	// If not found in registry, treat as path
-	if filepath.IsAbs(identifier) {
-		return identifier, nil
-	}
-
-	// Convert relative path to absolute
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current directory: %w", err)
-	}
-
-	return filepath.Join(cwd, identifier), nil
+	// If not found in registry, use the basic path resolution
+	return utils.ResolveProjectPath(identifier)
 }
 
 // ScanForProjects scans a directory for Atempo projects and adds them to registry
