@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"atempo/internal/registry"
+	"atempo/internal/utils"
 )
 
 // RemoveCommand removes a project from the registry
@@ -18,8 +19,8 @@ func NewRemoveCommand(ctx *CommandContext) *RemoveCommand {
 	return &RemoveCommand{
 		BaseCommand: NewBaseCommand(
 			"remove",
-			"Remove a project from the registry",
-			"atempo remove <project_name>",
+			utils.GetStandardDescription("remove"),
+			utils.CreateStandardUsage("remove", utils.PatternWithRequiredArgs, "<project_name>"),
 			ctx,
 		),
 	}

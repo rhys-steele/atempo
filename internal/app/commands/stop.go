@@ -6,6 +6,7 @@ import (
 
 	"atempo/internal/docker"
 	"atempo/internal/registry"
+	"atempo/internal/utils"
 )
 
 // StopCommand stops all running projects
@@ -18,8 +19,8 @@ func NewStopCommand(ctx *CommandContext) *StopCommand {
 	return &StopCommand{
 		BaseCommand: NewBaseCommand(
 			"stop",
-			"Stop all running projects",
-			"atempo stop",
+			utils.GetStandardDescription("stop"),
+			utils.CreateStandardUsage("stop", utils.PatternSimple),
 			ctx,
 		),
 	}

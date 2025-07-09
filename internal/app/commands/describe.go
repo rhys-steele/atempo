@@ -22,8 +22,8 @@ func NewDescribeCommand(ctx *CommandContext) *DescribeCommand {
 	return &DescribeCommand{
 		BaseCommand: NewBaseCommand(
 			"describe",
-			"Show detailed project description and context",
-			"atempo describe [project]",
+			utils.GetStandardDescription("describe"),
+			utils.CreateStandardUsage("describe", utils.PatternWithProjectContext),
 			ctx,
 		),
 	}
@@ -112,19 +112,7 @@ func (c *DescribeCommand) displayProjectInfo(project *registry.Project) {
 
 	// Project status if available
 	if project.Status != "" {
-		var statusIcon string
-		switch project.Status {
-		case "running":
-			statusIcon = "✓"
-		case "partial":
-			statusIcon = "⚠"
-		case "stopped", "no-docker", "no-services":
-			statusIcon = "✗"
-		case "docker-error":
-			statusIcon = "✗"
-		default:
-			statusIcon = "?"
-		}
+		statusIcon := utils.GetStatusIcon(project.Status)
 		fmt.Printf("Status: %s %s\n", statusIcon, project.Status)
 	}
 

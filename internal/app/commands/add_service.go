@@ -18,8 +18,8 @@ func NewAddServiceCommand(ctx *CommandContext) *AddServiceCommand {
 	return &AddServiceCommand{
 		BaseCommand: NewBaseCommand(
 			"add-service",
-			"Add predefined services (minio, elasticsearch, etc.)",
-			"atempo add-service <service_type> [project]",
+			utils.GetStandardDescription("add-service"),
+			utils.CreateStandardUsage("add-service", utils.PatternWithRequiredArgs, "<service_type>", "[project]"),
 			ctx,
 		),
 	}

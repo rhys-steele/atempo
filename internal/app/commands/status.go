@@ -19,8 +19,8 @@ func NewStatusCommand(ctx *CommandContext) *StatusCommand {
 	return &StatusCommand{
 		BaseCommand: NewBaseCommand(
 			"status",
-			"Show project dashboard with health status",
-			"atempo status",
+			utils.GetStandardDescription("status"),
+			utils.CreateStandardUsage("status", utils.PatternWithProjectContext),
 			ctx,
 		),
 	}
@@ -73,28 +73,17 @@ func (c *StatusCommand) Execute(ctx context.Context, args []string) error {
 			fmt.Println()
 		}
 
-		var status string
-		var statusColor string
+		statusInfo := utils.GlobalStatusDisplay.GetStatusInfo(project.Status)
+		status := statusInfo.Label
+		statusColor := statusInfo.Color
+		
+		// Count statuses
 		switch project.Status {
-		case "running":
-			status = "running"
-			statusColor = "\033[32m" // green
-			runningCount++
-		case "partial":
-			status = "partial"
-			statusColor = "\033[33m" // yellow
+		case "running", "partial":
 			runningCount++
 		case "stopped", "no-docker", "no-services":
-			status = "stopped"
-			statusColor = "\033[31m" // red
 			stoppedCount++
-		case "docker-error":
-			status = "error"
-			statusColor = "\033[31m" // red
-			errorCount++
 		default:
-			status = "unknown"
-			statusColor = "\033[37m" // gray
 			errorCount++
 		}
 
@@ -180,25 +169,9 @@ func (c *StatusCommand) showProjectStatus(reg *registry.Registry, projectName st
 		return fmt.Errorf("project '%s' not found", projectName)
 	}
 
-	var status string
-	var statusColor string
-	switch project.Status {
-	case "running":
-		status = "running"
-		statusColor = "\033[32m" // green
-	case "partial":
-		status = "partial"
-		statusColor = "\033[33m" // yellow
-	case "stopped", "no-docker", "no-services":
-		status = "stopped"
-		statusColor = "\033[31m" // red
-	case "docker-error":
-		status = "error"
-		statusColor = "\033[31m" // red
-	default:
-		status = "unknown"
-		statusColor = "\033[37m" // gray
-	}
+	statusInfo := utils.GlobalStatusDisplay.GetStatusInfo(project.Status)
+	status := statusInfo.Label
+	statusColor := statusInfo.Color
 
 	fmt.Printf("Project: %s %s%s\033[0m\n", project.Name, statusColor, status)
 
@@ -221,20 +194,8 @@ func (c *StatusCommand) showProjectStatus(reg *registry.Registry, projectName st
 	if len(project.Services) > 0 {
 		fmt.Println("\nServices:")
 		for _, service := range project.Services {
-			var serviceStatus string
-			var serviceColor string
-			switch service.Status {
-			case "running":
-				serviceStatus = "running"
-				serviceColor = "\033[32m" // green
-			case "stopped":
-				serviceStatus = "stopped"
-				serviceColor = "\033[31m" // red
-			default:
-				serviceStatus = "unknown"
-				serviceColor = "\033[37m" // gray
-			}
-			fmt.Printf("  %-15s %s%s\033[0m", service.Name, serviceColor, serviceStatus)
+			serviceStatusInfo := utils.GlobalStatusDisplay.GetStatusInfo(service.Status)
+			fmt.Printf("  %-15s %s%s\033[0m", service.Name, serviceStatusInfo.Color, serviceStatusInfo.Label)
 			if service.URL != "" && !strings.Contains(service.URL, ":0") {
 				fmt.Printf(" → %s", service.URL)
 			}

@@ -1,14 +1,18 @@
 package docker
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
+	"unsafe"
 
 	"atempo/internal/utils"
 )
@@ -157,17 +161,15 @@ func executeWithCommand(dockerCmd DockerCommand, projectPath string, additionalA
 	if dockerCmd.Timeout > 0 {
 		ctx, cancel = context.WithTimeout(context.Background(), dockerCmd.Timeout)
 		defer cancel()
-		fmt.Printf("→ Running: %s (in %s, timeout: %v)\n", strings.Join(fullCommand, " "), dockerDir, dockerCmd.Timeout)
+		fmt.Printf("⎿ Running: %s (in %s, timeout: %v)\n", strings.Join(fullCommand, " "), dockerDir, dockerCmd.Timeout)
 	} else {
 		ctx = context.Background()
-		fmt.Printf("→ Running: %s (in %s, no timeout)\n", strings.Join(fullCommand, " "), dockerDir)
+		fmt.Printf("⎿ Running: %s (in %s, no timeout)\n", strings.Join(fullCommand, " "), dockerDir)
 	}
 
 	// Execute the command with timeout
 	cmd := exec.CommandContext(ctx, fullCommand[0], fullCommand[1:]...)
 	cmd.Dir = dockerDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
 	// Setup Bake environment for build commands
@@ -175,7 +177,15 @@ func executeWithCommand(dockerCmd DockerCommand, projectPath string, additionalA
 		setupBakeEnvironment(cmd)
 	}
 
-	err = cmd.Run()
+	// For 'up' and 'down' commands, filter output to reduce verbosity
+	if dockerCmd.Name == "up" || dockerCmd.Name == "down" {
+		err = executeWithFilteredOutput(cmd)
+	} else {
+		// For other commands, use normal output
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err = cmd.Run()
+	}
 
 	// Check if the command was cancelled due to timeout
 	if ctx.Err() == context.DeadlineExceeded {
@@ -183,6 +193,291 @@ func executeWithCommand(dockerCmd DockerCommand, projectPath string, additionalA
 	}
 
 	return err
+}
+
+// executeWithFilteredOutput runs a command and filters Docker output for cleaner display
+func executeWithFilteredOutput(cmd *exec.Cmd) error {
+	// Create pipes for stdout and stderr
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stderr pipe: %w", err)
+	}
+
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start command: %w", err)
+	}
+
+	// Channel to collect errors from goroutines
+	errChan := make(chan error, 2)
+
+	// Process stdout
+	go func() {
+		errChan <- filterDockerOutput(stdout, false)
+	}()
+
+	// Process stderr
+	go func() {
+		errChan <- filterDockerOutput(stderr, true)
+	}()
+
+	// Wait for both goroutines to complete
+	for i := 0; i < 2; i++ {
+		if err := <-errChan; err != nil {
+			// Log error but don't fail the command
+			fmt.Printf("Output processing error: %v\n", err)
+		}
+	}
+
+	// Wait for the command to complete
+	return cmd.Wait()
+}
+
+// filterDockerOutput filters Docker output to show only relevant information
+func filterDockerOutput(reader io.Reader, isStderr bool) error {
+	scanner := bufio.NewScanner(reader)
+	var finalContainerStatus []string
+	
+	for scanner.Scan() {
+		line := scanner.Text()
+		
+		// Skip verbose build output
+		if shouldSkipBuildLine(line) {
+			continue
+		}
+		
+		// Skip intermediate status messages - only collect final status
+		if strings.Contains(line, "Container") && (strings.Contains(line, "Running") || strings.Contains(line, "Started")) {
+			finalContainerStatus = append(finalContainerStatus, line)
+			continue
+		}
+		
+		// For down command, show final container removal status
+		if strings.Contains(line, "Container") && strings.Contains(line, "Removed") {
+			finalContainerStatus = append(finalContainerStatus, line)
+			continue
+		}
+		
+		// Skip all creating/starting/created intermediate messages
+		if shouldSkipIntermediateStatus(line) {
+			continue
+		}
+		
+		// Skip warnings we don't want to show
+		if shouldSkipWarning(line) {
+			continue
+		}
+		
+		// Show critical errors only
+		if isStderr && strings.Contains(line, "ERROR[") {
+			fmt.Fprintln(os.Stderr, line)
+			continue
+		}
+		
+		// Show build completion
+		if strings.Contains(line, "Built") && !strings.Contains(line, "[+] Building") {
+			formattedLine := formatContainerStatusLine(line)
+			fmt.Fprintln(os.Stdout, formattedLine)
+		}
+	}
+	
+	// Show final container status in a clean format
+	for _, status := range finalContainerStatus {
+		formattedLine := formatContainerStatusLine(status)
+		// Write directly to os.Stdout to preserve colors
+		fmt.Fprintln(os.Stdout, formattedLine)
+	}
+	
+	return scanner.Err()
+}
+
+// shouldSkipBuildLine determines if a build output line should be skipped
+func shouldSkipBuildLine(line string) bool {
+	// Skip Docker build steps
+	if strings.Contains(line, "=> [internal] load") ||
+		strings.Contains(line, "=> => reading") ||
+		strings.Contains(line, "=> => transferring") ||
+		strings.Contains(line, "=> FROM docker.io") ||
+		strings.Contains(line, "=> [stage-0") ||
+		strings.Contains(line, "=> CACHED") ||
+		strings.Contains(line, "=> exporting") ||
+		strings.Contains(line, "=> => exporting layers") ||
+		strings.Contains(line, "=> => writing image") ||
+		strings.Contains(line, "=> => naming to") ||
+		strings.Contains(line, "=> resolving provenance") {
+		return true
+	}
+	
+	// Skip build progress indicators
+	if strings.Contains(line, "[+] Building") && strings.Contains(line, "FINISHED") {
+		return true
+	}
+	
+	return false
+}
+
+// shouldShowStatusLine determines if a status line should be shown
+func shouldShowStatusLine(line string) bool {
+	// Show all container status lines
+	if strings.Contains(line, "Container") {
+		return true
+	}
+	
+	// Show service build status
+	if strings.Contains(line, "Built") {
+		return true
+	}
+	
+	// Show network and volume status
+	if strings.Contains(line, "Network") || strings.Contains(line, "Volume") {
+		return true
+	}
+	
+	// Show final summary
+	if strings.Contains(line, "[+] Running") && strings.Contains(line, "/") {
+		return true
+	}
+	
+	return false
+}
+
+// shouldSkipIntermediateStatus determines if an intermediate status line should be skipped
+func shouldSkipIntermediateStatus(line string) bool {
+	// Skip all intermediate container status messages
+	if strings.Contains(line, "Container") && (strings.Contains(line, "Creating") ||
+		strings.Contains(line, "Created") ||
+		strings.Contains(line, "Starting") ||
+		strings.Contains(line, "Stopping") ||
+		strings.Contains(line, "Stopped") ||
+		strings.Contains(line, "Removing") ||
+		strings.Contains(line, "Removed")) {
+		return true
+	}
+	
+	// Skip network and volume creation messages
+	if strings.Contains(line, "Network") || strings.Contains(line, "Volume") {
+		return true
+	}
+	
+	// Skip running progress indicators
+	if strings.Contains(line, "[+] Running") {
+		return true
+	}
+	
+	return false
+}
+
+// shouldSkipWarning determines if a warning should be skipped
+func shouldSkipWarning(line string) bool {
+	// Skip version warnings
+	if strings.Contains(line, "version") && strings.Contains(line, "obsolete") {
+		return true
+	}
+	
+	// Skip platform warnings
+	if strings.Contains(line, "platform") && strings.Contains(line, "does not match") {
+		return true
+	}
+	
+	// Skip other docker-compose warnings
+	if strings.Contains(line, "WARN[") {
+		return true
+	}
+	
+	return false
+}
+
+// formatContainerStatusLine formats container status lines with proper alignment and coloring
+func formatContainerStatusLine(line string) string {
+	// Handle container status lines (e.g., " Container my-app-2-redis  Running")
+	if strings.Contains(line, "Container") {
+		// Extract container name and status
+		parts := strings.Fields(line)
+		if len(parts) >= 3 {
+			containerName := parts[1]
+			status := parts[len(parts)-1]
+			
+			// Format with proper alignment (pad to 25 characters)
+			paddedName := fmt.Sprintf("%-25s", containerName)
+			
+			// Apply color based on status
+			coloredStatus := formatStatusWithColor(status)
+			
+			return fmt.Sprintf(" %s %s", paddedName, coloredStatus)
+		}
+	}
+	
+	// Handle network and volume lines
+	if strings.Contains(line, "Network") || strings.Contains(line, "Volume") {
+		parts := strings.Fields(line)
+		if len(parts) >= 3 {
+			resourceType := parts[0] // "Network" or "Volume"
+			resourceName := parts[1]
+			status := parts[len(parts)-1]
+			
+			// Format with proper alignment
+			paddedName := fmt.Sprintf("%-25s", resourceName)
+			coloredStatus := formatStatusWithColor(status)
+			
+			return fmt.Sprintf(" %s %s %s", resourceType, paddedName, coloredStatus)
+		}
+	}
+	
+	// Handle built status lines
+	if strings.Contains(line, "Built") {
+		parts := strings.Fields(line)
+		if len(parts) >= 2 {
+			serviceName := parts[0]
+			status := parts[len(parts)-1]
+			
+			paddedName := fmt.Sprintf("%-25s", serviceName)
+			coloredStatus := formatStatusWithColor(status)
+			
+			return fmt.Sprintf(" %s %s", paddedName, coloredStatus)
+		}
+	}
+	
+	// Return original line if no specific formatting needed
+	return line
+}
+
+// isTerminal checks if the file descriptor is a terminal
+func isTerminal(fd int) bool {
+	var termios syscall.Termios
+	_, _, err := syscall.Syscall6(syscall.SYS_IOCTL, uintptr(fd), syscall.TCGETS, uintptr(unsafe.Pointer(&termios)), 0, 0, 0)
+	return err == 0
+}
+
+// formatStatusWithColor applies color to status text
+func formatStatusWithColor(status string) string {
+	statusLower := strings.ToLower(status)
+	
+	// Only apply colors if we're outputting to a terminal
+	if !isTerminal(int(os.Stdout.Fd())) {
+		return statusLower
+	}
+	
+	const (
+		Green  = "\033[32m"
+		Red    = "\033[31m"
+		Yellow = "\033[33m"
+		Reset  = "\033[0m"
+	)
+	
+	switch statusLower {
+	case "running", "started", "created", "built":
+		return Green + statusLower + Reset
+	case "stopped", "removed":
+		return Red + statusLower + Reset
+	case "creating", "starting", "stopping", "removing":
+		return Yellow + statusLower + Reset
+	default:
+		return statusLower
+	}
 }
 
 // ExecuteExecCommand runs a command inside a container (docker-compose exec)

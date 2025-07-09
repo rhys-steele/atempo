@@ -27,8 +27,8 @@ func NewCreateCommand(ctx *CommandContext, templatesFS, mcpServersFS embed.FS) *
 	return &CreateCommand{
 		BaseCommand: NewBaseCommand(
 			"create",
-			"Create a new project",
-			"atempo create <framework>[:<version>] [project_name]",
+			utils.GetStandardDescription("create"),
+			utils.CreateStandardUsage("create", utils.PatternWithFrameworkSpec),
 			ctx,
 		),
 		templatesFS:  templatesFS,
@@ -42,20 +42,10 @@ func (c *CreateCommand) Execute(ctx context.Context, args []string) error {
 		return fmt.Errorf("usage: %s\nExamples:\n  atempo create laravel my-app     # Laravel latest in ./my-app/\n  atempo create laravel:11 my-app  # Laravel 11 in ./my-app/\n  atempo create laravel            # Laravel latest in current directory", c.Usage())
 	}
 
-	// Parse framework and optional version
-	frameworkArg := args[0]
-	var framework, version string
-
-	if strings.Contains(frameworkArg, ":") {
-		parts := strings.Split(frameworkArg, ":")
-		if len(parts) != 2 {
-			return fmt.Errorf("error: expected format <framework>[:<version>]")
-		}
-		framework = parts[0]
-		version = parts[1]
-	} else {
-		framework = frameworkArg
-		version = c.getLatestVersion(framework)
+	// Parse framework and optional version using centralized parser
+	framework, version, err := utils.ParseFrameworkArg(args[0])
+	if err != nil {
+		return fmt.Errorf("error parsing framework argument: %w", err)
 	}
 
 	// Parse optional project name
@@ -311,14 +301,3 @@ func createDefaultIntent(framework, version, projectName string) *ProjectIntent 
 	}
 }
 
-// getLatestVersion returns the latest supported version for a framework
-func (c *CreateCommand) getLatestVersion(framework string) string {
-	switch framework {
-	case "laravel":
-		return "11" // Laravel 11 is the latest LTS
-	case "django":
-		return "5" // Django 5 is the latest major version
-	default:
-		return "latest"
-	}
-}

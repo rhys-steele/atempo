@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"atempo/internal/registry"
+	"atempo/internal/utils"
 )
 
 // ProjectsCommand handles listing all registered projects
@@ -17,8 +18,8 @@ func NewProjectsCommand(ctx *CommandContext) *ProjectsCommand {
 	return &ProjectsCommand{
 		BaseCommand: NewBaseCommand(
 			"projects",
-			"List all registered projects",
-			"atempo projects",
+			utils.GetStandardDescription("projects"),
+			utils.CreateStandardUsage("projects", utils.PatternSimple),
 			ctx,
 		),
 	}

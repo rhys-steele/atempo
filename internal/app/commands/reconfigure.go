@@ -18,8 +18,8 @@ func NewReconfigureCommand(ctx *CommandContext) *ReconfigureCommand {
 	return &ReconfigureCommand{
 		BaseCommand: NewBaseCommand(
 			"reconfigure",
-			"Regenerate docker-compose.yml from atempo.json",
-			"atempo reconfigure [project]",
+			utils.GetStandardDescription("reconfigure"),
+			utils.CreateStandardUsage("reconfigure", utils.PatternWithProjectContext),
 			ctx,
 		),
 	}

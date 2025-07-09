@@ -2,9 +2,7 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -24,8 +22,8 @@ func NewTestCommand(ctx *CommandContext) *TestCommand {
 	return &TestCommand{
 		BaseCommand: NewBaseCommand(
 			"test",
-			"Run tests for a project using framework-specific commands",
-			"atempo test [project] [suite]",
+			utils.GetStandardDescription("test"),
+			utils.CreateStandardUsage("test", utils.PatternWithOptionalArgs, "[project]", "[suite]"),
 			ctx,
 		),
 	}
@@ -164,18 +162,10 @@ func (c *TestCommand) runLegacyTest(projectPath, testSuite string) error {
 
 // detectFramework detects the framework of a project
 func (c *TestCommand) detectFramework(projectPath string) (string, error) {
-	// First try to read atempo.json
-	atempoJSONPath := filepath.Join(projectPath, "atempo.json")
-	if utils.FileExists(atempoJSONPath) {
-		data, err := os.ReadFile(atempoJSONPath)
-		if err == nil {
-			var config struct {
-				Framework string `json:"framework"`
-			}
-			if json.Unmarshal(data, &config) == nil && config.Framework != "" {
-				return config.Framework, nil
-			}
-		}
+	// Use centralized framework detection
+	framework, err := utils.DetectFramework(projectPath)
+	if err == nil {
+		return framework, nil
 	}
 
 	// Fallback to file-based detection

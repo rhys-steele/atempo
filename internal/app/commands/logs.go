@@ -7,6 +7,7 @@ import (
 
 	"atempo/internal/logger"
 	"atempo/internal/registry"
+	"atempo/internal/utils"
 )
 
 // LogsCommand displays setup logs for a project
@@ -19,8 +20,8 @@ func NewLogsCommand(ctx *CommandContext) *LogsCommand {
 	return &LogsCommand{
 		BaseCommand: NewBaseCommand(
 			"logs",
-			"View setup logs for a project",
-			"atempo logs <project_name>",
+			utils.GetStandardDescription("logs"),
+			utils.CreateStandardUsage("logs", utils.PatternWithRequiredArgs, "<project_name>"),
 			ctx,
 		),
 	}
