@@ -11,6 +11,14 @@ import (
 // CopyDir recursively copies a directory from src to dst.
 // It creates the destination directory if it doesn't exist.
 func CopyDir(src, dst string) error {
+	// Validate input paths
+	if strings.TrimSpace(src) == "" {
+		return fmt.Errorf("source path cannot be empty")
+	}
+	if strings.TrimSpace(dst) == "" {
+		return fmt.Errorf("destination path cannot be empty")
+	}
+
 	// Get info about the source
 	srcInfo, err := os.Stat(src)
 	if err != nil {
@@ -51,6 +59,14 @@ func CopyDir(src, dst string) error {
 
 // CopyFile copies a single file from src to dst.
 func CopyFile(src, dst string) error {
+	// Validate input paths
+	if strings.TrimSpace(src) == "" {
+		return fmt.Errorf("source path cannot be empty")
+	}
+	if strings.TrimSpace(dst) == "" {
+		return fmt.Errorf("destination path cannot be empty")
+	}
+
 	// Open source file
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -86,6 +102,10 @@ func CopyFile(src, dst string) error {
 
 // FileExists checks if a file or directory exists.
 func FileExists(path string) bool {
+	// Return false for empty paths
+	if strings.TrimSpace(path) == "" {
+		return false
+	}
 	_, err := os.Stat(path)
 	return err == nil
 }

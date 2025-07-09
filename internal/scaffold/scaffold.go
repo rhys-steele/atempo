@@ -41,7 +41,10 @@ type Metadata struct {
 // runs the specified install command, and copies template files.
 func Run(framework string, version string, templatesFS, mcpServersFS embed.FS) error {
 	// Get the current working directory (user's target project root)
-	projectDir, _ := os.Getwd()
+	projectDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	}
 	projectName := filepath.Base(projectDir)
 
 	// Create quiet logger for this project (progress shown by caller)
@@ -108,7 +111,7 @@ func Run(framework string, version string, templatesFS, mcpServersFS embed.FS) e
 
 	// Step 4: Run post-installation setup
 	postStep := log.StartStep("Running post-installation setup")
-	if err := runPostInstall(log, postStep, meta, projectDir); err != nil {
+	if err := runPostInstall(log, postStep, meta, projectDir, version); err != nil {
 		log.ErrorStep(postStep, err)
 		return fmt.Errorf("post-installation failed: %w", err)
 	}
@@ -414,7 +417,7 @@ func finalizeProject(log *logger.Logger, step *logger.Step, meta Metadata, proje
 }
 
 // runPostInstall handles framework-specific setup after installation
-func runPostInstall(log *logger.Logger, step *logger.Step, meta Metadata, projectDir string) error {
+func runPostInstall(log *logger.Logger, step *logger.Step, meta Metadata, projectDir string, version string) error {
 	// Set up Laravel environment file
 	if meta.Framework == "laravel" {
 		return setupLaravel(log, step, projectDir)
@@ -422,7 +425,7 @@ func runPostInstall(log *logger.Logger, step *logger.Step, meta Metadata, projec
 
 	// Set up Django environment
 	if meta.Framework == "django" {
-		return setupDjango(log, step, projectDir)
+		return setupDjango(log, step, projectDir, version)
 	}
 
 	return nil
@@ -511,7 +514,7 @@ func runLaravelSetup(log *logger.Logger, step *logger.Step, projectDir string) e
 }
 
 // setupDjango performs Django-specific post-installation setup
-func setupDjango(log *logger.Logger, step *logger.Step, projectDir string) error {
+func setupDjango(log *logger.Logger, step *logger.Step, projectDir string, version string) error {
 	srcDir := filepath.Join(projectDir, "src")
 
 	// Copy and update requirements.txt from Docker template
@@ -519,7 +522,7 @@ func setupDjango(log *logger.Logger, step *logger.Step, projectDir string) error
 	requirementsDst := filepath.Join(srcDir, "requirements.txt")
 
 	if utils.FileExists(requirementsSrc) {
-		if err := copyAndUpdateRequirements(requirementsSrc, requirementsDst, projectDir); err != nil {
+		if err := copyAndUpdateRequirements(requirementsSrc, requirementsDst, version); err != nil {
 			return fmt.Errorf("failed to copy requirements.txt: %w", err)
 		}
 	}
@@ -535,15 +538,12 @@ func setupDjango(log *logger.Logger, step *logger.Step, projectDir string) error
 }
 
 // copyAndUpdateRequirements copies requirements.txt and updates Django version
-func copyAndUpdateRequirements(src, dst, projectDir string) error {
+func copyAndUpdateRequirements(src, dst, version string) error {
 	// Read the template requirements.txt
 	content, err := os.ReadFile(src)
 	if err != nil {
 		return fmt.Errorf("failed to read requirements template: %w", err)
 	}
-
-	// Get the requested Django version from the project name or context
-	version := extractVersionFromProject(projectDir)
 
 	if version != "" {
 		// Update Django version in requirements
@@ -563,12 +563,6 @@ func copyAndUpdateRequirements(src, dst, projectDir string) error {
 	return os.WriteFile(dst, content, 0644)
 }
 
-// extractVersionFromProject attempts to extract the Django version from project context
-func extractVersionFromProject(projectDir string) string {
-	// For now, return default version
-	// TODO: Pass version parameter through the entire call stack
-	return "5"
-}
 
 // runDjangoSetup runs essential Django setup commands in Docker
 func runDjangoSetup(log *logger.Logger, step *logger.Step, projectDir string) error {

@@ -1,0 +1,17 @@
+{
+  "name": "{{project}}",
+  "framework": "laravel",
+  "language": "php",
+  "installer": {
+    "type": "docker",
+    "command": [
+      "composer",
+      "create-project",
+      "laravel/laravel",
+      "src"
+    ],
+    "work-dir": "{{cwd}}"
+  },
+  "working-dir": "/var/www",
+  "min-version": "8.0"
+}

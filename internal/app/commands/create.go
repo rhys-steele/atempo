@@ -170,7 +170,10 @@ func (c *CreateCommand) runScaffoldWithAI(tracker *ProgressTracker, framework, v
 				if scanner.Scan() {
 					description = strings.TrimSpace(scanner.Text())
 				}
-				if description == "" {
+				if err := scanner.Err(); err != nil {
+					tracker.WarningStep(fmt.Sprintf("Failed to read input: %v", err))
+					description = fmt.Sprintf("A %s application", framework)
+				} else if description == "" {
 					description = fmt.Sprintf("A %s application", framework)
 				}
 
@@ -195,7 +198,10 @@ func (c *CreateCommand) runScaffoldWithAI(tracker *ProgressTracker, framework, v
 							fmt.Sscanf(choiceStr, "%d", &choice)
 						}
 					}
-					if choice >= 1 && choice <= len(providers) {
+					if err := scanner.Err(); err != nil {
+						tracker.WarningStep(fmt.Sprintf("Failed to read provider choice: %v", err))
+						selectedProvider = providers[0].Name
+					} else if choice >= 1 && choice <= len(providers) {
 						selectedProvider = providers[choice-1].Name
 					} else {
 						selectedProvider = providers[0].Name

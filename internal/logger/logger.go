@@ -107,7 +107,9 @@ Started: %s
 ========================================
 
 `, l.ProjectName, l.StartTime.Format("2006-01-02 15:04:05"))
-	l.LogFile.WriteString(header)
+	if _, err := l.LogFile.WriteString(header); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to write log header: %v\n", err)
+	}
 }
 
 // writeFooter writes the log file footer
@@ -119,7 +121,9 @@ Setup completed in %s
 Log file: %s
 ========================================
 `, duration.Round(time.Second), l.LogPath)
-	l.LogFile.WriteString(footer)
+	if _, err := l.LogFile.WriteString(footer); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to write log footer: %v\n", err)
+	}
 }
 
 // StartStep begins a new step and returns a Step instance
@@ -250,8 +254,14 @@ func (l *Logger) captureOutput(reader io.Reader, prefix string, done chan struct
 func (l *Logger) logf(format string, args ...interface{}) {
 	timestamp := time.Now().Format("15:04:05.000")
 	message := fmt.Sprintf(format, args...)
-	l.LogFile.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, message))
-	l.LogFile.Sync() // Ensure it's written to disk immediately
+	if _, err := l.LogFile.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, message)); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to write to log file: %v\n", err)
+		return
+	}
+	if err := l.LogFile.Sync(); err != nil {
+		// Log to stderr if sync fails, but continue operation
+		fmt.Fprintf(os.Stderr, "Warning: failed to sync log file: %v\n", err)
+	}
 }
 
 // showProgress displays a progress indicator for the current step

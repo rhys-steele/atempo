@@ -27,6 +27,21 @@ type DockerCommand struct {
 	Timeout     time.Duration // Default timeout for this command
 }
 
+// validateDockerAvailability checks if Docker and Docker Compose are available
+func validateDockerAvailability() error {
+	// Check if Docker is running
+	if err := exec.Command("docker", "info").Run(); err != nil {
+		return fmt.Errorf("Docker is not running or not available: %w", err)
+	}
+
+	// Check if Docker Compose is available
+	if err := exec.Command("docker-compose", "--version").Run(); err != nil {
+		return fmt.Errorf("Docker Compose is not available: %w", err)
+	}
+
+	return nil
+}
+
 // Common Docker commands for Atempo projects
 var SupportedCommands = map[string]DockerCommand{
 	"up": {
@@ -107,6 +122,11 @@ func ExecuteWithCustomTimeout(command string, projectPath string, additionalArgs
 
 // executeWithCommand is the core execution logic extracted for reuse
 func executeWithCommand(dockerCmd DockerCommand, projectPath string, additionalArgs []string) error {
+	// Validate Docker availability before proceeding
+	if err := validateDockerAvailability(); err != nil {
+		return fmt.Errorf("Docker validation failed: %w", err)
+	}
+
 	// Check if --build flag is present for up command and adjust timeout
 	if dockerCmd.Name == "up" && containsBuildFlag(additionalArgs) {
 		dockerCmd.Timeout = 10 * time.Minute // Increase timeout when building
@@ -167,6 +187,11 @@ func executeWithCommand(dockerCmd DockerCommand, projectPath string, additionalA
 
 // ExecuteExecCommand runs a command inside a container (docker-compose exec)
 func ExecuteExecCommand(service string, projectPath string, cmdArgs []string) error {
+	// Validate Docker availability before proceeding
+	if err := validateDockerAvailability(); err != nil {
+		return fmt.Errorf("Docker validation failed: %w", err)
+	}
+
 	// Resolve project path
 	resolvedPath, err := resolveProjectPath(projectPath)
 	if err != nil {

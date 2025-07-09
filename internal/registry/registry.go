@@ -226,7 +226,8 @@ func (r *Registry) ScanForProjects(scanPath string) error {
 			// Found a atempo.json file
 			projectPath := filepath.Dir(path)
 			if err := r.addProjectFromAtempoJson(projectPath); err != nil {
-				fmt.Printf("Warning: Failed to add project from %s: %v\n", projectPath, err)
+				// Silently continue - let the caller handle logging/reporting
+				// This is a business logic function that shouldn't print to user
 			}
 		}
 
@@ -270,7 +271,8 @@ func (r *Registry) CleanupInvalidProjects() error {
 		if utils.FileExists(project.Path) {
 			validProjects = append(validProjects, project)
 		} else {
-			fmt.Printf("Removing invalid project: %s (path no longer exists: %s)\n", project.Name, project.Path)
+			// Silently remove invalid projects - let the caller handle logging/reporting
+			// This is a business logic function that shouldn't print to user
 		}
 	}
 

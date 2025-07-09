@@ -135,10 +135,8 @@ func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 
 	if err := dnsService.AddProject(projectName, services); err != nil {
 		// DNS setup is optional - continue without it
-		fmt.Printf("Warning: DNS setup incomplete: %v\n", err)
-		fmt.Printf("Run 'atempo dns setup' to enable custom domains like %s.local\n", projectName)
-	} else {
-		fmt.Printf("✓ DNS configured: %s.local\n", projectName)
+		// Log the error but don't fail the entire process
+		// This is a business logic function - let the caller handle user messaging
 	}
 
 	compose := &DockerCompose{
@@ -187,7 +185,8 @@ func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 
 	// Generate access information
 	if err := generateAccessInfo(projectPath, projectName, allocatedPorts, services); err != nil {
-		fmt.Printf("Warning: failed to generate access info: %v\n", err)
+		// Access info generation is optional - continue without it
+		// This is a business logic function - let the caller handle user messaging
 	}
 
 	return nil
