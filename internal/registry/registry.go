@@ -67,6 +67,7 @@ func GetRegistryPath() (string, error) {
 }
 
 // LoadRegistry loads the project registry from disk
+// DEPRECATED: Use services.RegistryService instead for new code
 func LoadRegistry() (*Registry, error) {
 	registryPath, err := GetRegistryPath()
 	if err != nil {
