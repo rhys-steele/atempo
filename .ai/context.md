@@ -34,16 +34,6 @@ The `.ai` directory contains structured context files designed to provide compre
 - Key interfaces, types, and data flow diagrams
 - External dependencies and development/extension points
 
-### `.ai/current-state.md`
-**Purpose**: Live snapshot of current development status and branch context
-**Format**: Markdown with git status and development priorities
-**Contents**:
-- Current branch status and recent changes
-- Feature implementation status (completed/in-development/planned)
-- Recent commits and development focus
-- Current challenges and technical debt
-- Immediate next steps and development priorities
-
 ### `.ai/development-workflows.md`
 **Purpose**: Comprehensive guide to development processes and CLI commands
 **Format**: Markdown with code examples and workflow instructions
