@@ -39,6 +39,7 @@ func NewCommandRegistry(templatesFS, mcpServersFS embed.FS) *CommandRegistry {
 	registry.register(NewTestCommand(ctx))
 	registry.register(NewResetCommand(ctx))
 	registry.register(NewDNSCommand(ctx))
+	registry.register(NewSSLCommand(ctx))
 	registry.register(NewShellCommand(ctx, registry))
 
 	return registry
@@ -103,7 +104,7 @@ Commands:`)
 
 	// Display commands in a logical order
 	commandOrder := []string{
-		"create", "auth", "status", "describe", "docker", "dns",
+		"create", "auth", "status", "describe", "docker", "dns", "ssl",
 		"reconfigure", "add-service", "projects", "remove", "logs", "stop", "test", "reset",
 	}
 

@@ -18,6 +18,7 @@ const (
 	DNSImage         = "nginx:alpine"
 	DNSPort          = "5353"
 	HTTPPort         = "80"
+	HTTPSPort        = "443"
 	DNSNetworkName   = "atempo-net"
 	DNSStaticIP      = "172.21.0.53"
 	DNSDomain        = "test"  // Use .test instead of .local to avoid mDNS conflicts
@@ -166,9 +167,17 @@ http {
     # Include all project configs
     include /etc/atempo/projects/*.nginx;
     
-    # Default server (fallback)
+    # Default HTTP server (fallback)
     server {
         listen 80 default_server;
+        return 404;
+    }
+    
+    # Default HTTPS server (fallback)
+    server {
+        listen 443 ssl default_server;
+        ssl_certificate /etc/atempo/ssl/wildcard.crt;
+        ssl_certificate_key /etc/atempo/ssl/wildcard.key;
         return 404;
     }
 }
@@ -184,12 +193,16 @@ exec dnsmasq --conf-file=/etc/atempo/dnsmasq.conf --no-daemon
 		return fmt.Errorf("failed to create startup script: %w", err)
 	}
 
+	// Get SSL certificates directory
+	sslDir := filepath.Join(filepath.Dir(s.configDir), "ssl", "certs")
+	
 	// Create and start container with custom network and static IP
 	cmd := exec.Command("docker", "run", "-d",
 		"--name", DNSContainerName,
 		"--network", DNSNetworkName,
 		"--ip", DNSStaticIP,
 		"-v", fmt.Sprintf("%s:/etc/atempo", s.configDir),
+		"-v", fmt.Sprintf("%s:/etc/atempo/ssl", sslDir),
 		"--restart", "unless-stopped",
 		DNSImage,
 		"/etc/atempo/startup.sh")
@@ -329,11 +342,21 @@ func (s *DNSService) Status() error {
 	}
 
 	// Check resolver
-	resolverFile := "/etc/resolver/local"
+	resolverFile := fmt.Sprintf("/etc/resolver/%s", DNSDomain)
 	if _, err := os.Stat(resolverFile); err == nil {
 		fmt.Println("✓ Resolver: configured")
 	} else {
 		fmt.Println("✗ Resolver: not configured")
+	}
+
+	// Check SSL certificates
+	sslManager := NewSSLManager()
+	if cert := sslManager.GetWildcardCertificate(); cert != nil {
+		fmt.Println("✓ SSL certificate: available")
+		fmt.Printf("  Expires: %s\n", cert.ExpiresAt.Format("2006-01-02"))
+	} else {
+		fmt.Println("✗ SSL certificate: not found")
+		fmt.Println("  Run: atempo ssl setup")
 	}
 
 	// List projects
@@ -343,7 +366,10 @@ func (s *DNSService) Status() error {
 	} else {
 		fmt.Printf("\nActive Domains:\n")
 		for _, project := range projects {
-			fmt.Printf("  %s.%s\n", project, DNSDomain)
+			fmt.Printf("  http://%s.%s\n", project, DNSDomain)
+			if cert := sslManager.GetWildcardCertificate(); cert != nil {
+				fmt.Printf("  https://%s.%s\n", project, DNSDomain)
+			}
 		}
 	}
 
@@ -383,7 +409,11 @@ conf-dir=/etc/atempo/projects,*.dns
 
 // generateNginxConfig generates nginx configuration for a project
 func (s *DNSService) generateNginxConfig(projectName string, services map[string]int) string {
+	mainPort := s.getMainPort(services)
+	
+	// Main domain HTTP and HTTPS servers
 	config := fmt.Sprintf(`# Nginx config for %s
+# HTTP server
 server {
     listen 80;
     server_name %s.%s;
@@ -392,15 +422,37 @@ server {
         proxy_pass http://host.docker.internal:%d;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 
-`, projectName, projectName, DNSDomain, s.getMainPort(services))
+# HTTPS server
+server {
+    listen 443 ssl;
+    server_name %s.%s;
+    
+    ssl_certificate /etc/atempo/ssl/wildcard.crt;
+    ssl_certificate_key /etc/atempo/ssl/wildcard.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    
+    location / {
+        proxy_pass http://host.docker.internal:%d;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
 
-	// Add service subdomains
+`, projectName, projectName, DNSDomain, mainPort, projectName, DNSDomain, mainPort)
+
+	// Add service subdomains (both HTTP and HTTPS)
 	for serviceName, port := range services {
 		if serviceName != "app" && serviceName != "webserver" {
-			config += fmt.Sprintf(`server {
+			config += fmt.Sprintf(`# HTTP server for %s
+server {
     listen 80;
     server_name %s.%s.%s;
     
@@ -408,10 +460,31 @@ server {
         proxy_pass http://host.docker.internal:%d;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 
-`, serviceName, projectName, DNSDomain, port)
+# HTTPS server for %s
+server {
+    listen 443 ssl;
+    server_name %s.%s.%s;
+    
+    ssl_certificate /etc/atempo/ssl/wildcard.crt;
+    ssl_certificate_key /etc/atempo/ssl/wildcard.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    
+    location / {
+        proxy_pass http://host.docker.internal:%d;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+`, serviceName, serviceName, projectName, DNSDomain, port, serviceName, serviceName, projectName, DNSDomain, port)
 		}
 	}
 

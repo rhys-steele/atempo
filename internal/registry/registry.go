@@ -541,10 +541,24 @@ func (r *Registry) generateDNSURL(projectName, serviceName string) string {
 		return ""
 	}
 	
+	// Check if SSL certificates are available
+	sslCertPath := filepath.Join(homeDir, ".atempo", "ssl", "certs", "wildcard.crt")
+	hasSSL := false
+	if _, err := os.Stat(sslCertPath); err == nil {
+		hasSSL = true
+	}
+	
 	// Generate DNS URL based on service name
-	if serviceName == "app" || serviceName == "webserver" {
-		return fmt.Sprintf("http://%s.test", projectName)
+	var scheme string
+	if hasSSL {
+		scheme = "https"
 	} else {
-		return fmt.Sprintf("http://%s.%s.test", serviceName, projectName)
+		scheme = "http"
+	}
+	
+	if serviceName == "app" || serviceName == "webserver" {
+		return fmt.Sprintf("%s://%s.test", scheme, projectName)
+	} else {
+		return fmt.Sprintf("%s://%s.%s.test", scheme, serviceName, projectName)
 	}
 }
