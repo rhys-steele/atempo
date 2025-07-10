@@ -18,6 +18,9 @@ const (
 	DNSImage         = "nginx:alpine"
 	DNSPort          = "5353"
 	HTTPPort         = "80"
+	DNSNetworkName   = "atempo-net"
+	DNSStaticIP      = "172.21.0.53"
+	DNSDomain        = "test"  // Use .test instead of .local to avoid mDNS conflicts
 )
 
 // NewDNSService creates a new DNS service manager
@@ -35,34 +38,57 @@ func (s *DNSService) Setup() error {
 	fmt.Println("DNS Setup")
 	fmt.Println(strings.Repeat("─", 50))
 
-	// Check if already configured
-	resolverFile := "/etc/resolver/local"
-	if _, err := os.Stat(resolverFile); err == nil {
-		fmt.Println("✓ DNS resolver already configured")
-		if s.IsRunning() {
-			fmt.Println("✓ DNS service running")
-			return nil
+	// Always validate and fix resolver configuration
+	resolverFile := fmt.Sprintf("/etc/resolver/%s", DNSDomain)
+	expectedConfig := fmt.Sprintf("nameserver %s\n", DNSStaticIP)
+	needsSetup := true
+
+	// Check if resolver is correctly configured
+	if contents, err := os.ReadFile(resolverFile); err == nil {
+		if string(contents) == expectedConfig {
+			fmt.Println("✓ DNS resolver already configured")
+			needsSetup = false
+		} else {
+			fmt.Printf("⚠ DNS resolver misconfigured (contains: %q, expected: %q)\n", 
+				strings.TrimSpace(string(contents)), strings.TrimSpace(expectedConfig))
 		}
+	} else {
+		fmt.Println("DNS resolver not found")
 	}
 
-	fmt.Println("This configures macOS to resolve .local domains")
-	fmt.Println("through Atempo's DNS system.")
-	fmt.Printf("\nConfigure DNS resolver? [y/N]: ")
+	// Check DNS service status
+	if s.IsRunning() {
+		fmt.Println("✓ DNS service running")
+	} else {
+		fmt.Println("DNS service not running")
+		needsSetup = true
+	}
 
-	var response string
-	fmt.Scanln(&response)
-
-	if response != "y" && response != "Y" && response != "yes" {
-		fmt.Println("DNS setup cancelled")
+	// If everything is correctly configured, exit early
+	if !needsSetup {
 		return nil
 	}
 
+	// Auto-fix resolver configuration without prompting
+	fmt.Println("\nFixing DNS resolver configuration...")
 	return s.createResolver()
 }
 
 // createResolver creates the macOS DNS resolver configuration
 func (s *DNSService) createResolver() error {
-	fmt.Println("Creating DNS resolver...")
+	resolverFile := fmt.Sprintf("/etc/resolver/%s", DNSDomain)
+	expectedConfig := fmt.Sprintf("nameserver %s\n", DNSStaticIP)
+
+	// Check if resolver is already correctly configured
+	if contents, err := os.ReadFile(resolverFile); err == nil {
+		if string(contents) == expectedConfig {
+			fmt.Println("✓ DNS resolver already configured")
+			return nil
+		}
+		fmt.Println("Updating DNS resolver configuration...")
+	} else {
+		fmt.Println("Creating DNS resolver configuration...")
+	}
 
 	// Create resolver directory
 	cmd := exec.Command("sudo", "mkdir", "-p", "/etc/resolver")
@@ -70,21 +96,24 @@ func (s *DNSService) createResolver() error {
 		return fmt.Errorf("failed to create resolver directory: %w", err)
 	}
 
-	// Create resolver config
-	resolverConfig := `nameserver 127.0.0.1
-port 5353`
-
+	// Create resolver config - use static IP instead of port mapping
 	tempFile := filepath.Join(os.TempDir(), "atempo-resolver")
-	if err := os.WriteFile(tempFile, []byte(resolverConfig), 0644); err != nil {
+	if err := os.WriteFile(tempFile, []byte(expectedConfig), 0644); err != nil {
 		return fmt.Errorf("failed to create resolver config: %w", err)
 	}
 
-	cmd = exec.Command("sudo", "mv", tempFile, "/etc/resolver/local")
+	cmd = exec.Command("sudo", "mv", tempFile, resolverFile)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to install resolver: %w", err)
 	}
 
 	fmt.Println("✓ DNS resolver configured")
+	
+	// Flush DNS cache
+	fmt.Println("Flushing DNS cache...")
+	exec.Command("sudo", "dscacheutil", "-flushcache").Run()
+	exec.Command("sudo", "killall", "-HUP", "mDNSResponder").Run()
+	fmt.Println("✓ DNS cache flushed")
 
 	// Start DNS service
 	if err := s.Start(); err != nil {
@@ -101,6 +130,11 @@ port 5353`
 func (s *DNSService) Start() error {
 	if s.IsRunning() {
 		return nil // Already running
+	}
+
+	// Create Docker network if it doesn't exist
+	if err := s.createNetwork(); err != nil {
+		return fmt.Errorf("failed to create Docker network: %w", err)
 	}
 
 	// Check for port conflicts and clean up
@@ -150,12 +184,11 @@ exec dnsmasq --conf-file=/etc/atempo/dnsmasq.conf --no-daemon
 		return fmt.Errorf("failed to create startup script: %w", err)
 	}
 
-	// Create and start container
+	// Create and start container with custom network and static IP
 	cmd := exec.Command("docker", "run", "-d",
 		"--name", DNSContainerName,
-		"-p", fmt.Sprintf("%s:53/udp", DNSPort),
-		"-p", fmt.Sprintf("%s:53/tcp", DNSPort),
-		"-p", fmt.Sprintf("%s:80", HTTPPort),
+		"--network", DNSNetworkName,
+		"--ip", DNSStaticIP,
 		"-v", fmt.Sprintf("%s:/etc/atempo", s.configDir),
 		"--restart", "unless-stopped",
 		DNSImage,
@@ -189,13 +222,70 @@ func (s *DNSService) IsRunning() bool {
 	return strings.Contains(string(output), DNSContainerName)
 }
 
+// flushDNSCache flushes the local DNS cache (macOS)
+func (s *DNSService) flushDNSCache() {
+	// Flush DNS cache without requiring sudo password
+	// Use exec.Command with /bin/sh to run multiple commands
+	cmd := exec.Command("/bin/sh", "-c", "dscacheutil -flushcache 2>/dev/null || true; killall -HUP mDNSResponder 2>/dev/null || true")
+	cmd.Run() // Ignore errors - cache flushing is best effort
+}
+
+// createNetwork creates the Docker network if it doesn't exist
+func (s *DNSService) createNetwork() error {
+	// Check if network already exists
+	cmd := exec.Command("docker", "network", "ls", "--filter", fmt.Sprintf("name=%s", DNSNetworkName), "--format", "{{.Name}}")
+	output, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to check network: %w", err)
+	}
+	
+	if strings.Contains(string(output), DNSNetworkName) {
+		return nil // Network already exists
+	}
+
+	// Create network with custom subnet
+	cmd = exec.Command("docker", "network", "create",
+		"--driver", "bridge",
+		"--subnet", "172.21.0.0/24",
+		DNSNetworkName)
+	
+	return cmd.Run()
+}
+
+// reloadDNS gracefully reloads dnsmasq configuration without restarting container
+func (s *DNSService) reloadDNS() error {
+	if !s.IsRunning() {
+		return fmt.Errorf("DNS container is not running")
+	}
+
+	// Send HUP signal to dnsmasq to reload configuration
+	cmd := exec.Command("docker", "exec", DNSContainerName, "pkill", "-HUP", "dnsmasq")
+	if err := cmd.Run(); err != nil {
+		// If graceful reload fails, fall back to restart
+		fmt.Println("⚠ Graceful reload failed, restarting container...")
+		return s.restart()
+	}
+
+	// Reload nginx configuration
+	cmd = exec.Command("docker", "exec", DNSContainerName, "nginx", "-s", "reload")
+	if err := cmd.Run(); err != nil {
+		fmt.Println("⚠ Nginx reload failed, restarting container...")
+		return s.restart()
+	}
+
+	// Flush local DNS cache to ensure new domains resolve immediately
+	s.flushDNSCache()
+
+	return nil
+}
+
 // AddProject adds DNS configuration for a project
 func (s *DNSService) AddProject(projectName string, services map[string]int) error {
-	// Create DNS config
-	dnsConfig := fmt.Sprintf("address=/%s.local/127.0.0.1\n", projectName)
+	// Create DNS config - point to DNS container IP where nginx proxy runs
+	dnsConfig := fmt.Sprintf("address=/%s.%s/%s\n", projectName, DNSDomain, DNSStaticIP)
 	for serviceName := range services {
 		if serviceName != "app" && serviceName != "webserver" {
-			dnsConfig += fmt.Sprintf("address=/%s.%s.local/127.0.0.1\n", serviceName, projectName)
+			dnsConfig += fmt.Sprintf("address=/%s.%s.%s/%s\n", serviceName, projectName, DNSDomain, DNSStaticIP)
 		}
 	}
 
@@ -211,8 +301,8 @@ func (s *DNSService) AddProject(projectName string, services map[string]int) err
 		return fmt.Errorf("failed to write nginx config: %w", err)
 	}
 
-	// Restart container to reload configs
-	return s.restart()
+	// Gracefully reload dnsmasq configuration
+	return s.reloadDNS()
 }
 
 // RemoveProject removes DNS configuration for a project
@@ -223,7 +313,7 @@ func (s *DNSService) RemoveProject(projectName string) error {
 	os.Remove(dnsFile)
 	os.Remove(nginxFile)
 
-	return s.restart()
+	return s.reloadDNS()
 }
 
 // Status returns DNS system status
@@ -253,7 +343,7 @@ func (s *DNSService) Status() error {
 	} else {
 		fmt.Printf("\nActive Domains:\n")
 		for _, project := range projects {
-			fmt.Printf("  %s.local\n", project)
+			fmt.Printf("  %s.%s\n", project, DNSDomain)
 		}
 	}
 
@@ -277,10 +367,13 @@ func (s *DNSService) createConfigDirectories() error {
 	dnsmasqConfig := `# Atempo DNS Configuration
 listen-address=0.0.0.0
 port=53
+bind-interfaces
 no-hosts
 cache-size=1000
 domain-needed
 bogus-priv
+log-queries
+log-facility=/var/log/dnsmasq.log
 conf-dir=/etc/atempo/projects,*.dns
 `
 
@@ -293,7 +386,7 @@ func (s *DNSService) generateNginxConfig(projectName string, services map[string
 	config := fmt.Sprintf(`# Nginx config for %s
 server {
     listen 80;
-    server_name %s.local;
+    server_name %s.%s;
     
     location / {
         proxy_pass http://host.docker.internal:%d;
@@ -302,14 +395,14 @@ server {
     }
 }
 
-`, projectName, projectName, s.getMainPort(services))
+`, projectName, projectName, DNSDomain, s.getMainPort(services))
 
 	// Add service subdomains
 	for serviceName, port := range services {
 		if serviceName != "app" && serviceName != "webserver" {
 			config += fmt.Sprintf(`server {
     listen 80;
-    server_name %s.%s.local;
+    server_name %s.%s.%s;
     
     location / {
         proxy_pass http://host.docker.internal:%d;
@@ -318,7 +411,7 @@ server {
     }
 }
 
-`, serviceName, projectName, port)
+`, serviceName, projectName, DNSDomain, port)
 		}
 	}
 

@@ -127,9 +127,28 @@ func GenerateDockerComposeWithDynamicPorts(projectPath string) error {
 	services := make(map[string]int)
 	for serviceName, portMapping := range allocatedPorts {
 		// Get the main external port for this service
-		for _, externalPort := range portMapping {
-			services[serviceName] = externalPort
-			break // Take first port as main port
+		// For mailhog, prioritize the web interface port (8025) over SMTP port (1025)
+		if serviceName == "mailhog" {
+			// Look for web interface port (8025) first
+			for internalPort, externalPort := range portMapping {
+				if internalPort == 8025 {
+					services[serviceName] = externalPort
+					break
+				}
+			}
+			// If no web interface port found, fall back to first port
+			if _, exists := services[serviceName]; !exists {
+				for _, externalPort := range portMapping {
+					services[serviceName] = externalPort
+					break
+				}
+			}
+		} else {
+			// For other services, take first port as main port
+			for _, externalPort := range portMapping {
+				services[serviceName] = externalPort
+				break
+			}
 		}
 	}
 

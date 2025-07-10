@@ -10,9 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
-	"unsafe"
 
 	"atempo/internal/utils"
 )
@@ -161,10 +159,10 @@ func executeWithCommand(dockerCmd DockerCommand, projectPath string, additionalA
 	if dockerCmd.Timeout > 0 {
 		ctx, cancel = context.WithTimeout(context.Background(), dockerCmd.Timeout)
 		defer cancel()
-		fmt.Printf("⎿ Running: %s (in %s, timeout: %v)\n", strings.Join(fullCommand, " "), dockerDir, dockerCmd.Timeout)
+		fmt.Printf("⎿ Running: %s\n", strings.Join(fullCommand, " "))
 	} else {
 		ctx = context.Background()
-		fmt.Printf("⎿ Running: %s (in %s, no timeout)\n", strings.Join(fullCommand, " "), dockerDir)
+		fmt.Printf("⎿ Running: %s\n", strings.Join(fullCommand, " "))
 	}
 
 	// Execute the command with timeout
@@ -241,57 +239,79 @@ func executeWithFilteredOutput(cmd *exec.Cmd) error {
 func filterDockerOutput(reader io.Reader, isStderr bool) error {
 	scanner := bufio.NewScanner(reader)
 	var finalContainerStatus []string
-	
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		
+
 		// Skip verbose build output
 		if shouldSkipBuildLine(line) {
 			continue
 		}
-		
+
 		// Skip intermediate status messages - only collect final status
 		if strings.Contains(line, "Container") && (strings.Contains(line, "Running") || strings.Contains(line, "Started")) {
 			finalContainerStatus = append(finalContainerStatus, line)
 			continue
 		}
-		
+
 		// For down command, show final container removal status
 		if strings.Contains(line, "Container") && strings.Contains(line, "Removed") {
 			finalContainerStatus = append(finalContainerStatus, line)
 			continue
 		}
-		
+
 		// Skip all creating/starting/created intermediate messages
 		if shouldSkipIntermediateStatus(line) {
 			continue
 		}
-		
+
 		// Skip warnings we don't want to show
 		if shouldSkipWarning(line) {
 			continue
 		}
-		
+
 		// Show critical errors only
 		if isStderr && strings.Contains(line, "ERROR[") {
 			fmt.Fprintln(os.Stderr, line)
 			continue
 		}
-		
+
 		// Show build completion
 		if strings.Contains(line, "Built") && !strings.Contains(line, "[+] Building") {
-			formattedLine := formatContainerStatusLine(line)
-			fmt.Fprintln(os.Stdout, formattedLine)
+			if parts := strings.Fields(line); len(parts) >= 2 {
+				serviceName := parts[0]
+				statusText := parts[len(parts)-1]
+				paddedName := fmt.Sprintf("%-25s", serviceName)
+				fmt.Printf(" %s \033[32m%s\033[0m\n", paddedName, strings.ToLower(statusText))
+			}
 		}
 	}
-	
+
 	// Show final container status in a clean format
 	for _, status := range finalContainerStatus {
 		formattedLine := formatContainerStatusLine(status)
-		// Write directly to os.Stdout to preserve colors
-		fmt.Fprintln(os.Stdout, formattedLine)
+		// Write directly to os.Stdout and force colors
+		if parts := strings.Fields(status); len(parts) >= 3 {
+			containerName := parts[1]
+			statusText := parts[len(parts)-1]
+			paddedName := fmt.Sprintf("%-25s", containerName)
+
+			// Apply colors directly when writing to terminal
+			switch strings.ToLower(statusText) {
+			case "running", "started", "created", "built":
+				fmt.Printf(" %s \033[32m%s\033[0m\n", paddedName, strings.ToLower(statusText))
+			case "stopped", "removed":
+				fmt.Printf(" %s \033[31m%s\033[0m\n", paddedName, strings.ToLower(statusText))
+			case "creating", "starting", "stopping", "removing":
+				fmt.Printf(" %s \033[33m%s\033[0m\n", paddedName, strings.ToLower(statusText))
+			default:
+				fmt.Printf(" %s %s\n", paddedName, strings.ToLower(statusText))
+			}
+		} else {
+			fmt.Fprintln(os.Stdout, formattedLine)
+		}
 	}
-	
+
 	return scanner.Err()
 }
 
@@ -311,12 +331,12 @@ func shouldSkipBuildLine(line string) bool {
 		strings.Contains(line, "=> resolving provenance") {
 		return true
 	}
-	
+
 	// Skip build progress indicators
 	if strings.Contains(line, "[+] Building") && strings.Contains(line, "FINISHED") {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -326,22 +346,22 @@ func shouldShowStatusLine(line string) bool {
 	if strings.Contains(line, "Container") {
 		return true
 	}
-	
+
 	// Show service build status
 	if strings.Contains(line, "Built") {
 		return true
 	}
-	
+
 	// Show network and volume status
 	if strings.Contains(line, "Network") || strings.Contains(line, "Volume") {
 		return true
 	}
-	
+
 	// Show final summary
 	if strings.Contains(line, "[+] Running") && strings.Contains(line, "/") {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -357,17 +377,17 @@ func shouldSkipIntermediateStatus(line string) bool {
 		strings.Contains(line, "Removed")) {
 		return true
 	}
-	
+
 	// Skip network and volume creation messages
 	if strings.Contains(line, "Network") || strings.Contains(line, "Volume") {
 		return true
 	}
-	
+
 	// Skip running progress indicators
 	if strings.Contains(line, "[+] Running") {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -377,17 +397,17 @@ func shouldSkipWarning(line string) bool {
 	if strings.Contains(line, "version") && strings.Contains(line, "obsolete") {
 		return true
 	}
-	
+
 	// Skip platform warnings
 	if strings.Contains(line, "platform") && strings.Contains(line, "does not match") {
 		return true
 	}
-	
+
 	// Skip other docker-compose warnings
 	if strings.Contains(line, "WARN[") {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -400,17 +420,17 @@ func formatContainerStatusLine(line string) string {
 		if len(parts) >= 3 {
 			containerName := parts[1]
 			status := parts[len(parts)-1]
-			
+
 			// Format with proper alignment (pad to 25 characters)
 			paddedName := fmt.Sprintf("%-25s", containerName)
-			
+
 			// Apply color based on status
 			coloredStatus := formatStatusWithColor(status)
-			
+
 			return fmt.Sprintf(" %s %s", paddedName, coloredStatus)
 		}
 	}
-	
+
 	// Handle network and volume lines
 	if strings.Contains(line, "Network") || strings.Contains(line, "Volume") {
 		parts := strings.Fields(line)
@@ -418,56 +438,45 @@ func formatContainerStatusLine(line string) string {
 			resourceType := parts[0] // "Network" or "Volume"
 			resourceName := parts[1]
 			status := parts[len(parts)-1]
-			
+
 			// Format with proper alignment
 			paddedName := fmt.Sprintf("%-25s", resourceName)
 			coloredStatus := formatStatusWithColor(status)
-			
+
 			return fmt.Sprintf(" %s %s %s", resourceType, paddedName, coloredStatus)
 		}
 	}
-	
+
 	// Handle built status lines
 	if strings.Contains(line, "Built") {
 		parts := strings.Fields(line)
 		if len(parts) >= 2 {
 			serviceName := parts[0]
 			status := parts[len(parts)-1]
-			
+
 			paddedName := fmt.Sprintf("%-25s", serviceName)
 			coloredStatus := formatStatusWithColor(status)
-			
+
 			return fmt.Sprintf(" %s %s", paddedName, coloredStatus)
 		}
 	}
-	
+
 	// Return original line if no specific formatting needed
 	return line
-}
-
-// isTerminal checks if the file descriptor is a terminal
-func isTerminal(fd int) bool {
-	var termios syscall.Termios
-	_, _, err := syscall.Syscall6(syscall.SYS_IOCTL, uintptr(fd), syscall.TCGETS, uintptr(unsafe.Pointer(&termios)), 0, 0, 0)
-	return err == 0
 }
 
 // formatStatusWithColor applies color to status text
 func formatStatusWithColor(status string) string {
 	statusLower := strings.ToLower(status)
-	
-	// Only apply colors if we're outputting to a terminal
-	if !isTerminal(int(os.Stdout.Fd())) {
-		return statusLower
-	}
-	
+
+	// Force colors for interactive CLI usage
 	const (
 		Green  = "\033[32m"
 		Red    = "\033[31m"
 		Yellow = "\033[33m"
 		Reset  = "\033[0m"
 	)
-	
+
 	switch statusLower {
 	case "running", "started", "created", "built":
 		return Green + statusLower + Reset
@@ -538,7 +547,6 @@ func ListServices(projectPath string) error {
 
 	return cmd.Run()
 }
-
 
 // ValidateDockerCompose checks if Docker and Docker Compose are available
 func ValidateDockerCompose() error {

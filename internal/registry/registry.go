@@ -389,7 +389,17 @@ func (r *Registry) checkProjectHealth(projectPath string) (string, []Service, []
 
 								// Generate URL for web services
 								if isWebService(serviceName, int(targetPort), int(publishedPort)) {
-									url := fmt.Sprintf("http://localhost:%d", int(publishedPort))
+									// Try to generate DNS URL first
+									projectName := filepath.Base(projectPath)
+									dnsURL := r.generateDNSURL(projectName, serviceName)
+									
+									var url string
+									if dnsURL != "" {
+										url = dnsURL
+									} else {
+										url = fmt.Sprintf("http://localhost:%d", int(publishedPort))
+									}
+									
 									urls = append(urls, url)
 
 									// Update service with URL
@@ -514,4 +524,27 @@ func isWebPort(port int) bool {
 		}
 	}
 	return false
+}
+
+// generateDNSURL generates a DNS URL for a service if DNS is configured
+func (r *Registry) generateDNSURL(projectName, serviceName string) string {
+	// Check if DNS service is available by looking for DNS configuration
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	
+	dnsConfigPath := filepath.Join(homeDir, ".atempo", "dns", "projects", fmt.Sprintf("%s.dns", projectName))
+	
+	// Check if DNS config exists
+	if _, err := os.Stat(dnsConfigPath); os.IsNotExist(err) {
+		return ""
+	}
+	
+	// Generate DNS URL based on service name
+	if serviceName == "app" || serviceName == "webserver" {
+		return fmt.Sprintf("http://%s.test", projectName)
+	} else {
+		return fmt.Sprintf("http://%s.%s.test", serviceName, projectName)
+	}
 }
