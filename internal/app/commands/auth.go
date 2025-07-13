@@ -41,6 +41,13 @@ func NewAuthCommand(ctx *CommandContext) *AuthCommand {
 
 // Execute runs the auth command
 func (c *AuthCommand) Execute(ctx context.Context, args []string) error {
+	// Show deprecation notice
+	fmt.Println("⚠️  DEPRECATION NOTICE: The 'auth' command is deprecated.")
+	fmt.Println("   Please use 'atempo ai auth <provider>' instead.")
+	fmt.Println("   Example: atempo ai auth claude")
+	fmt.Println("   For status: atempo ai status")
+	fmt.Println()
+
 	if c.authService == nil {
 		return fmt.Errorf("authentication service unavailable")
 	}

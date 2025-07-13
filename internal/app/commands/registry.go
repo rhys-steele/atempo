@@ -26,10 +26,10 @@ func NewCommandRegistry(templatesFS, mcpServersFS embed.FS) *CommandRegistry {
 
 	// Register all commands
 	registry.register(NewCreateCommand(ctx, templatesFS, mcpServersFS))
-	registry.register(NewAuthCommand(ctx))
+	registry.register(NewAuthCommand(ctx)) // Deprecated - shows migration notice
+	registry.register(NewAICommand())
 	registry.register(NewDockerCommand(ctx))
 	registry.register(NewProjectsCommand(ctx))
-	registry.register(NewStatusCommand(ctx))
 	registry.register(NewReconfigureCommand(ctx))
 	registry.register(NewAddServiceCommand(ctx))
 	registry.register(NewLogsCommand(ctx))
@@ -40,6 +40,7 @@ func NewCommandRegistry(templatesFS, mcpServersFS embed.FS) *CommandRegistry {
 	registry.register(NewResetCommand(ctx))
 	registry.register(NewDNSCommand(ctx))
 	registry.register(NewSSLCommand(ctx))
+	registry.register(NewAuditCommand(ctx))
 	registry.register(NewShellCommand(ctx, registry))
 
 	return registry
@@ -104,8 +105,8 @@ Commands:`)
 
 	// Display commands in a logical order
 	commandOrder := []string{
-		"create", "auth", "status", "describe", "docker", "dns", "ssl",
-		"reconfigure", "add-service", "projects", "remove", "logs", "stop", "test", "reset",
+		"create", "ai", "projects", "describe", "docker", "dns", "ssl",
+		"reconfigure", "add-service", "remove", "logs", "stop", "test", "audit", "reset",
 	}
 
 	for _, cmdName := range commandOrder {
@@ -120,14 +121,14 @@ Examples:
   atempo create laravel:11 my-app       Create Laravel 11 in ./my-app/
   atempo create django                  Create Django (latest) in current directory
   atempo create django:5                Create Django 5 in current directory
-  atempo status                         Show dashboard with all project statuses
+  atempo projects                       Show all projects with their status
+  atempo projects my-app                Show detailed status for 'my-app' project
   atempo describe my-app                Show detailed description of 'my-app' project
   atempo describe                       Describe project in current directory
   atempo docker up                      Start services in current directory
   atempo docker up my-app               Start services for registered project 'my-app'
   atempo reconfigure                    Regenerate docker-compose.yml from atempo.json
   atempo add-service minio              Add MinIO object storage service
-  atempo projects                       List all registered projects
   atempo logs my-app                    View setup logs for 'my-app' project
   atempo stop                           Stop all running projects
   atempo test                           Run all tests in current project

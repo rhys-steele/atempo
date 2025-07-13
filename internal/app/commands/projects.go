@@ -3,12 +3,13 @@ package commands
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"atempo/internal/registry"
 	"atempo/internal/utils"
 )
 
-// ProjectsCommand handles listing all registered projects
+// ProjectsCommand handles listing all registered projects with their status
 type ProjectsCommand struct {
 	*BaseCommand
 }
@@ -19,7 +20,7 @@ func NewProjectsCommand(ctx *CommandContext) *ProjectsCommand {
 		BaseCommand: NewBaseCommand(
 			"projects",
 			utils.GetStandardDescription("projects"),
-			utils.CreateStandardUsage("projects", utils.PatternSimple),
+			utils.CreateStandardUsage("projects", utils.PatternWithProjectContext),
 			ctx,
 		),
 	}
@@ -32,6 +33,11 @@ func (c *ProjectsCommand) Execute(ctx context.Context, args []string) error {
 		return fmt.Errorf("failed to load registry: %w", err)
 	}
 
+	// Check if specific project is requested
+	if len(args) > 0 {
+		return c.showProjectDetails(reg, args[0])
+	}
+
 	projects := reg.ListProjects()
 	if len(projects) == 0 {
 		fmt.Println("No projects registered yet.")
@@ -39,16 +45,177 @@ func (c *ProjectsCommand) Execute(ctx context.Context, args []string) error {
 		return nil
 	}
 
-	fmt.Println("Registered Atempo Projects:")
+	// Update all project statuses
+	fmt.Print("Checking project status...")
+	if err := reg.UpdateAllProjectsStatus(); err != nil {
+		fmt.Printf(" failed: %v\n", err)
+	} else {
+		fmt.Println(" done")
+	}
+
+	// Reload registry to get updated statuses
+	reg, err = registry.LoadRegistry()
+	if err != nil {
+		return fmt.Errorf("failed to reload registry: %w", err)
+	}
+
+	projects = reg.ListProjects()
+
+	fmt.Println("\nProjects")
+	fmt.Println(strings.Repeat("─", 50))
+
+	runningCount := 0
+	stoppedCount := 0
+	errorCount := 0
+
+	for i, project := range projects {
+		if i > 0 {
+			fmt.Println()
+		}
+
+		statusInfo := utils.GlobalStatusDisplay.GetStatusInfo(project.Status)
+		status := statusInfo.Label
+		statusColor := statusInfo.Color
+		
+		// Count statuses
+		switch project.Status {
+		case "running", "partial":
+			runningCount++
+		case "stopped", "no-docker", "no-services":
+			stoppedCount++
+		default:
+			errorCount++
+		}
+
+		// Project name with colored status
+		fmt.Printf("%s %s%s\033[0m\n", project.Name, statusColor, status)
+
+		// Framework information
+		if project.Framework != "" {
+			fmt.Printf("  Framework: %s", project.Framework)
+			if project.Version != "" {
+				fmt.Printf(" %s", project.Version)
+			}
+			fmt.Println()
+		}
+
+		// Git information
+		if project.GitBranch != "" {
+			fmt.Printf("  Branch: %s", project.GitBranch)
+			if project.GitStatus != "" && project.GitStatus != "clean" {
+				fmt.Printf(" (%s)", project.GitStatus)
+			}
+			fmt.Println()
+		}
+
+		// Running services
+		if len(project.Services) > 0 {
+			runningServices := []string{}
+			for _, service := range project.Services {
+				if service.Status == "running" {
+					runningServices = append(runningServices, service.Name)
+				}
+			}
+			if len(runningServices) > 0 {
+				fmt.Printf("  Services: %s\n", strings.Join(runningServices, ", "))
+			}
+		}
+
+		// Valid URLs
+		if len(project.URLs) > 0 {
+			validURLs := []string{}
+			for _, url := range project.URLs {
+				if !strings.Contains(url, ":0") && !utils.Contains(validURLs, url) {
+					validURLs = append(validURLs, url)
+				}
+			}
+			if len(validURLs) > 0 {
+				fmt.Printf("  URLs: %s\n", strings.Join(validURLs, ", "))
+			}
+		}
+
+		// Project path
+		fmt.Printf("  Path: %s\n", project.Path)
+	}
+
+	// Summary footer
+	fmt.Println(strings.Repeat("─", 50))
+	fmt.Printf("%d projects", len(projects))
+	if runningCount > 0 {
+		fmt.Printf(" • %d running", runningCount)
+	}
+	if stoppedCount > 0 {
+		fmt.Printf(" • %d stopped", stoppedCount)
+	}
+	if errorCount > 0 {
+		fmt.Printf(" • %d errors", errorCount)
+	}
 	fmt.Println()
 
-	for _, project := range projects {
-		fmt.Printf("  %s\n", project.Name)
-		fmt.Printf("    Framework: %s %s\n", project.Framework, project.Version)
-		fmt.Printf("    Path: %s\n", project.Path)
-		fmt.Printf("    Created: %s\n", project.CreatedAt.Format("2006-01-02 15:04"))
+	return nil
+}
+
+// showProjectDetails displays detailed information for a specific project
+func (c *ProjectsCommand) showProjectDetails(reg *registry.Registry, projectName string) error {
+	// Update status for the specific project
+	if err := reg.UpdateProjectStatus(projectName); err != nil {
+		return fmt.Errorf("failed to update project status: %w", err)
+	}
+
+	// Find the project
+	project, err := reg.FindProject(projectName)
+	if err != nil {
+		return fmt.Errorf("project '%s' not found", projectName)
+	}
+
+	statusInfo := utils.GlobalStatusDisplay.GetStatusInfo(project.Status)
+	status := statusInfo.Label
+	statusColor := statusInfo.Color
+
+	fmt.Printf("Project: %s %s%s\033[0m\n", project.Name, statusColor, status)
+
+	if project.Framework != "" {
+		fmt.Printf("Framework: %s", project.Framework)
+		if project.Version != "" {
+			fmt.Printf(" %s", project.Version)
+		}
 		fmt.Println()
 	}
+
+	if project.GitBranch != "" {
+		fmt.Printf("Branch: %s", project.GitBranch)
+		if project.GitStatus != "" && project.GitStatus != "clean" {
+			fmt.Printf(" (%s)", project.GitStatus)
+		}
+		fmt.Println()
+	}
+
+	if len(project.Services) > 0 {
+		fmt.Println("\nServices:")
+		for _, service := range project.Services {
+			serviceStatusInfo := utils.GlobalStatusDisplay.GetStatusInfo(service.Status)
+			fmt.Printf("  %-20s %s%s\033[0m", service.Name, serviceStatusInfo.Color, serviceStatusInfo.Label)
+			if service.URL != "" && !strings.Contains(service.URL, ":0") {
+				fmt.Printf(" → %s", service.URL)
+			}
+			fmt.Println()
+		}
+	}
+
+	if len(project.Ports) > 0 {
+		fmt.Println("\nPorts:")
+		seenPorts := make(map[string]bool)
+		for _, port := range project.Ports {
+			portKey := fmt.Sprintf("%s:%d→%d", port.Service, port.External, port.Internal)
+			if !seenPorts[portKey] && port.External != 0 {
+				fmt.Printf("  %-20s localhost:%d → container:%d\n",
+					port.Service, port.External, port.Internal)
+				seenPorts[portKey] = true
+			}
+		}
+	}
+
+	fmt.Printf("\nPath: %s\n", project.Path)
 
 	return nil
 }

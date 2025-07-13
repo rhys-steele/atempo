@@ -168,8 +168,7 @@ func (cf *CommandFactory) ValidateCommandMetadata(metadata CommandMetadata) erro
 // CommonCommandDescriptions provides standard descriptions for common commands
 var CommonCommandDescriptions = map[string]string{
 	"create":      "Create a new project with specified framework",
-	"status":      "Show project dashboard with health status",
-	"projects":    "List all registered projects",
+	"projects":    "Show all projects with their status",
 	"docker":      "Execute Docker commands for current project",
 	"shell":       "Enter interactive shell mode",
 	"describe":    "Show detailed project information",
@@ -179,6 +178,7 @@ var CommonCommandDescriptions = map[string]string{
 	"reconfigure": "Reconfigure project settings",
 	"add-service": "Add new service to project",
 	"test":        "Run project tests",
+	"audit":       "Run comprehensive codebase audit using Claude Code",
 }
 
 // GetStandardDescription returns a standard description for common commands

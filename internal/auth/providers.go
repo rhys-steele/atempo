@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -165,12 +167,29 @@ func (p *ClaudeProvider) Validate(ctx context.Context, creds *Credentials) error
 }
 
 func (p *ClaudeProvider) validateAPIKey(ctx context.Context, apiKey string) error {
-	// Create a simple request to Claude API to validate the key
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.anthropic.com/v1/models", nil)
+	// Create a minimal messages request to validate the key
+	testPayload := map[string]interface{}{
+		"model":      "claude-3-haiku-20240307",
+		"max_tokens": 1,
+		"messages": []map[string]string{
+			{
+				"role":    "user",
+				"content": "test",
+			},
+		},
+	}
+
+	jsonData, err := json.Marshal(testPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal validation request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create validation request: %w", err)
 	}
 
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("User-Agent", "atempo-cli/1.0")
 	req.Header.Set("anthropic-version", "2023-06-01")

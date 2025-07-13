@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"atempo/internal/ai"
 	"atempo/internal/compose"
 	"atempo/internal/logger"
 	"atempo/internal/mcp"
@@ -103,7 +104,7 @@ func Run(framework string, version string, templatesFS, mcpServersFS embed.FS) e
 
 	// Step 3: Copy template files (AI context, Docker setup, etc.)
 	copyStep := log.StartStep("Copying template files")
-	if err := copyTemplateFiles(log, copyStep, projectDir, projectName, meta.Framework, version, templatesFS, mcpServersFS); err != nil {
+	if err := copyTemplateFiles(log, copyStep, projectDir, projectName, meta, version, templatesFS, mcpServersFS); err != nil {
 		log.ErrorStep(copyStep, err)
 		return fmt.Errorf("failed to copy template files: %w", err)
 	}
@@ -252,19 +253,23 @@ func applyDjangoVersionOptions(command []string, version string) []string {
 }
 
 // copyTemplateFiles copies AI context, Docker setup, and other template files (embedded or filesystem)
-func copyTemplateFiles(log *logger.Logger, step *logger.Step, projectDir, projectName, framework, version string, templatesFS, mcpServersFS embed.FS) error {
-	// Copy AI context directory
-	aiDstPath := filepath.Join(projectDir, "ai")
-
-	// Try embedded first, fallback to filesystem
-	embeddedAiPath := fmt.Sprintf("templates/frameworks/%s/ai", framework)
-	if err := copyEmbeddedDirWithContext(templatesFS, embeddedAiPath, aiDstPath, projectName, projectDir, version); err != nil {
-		// Fallback to filesystem
-		aiSrcPath, pathErr := getFilesystemTemplateDir(framework, "ai")
-		if pathErr == nil {
-			if err := copyFilesystemDirWithContext(aiSrcPath, aiDstPath, projectName, projectDir, version); err != nil {
-				return fmt.Errorf("failed to copy AI context: %w", err)
+func copyTemplateFiles(log *logger.Logger, step *logger.Step, projectDir, projectName string, meta Metadata, version string, templatesFS, mcpServersFS embed.FS) error {
+	framework := meta.Framework
+	language := meta.Language
+	// Setup AI context directory
+	if ai.IsAIEnabled() {
+		// Generate dynamic AI context using AI analysis
+		if err := ai.GenerateAIContext(projectDir, projectName, framework, language, version, true); err != nil {
+			log.WarningStep(step, fmt.Sprintf("Failed to generate dynamic AI context: %v", err))
+			// Fall back to static templates
+			if err := copyStaticAIContext(templatesFS, projectDir, projectName, framework, version); err != nil {
+				return fmt.Errorf("failed to copy static AI context: %w", err)
 			}
+		}
+	} else {
+		// Copy static AI context directory
+		if err := copyStaticAIContext(templatesFS, projectDir, projectName, framework, version); err != nil {
+			return fmt.Errorf("failed to copy AI context: %w", err)
 		}
 	}
 
@@ -272,6 +277,42 @@ func copyTemplateFiles(log *logger.Logger, step *logger.Step, projectDir, projec
 	if err := copyMCPServer(log, step, framework, projectDir, mcpServersFS); err != nil {
 		log.WarningStep(step, fmt.Sprintf("Failed to copy MCP server: %v", err))
 		// Don't fail the entire setup if MCP server copy fails
+	}
+
+	// Copy general AI prompt templates to .claude/commands/
+	claudeDstPath := filepath.Join(projectDir, ".claude", "commands")
+	if err := os.MkdirAll(claudeDstPath, 0755); err != nil {
+		return fmt.Errorf("failed to create .claude/commands directory: %w", err)
+	}
+
+	// Copy audit prompt template
+	auditDstPath := filepath.Join(claudeDstPath, "audit.md")
+	embeddedAuditPath := "templates/ai/prompts/audit-template.md"
+	if err := copyEmbeddedFileWithFrameworkContext(templatesFS, embeddedAuditPath, auditDstPath, projectName, projectDir, version, framework, language); err != nil {
+		// Fallback to filesystem
+		filesystemAuditPath, pathErr := getFilesystemAITemplatePath("audit-template.md")
+		if pathErr == nil {
+			if err := copyFilesystemFileWithFrameworkContext(filesystemAuditPath, auditDstPath, projectName, projectDir, version, framework, language); err != nil {
+				return fmt.Errorf("failed to copy audit template: %w", err)
+			}
+		} else {
+			log.WarningStep(step, fmt.Sprintf("Failed to copy audit template: %v", err))
+		}
+	}
+
+	// Copy setup command template
+	setupDstPath := filepath.Join(claudeDstPath, "setup.md")
+	embeddedSetupPath := fmt.Sprintf("templates/frameworks/%s/claude/commands/setup.md", framework)
+	if err := copyEmbeddedFileWithFrameworkContext(templatesFS, embeddedSetupPath, setupDstPath, projectName, projectDir, version, framework, language); err != nil {
+		// Fallback to filesystem
+		filesystemSetupPath, pathErr := getFilesystemTemplatePath(framework, "claude/commands/setup.md")
+		if pathErr == nil {
+			if err := copyFilesystemFileWithFrameworkContext(filesystemSetupPath, setupDstPath, projectName, projectDir, version, framework, language); err != nil {
+				return fmt.Errorf("failed to copy setup template: %w", err)
+			}
+		} else {
+			log.WarningStep(step, fmt.Sprintf("Failed to copy setup template: %v", err))
+		}
 	}
 
 	// Copy infrastructure directory (Docker setup)
@@ -594,6 +635,18 @@ func processTemplateContent(content string, projectName, projectDir, version str
 	return content
 }
 
+// processTemplateContentWithFramework processes template variables including framework and language
+func processTemplateContentWithFramework(content string, projectName, projectDir, version, framework, language string) string {
+	content = strings.ReplaceAll(content, "{{project}}", projectName)
+	content = strings.ReplaceAll(content, "{{name}}", "src")
+	content = strings.ReplaceAll(content, "{{cwd}}", projectDir)
+	content = strings.ReplaceAll(content, "{{version}}", version)
+	content = strings.ReplaceAll(content, "{{framework}}", framework)
+	content = strings.ReplaceAll(content, "{{language}}", language)
+	content = strings.ReplaceAll(content, "{{date}}", "YYYY-MM-DD") // Placeholder for date
+	return content
+}
+
 // copyEmbeddedFile copies a single file from embedded filesystem to local filesystem with template processing
 func copyEmbeddedFile(fsys embed.FS, srcPath, dstPath string) error {
 	return copyEmbeddedFileWithContext(fsys, srcPath, dstPath, "", "", "")
@@ -853,4 +906,110 @@ func checkDockerAvailability() error {
 	}
 
 	return nil
+}
+
+// copyEmbeddedFileWithFrameworkContext copies a file with extended template variable processing
+func copyEmbeddedFileWithFrameworkContext(fsys embed.FS, srcPath, dstPath, projectName, projectDir, version, framework, language string) error {
+	// Read file from embedded filesystem
+	data, err := fsys.ReadFile(srcPath)
+	if err != nil {
+		return fmt.Errorf("failed to read embedded file %s: %w", srcPath, err)
+	}
+
+	// Create destination directory if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(dstPath), 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Process template variables with framework context
+	content := string(data)
+	processedContent := processTemplateContentWithFramework(content, projectName, projectDir, version, framework, language)
+	processedData := []byte(processedContent)
+
+	// Write file to local filesystem
+	if err := os.WriteFile(dstPath, processedData, 0644); err != nil {
+		return fmt.Errorf("failed to write file %s: %w", dstPath, err)
+	}
+
+	return nil
+}
+
+// copyFilesystemFileWithFrameworkContext copies a file from filesystem with extended template processing
+func copyFilesystemFileWithFrameworkContext(srcPath, dstPath, projectName, projectDir, version, framework, language string) error {
+	// Read file from filesystem
+	data, err := os.ReadFile(srcPath)
+	if err != nil {
+		return fmt.Errorf("failed to read file %s: %w", srcPath, err)
+	}
+
+	// Create destination directory if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(dstPath), 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Process template variables with framework context
+	content := string(data)
+	processedContent := processTemplateContentWithFramework(content, projectName, projectDir, version, framework, language)
+	processedData := []byte(processedContent)
+
+	// Write file to destination
+	if err := os.WriteFile(dstPath, processedData, 0644); err != nil {
+		return fmt.Errorf("failed to write file %s: %w", dstPath, err)
+	}
+
+	return nil
+}
+
+// copyStaticAIContext copies static AI context files from templates
+func copyStaticAIContext(templatesFS embed.FS, projectDir, projectName, framework, version string) error {
+	aiDstPath := filepath.Join(projectDir, ".ai")
+
+	// Try embedded first, fallback to filesystem
+	embeddedAiPath := fmt.Sprintf("templates/frameworks/%s/ai", framework)
+	if err := copyEmbeddedDirWithContext(templatesFS, embeddedAiPath, aiDstPath, projectName, projectDir, version); err != nil {
+		// Fallback to filesystem
+		aiSrcPath, pathErr := getFilesystemTemplateDir(framework, "ai")
+		if pathErr == nil {
+			if err := copyFilesystemDirWithContext(aiSrcPath, aiDstPath, projectName, projectDir, version); err != nil {
+				return fmt.Errorf("failed to copy AI context from filesystem: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to find AI context templates: embedded error: %v, filesystem error: %w", err, pathErr)
+		}
+	}
+
+	return nil
+}
+
+// getFilesystemAITemplatePath finds AI template files relative to the binary location
+func getFilesystemAITemplatePath(filename string) (string, error) {
+	// Get the path to the current executable
+	executable, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("failed to get executable path: %w", err)
+	}
+
+	// Get the directory containing the executable
+	execDir := filepath.Dir(executable)
+
+	// Look for templates in the same directory as the binary
+	templatePath := filepath.Join(execDir, "templates", "ai", "prompts", filename)
+	if utils.FileExists(templatePath) {
+		return templatePath, nil
+	}
+
+	// If not found, try looking in the parent directory (development mode)
+	parentTemplateDir := filepath.Join(filepath.Dir(execDir), "templates", "ai", "prompts", filename)
+	if utils.FileExists(parentTemplateDir) {
+		return parentTemplateDir, nil
+	}
+
+	// Try looking in the current working directory (fallback)
+	cwd, _ := os.Getwd()
+	cwdTemplateDir := filepath.Join(cwd, "templates", "ai", "prompts", filename)
+	if utils.FileExists(cwdTemplateDir) {
+		return cwdTemplateDir, nil
+	}
+
+	return "", fmt.Errorf("AI template file %s not found", filename)
 }

@@ -26,9 +26,9 @@ func (r *CommandRegistry) executeProjectCommand(ctx context.Context, projectName
 		return dockerCmd.Execute(ctx, append([]string{"down", projectName}, args...))
 
 	case "status":
-		// Execute status for this project
-		statusCmd := r.commands["status"]
-		return statusCmd.Execute(ctx, append([]string{projectName}, args...))
+		// Execute projects command for this project (replaces old status command)
+		projectsCmd := r.commands["projects"]
+		return projectsCmd.Execute(ctx, append([]string{projectName}, args...))
 
 	case "logs":
 		// Execute logs for this project
@@ -66,8 +66,34 @@ func (r *CommandRegistry) executeProjectCommand(ctx context.Context, projectName
 		// Open project or specific service in browser
 		return r.openProjectInBrowser(projectName, args)
 
+	case "audit":
+		// Execute audit for this project
+		auditCmd := r.commands["audit"]
+		
+		// Load registry to get project details
+		reg, err := registry.LoadRegistry()
+		if err != nil {
+			return fmt.Errorf("failed to load project registry: %w", err)
+		}
+
+		// Find the specified project
+		project, err := reg.FindProject(projectName)
+		if err != nil {
+			return fmt.Errorf("project '%s' not found in registry", projectName)
+		}
+
+		// Change to project directory temporarily
+		originalDir, _ := os.Getwd()
+		defer os.Chdir(originalDir)
+		
+		if err := os.Chdir(project.Path); err != nil {
+			return fmt.Errorf("failed to change to project directory: %w", err)
+		}
+
+		return auditCmd.Execute(ctx, args)
+
 	default:
-		return fmt.Errorf("unknown project command: %s. Available: up, down, status, logs, describe, shell, reconfigure, code, cd, delete, open", command)
+		return fmt.Errorf("unknown project command: %s. Available: up, down, status, logs, describe, shell, reconfigure, code, cd, delete, open, audit", command)
 	}
 }
 
