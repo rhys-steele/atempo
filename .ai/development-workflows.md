@@ -103,9 +103,14 @@ touch internal/app/commands/new_command.go
 ### Core Commands
 ```bash
 # Project scaffolding
-atempo create <framework>:<version>      # Create new project
-atempo create laravel:11                 # Create Laravel 11 project
-atempo create django:5.0                 # Create Django 5.0 project
+atempo create <framework>:<version> [project-name]      # Create new project
+atempo create laravel:11 my-app                        # Create Laravel 11 project in ./my-app/
+atempo create django:5.0 api-project                   # Create Django 5.0 project in ./api-project/
+
+# CRITICAL: Testing projects MUST use testing/ directory
+atempo create laravel testing/my-test-app               # ✅ CORRECT: Test project in testing/
+atempo create django testing/api-test                   # ✅ CORRECT: Test project in testing/
+atempo create laravel my-test-app                       # ❌ WRONG: Creates mess in root directory
 
 # Project management
 atempo projects                          # List all projects
@@ -185,45 +190,61 @@ go run cmd/atempo/main.go --help
 
 ## Testing Workflows
 
+### **CRITICAL: Testing Directory Convention**
+
+**ALL testing and experimental projects MUST be created in the `/testing` directory!**
+
+```bash
+# ✅ CORRECT: Always use testing/ directory for test projects
+./atempo create laravel testing/my-test-app
+./atempo create django testing/api-test
+./atempo create laravel testing/task-management-test
+
+# ❌ WRONG: Never create test projects in root directory
+./atempo create laravel my-test-app      # Creates pollution in root
+./atempo create django test-project     # Creates clutter
+```
+
 ### Manual Testing
 ```bash
-# Test complete workflow
-./atempo create laravel:11               # Create project
-cd laravel-project
-../atempo docker up                      # Start services
-../atempo status                         # Check status
-../atempo docker logs                    # View logs
-../atempo docker down                    # Stop services
+# Test complete workflow - ALWAYS use testing/ directory
+./atempo create laravel:11 testing/test-project    # Create project in testing/
+cd testing/test-project
+../../atempo docker up                              # Start services  
+../../atempo status                                 # Check status
+../../atempo docker logs                            # View logs
+../../atempo docker down                            # Stop services
 ```
 
 ### Testing New Features
 ```bash
-# Test AI features
-./atempo create laravel:11 --debug       # Debug mode
-./atempo create --interactive            # Interactive mode
+# Test AI features - ALWAYS use testing/ directory
+./atempo create laravel:11 testing/debug-test --debug       # Debug mode
+./atempo create testing/interactive-test --interactive      # Interactive mode
 
-# Test Docker integration
-./atempo docker up --timeout 300         # Custom timeout
-./atempo docker exec app bash           # Container access
+# Test Docker integration - use testing/ projects
+cd testing/debug-test
+../../atempo docker up --timeout 300         # Custom timeout
+../../atempo docker exec app bash           # Container access
 ```
 
 ### Template Testing
 ```bash
-# Test framework templates
-./atempo create laravel:11
-./atempo create django:5.0
+# Test framework templates - ALWAYS use testing/ directory
+./atempo create laravel:11 testing/laravel-template-test
+./atempo create django:5.0 testing/django-template-test
 
 # Verify generated files
-ls -la <project-directory>/
-docker-compose -f <project-directory>/docker-compose.yml config
+ls -la testing/laravel-template-test/
+docker-compose -f testing/laravel-template-test/docker-compose.yml config
 ```
 
 ## Debugging & Troubleshooting
 
 ### Debug Mode
 ```bash
-# Enable debug output
-./atempo create laravel:11 --debug
+# Enable debug output - use testing/ directory
+./atempo create laravel:11 testing/debug-project --debug
 
 # Check logs
 ls ~/.atempo/logs/

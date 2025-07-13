@@ -83,10 +83,31 @@ Template variables supported:
 
 ### Current CLI Usage
 ```bash
-atempo create <framework>:<version>
+atempo create <framework>:<version> [project-name]
 ```
 
-Example: `atempo create laravel:12`
+Examples:
+- `atempo create laravel:12 my-app` - Creates Laravel 12 project in ./my-app/
+- `atempo create django:5.0 testing/test-project` - Creates Django project in ./testing/test-project/
+
+## **CRITICAL: Testing Directory Convention**
+
+**ALL testing and experimental projects MUST be created in the `/testing` directory!**
+
+### Testing Project Requirements:
+- **ALWAYS use**: `atempo create <framework> testing/<project-name>`
+- **Examples**:
+  - `atempo create laravel testing/my-test-app`
+  - `atempo create django testing/api-test`
+  - `atempo create laravel testing/task-management-test`
+- **Never create test projects in the root directory**
+- **Never pollute the main workspace with temporary test projects**
+
+### Why This Matters:
+- Keeps the main repository clean and organized
+- Makes it easy to ignore all test projects with `.gitignore`
+- Prevents accidental commits of test code
+- Maintains clear separation between production code and experiments
 
 ### Planned Features (from README)
 - Docker integration (`atempo docker up`, `atempo docker bash`)

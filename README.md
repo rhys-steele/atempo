@@ -80,8 +80,12 @@ Atempo automatically configures:
 ### Create a new Laravel project
 
 ```bash
+# For production projects
 mkdir my-app && cd my-app
 atempo create laravel:12
+
+# For testing and experimentation
+atempo create laravel:12 testing/my-test-app
 ```
 
 This sets up:
@@ -94,6 +98,25 @@ my-app/
 ├── atempo.json         # Framework metadata
 └── README.md
 ```
+
+### **CRITICAL: Testing Directory Convention**
+
+**ALL testing and experimental projects MUST be created in the `/testing` directory!**
+
+```bash
+# ✅ CORRECT: Use testing/ directory for test projects
+atempo create laravel testing/my-test-app
+atempo create django testing/api-experiment
+
+# ❌ WRONG: Never create test projects in root directory
+atempo create laravel my-test-app       # Creates clutter
+```
+
+**Why this matters:**
+- Keeps the workspace clean and organized
+- Easy to ignore all test projects with `.gitignore`
+- Prevents accidental commits of test code
+- Clear separation between production and experimental work
 
 ## What Is Atempo?
 

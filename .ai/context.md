@@ -106,6 +106,16 @@ This structure is optimized for AI assistants by providing:
 2. Reliable DNS resolution and comprehensive testing
 3. Clear error messages and actionable user guidance
 4. Modern, elegant user experience without excessive decoration
+5. **CRITICAL: Always use `/testing` directory for test projects**
+
+## **CRITICAL: Testing Directory Convention**
+**ALL testing and experimental projects MUST be created in the `/testing` directory!**
+
+### Requirements:
+- **ALWAYS use**: `atempo create <framework> testing/<project-name>`
+- **Examples**: `atempo create laravel testing/my-test-app`, `atempo create django testing/api-test`
+- **Never create test projects in the root directory**
+- **This applies to ALL testing, debugging, and experimental work**
 
 ## Security Requirements
 - Never log or expose sensitive information
