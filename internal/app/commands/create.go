@@ -6,6 +6,7 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -102,7 +103,7 @@ func (c *CreateCommand) Execute(ctx context.Context, args []string) error {
 		}
 	}
 
-	// Initialize progress tracker (4 steps: AI Planning, Template Loading, Framework Installation, AI Context)
+	// Initialize progress tracker (5 steps: AI Planning, Template Loading, Framework Installation, AI Context, Git Init)
 	tracker := NewProgressTracker(4)
 
 	// Show initial project info
@@ -280,6 +281,12 @@ func (c *CreateCommand) runScaffoldWithAI(tracker *ProgressTracker, framework, v
 
 	tracker.CompleteStep("AI development context finalized")
 
+	// Step 5: Git initialization (optional)
+	if err := c.handleGitInitialization(projectName, projectDir); err != nil {
+		// Don't fail the entire process if git init fails, just warn
+		fmt.Printf("%s⚠️  Git initialization failed: %v%s\n", ColorYellow, err, ColorReset)
+	}
+
 	return nil
 }
 
@@ -299,5 +306,68 @@ func createDefaultIntent(framework, version, projectName string) *ProjectIntent 
 			"security": "Implement proper authentication and validation",
 		},
 	}
+}
+
+// handleGitInitialization prompts user and initializes git repository if desired
+func (c *CreateCommand) handleGitInitialization(projectName, projectDir string) error {
+	// Check if we're already in a git repository
+	if isInGitRepo(projectDir) {
+		fmt.Printf("\n%s📁 Already in a git repository, skipping git initialization%s\n", ColorBlue, ColorReset)
+		return nil
+	}
+
+	// Interactive prompt for git initialization
+	fmt.Printf("\n%s📝 Initialize git repository? [Y/n]: %s", ColorCyan, ColorReset)
+	
+	scanner := bufio.NewScanner(os.Stdin)
+	var response string
+	if scanner.Scan() {
+		response = strings.TrimSpace(strings.ToLower(scanner.Text()))
+	}
+	
+	// Default to "yes" if empty response
+	if response == "" || response == "y" || response == "yes" {
+		return initializeGitRepo(projectName, projectDir)
+	}
+	
+	fmt.Printf("%s📁 Skipping git initialization%s\n", ColorGray, ColorReset)
+	return nil
+}
+
+// isInGitRepo checks if the current directory is already in a git repository
+func isInGitRepo(projectDir string) bool {
+	cmd := exec.Command("git", "rev-parse", "--git-dir")
+	cmd.Dir = projectDir
+	err := cmd.Run()
+	return err == nil
+}
+
+// initializeGitRepo creates a git repository and makes the initial commit
+func initializeGitRepo(projectName, projectDir string) error {
+	// Initialize git repository
+	fmt.Printf("%s📁 Initializing git repository...%s\n", ColorBlue, ColorReset)
+	initCmd := exec.Command("git", "init")
+	initCmd.Dir = projectDir
+	if err := initCmd.Run(); err != nil {
+		return fmt.Errorf("failed to initialize git repository: %w", err)
+	}
+
+	// Add all files
+	addCmd := exec.Command("git", "add", ".")
+	addCmd.Dir = projectDir
+	if err := addCmd.Run(); err != nil {
+		return fmt.Errorf("failed to add files to git: %w", err)
+	}
+
+	// Create initial commit
+	commitMsg := fmt.Sprintf("feat: initialize %s project with atempo\n\n🤖 Generated with [Atempo](https://github.com/atempo-ai/atempo)\n\nCo-Authored-By: Atempo <noreply@atempo.ai>", projectName)
+	commitCmd := exec.Command("git", "commit", "-m", commitMsg)
+	commitCmd.Dir = projectDir
+	if err := commitCmd.Run(); err != nil {
+		return fmt.Errorf("failed to create initial commit: %w", err)
+	}
+
+	fmt.Printf("%s✓ Git repository initialized with initial commit%s\n", ColorGreen, ColorReset)
+	return nil
 }
 
