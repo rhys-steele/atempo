@@ -1,0 +1,79 @@
+{
+  "name": "{{project}}",
+  "framework": "express",
+  "language": "javascript",
+  "installer": {
+    "type": "docker",
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "-v",
+      "{{cwd}}:/workspace",
+      "-w",
+      "/workspace/src",
+      "node:18-alpine",
+      "sh",
+      "-c",
+      "mkdir -p /workspace/src && cd /workspace/src && npm init -y && npm install express@^4.18.0 cors helmet morgan dotenv compression express-rate-limit && npm install --save-dev nodemon jest supertest eslint prettier"
+    ],
+    "work-dir": "{{cwd}}"
+  },
+  "working-dir": "/app",
+  "min-version": "4.18.0",
+  "services": {
+    "app": {
+      "type": "build",
+      "dockerfile": "infra/docker/Dockerfile",
+      "working_dir": "/app",
+      "volumes": ["./src:/app"],
+      "ports": ["3000:3000"],
+      "environment": {
+        "NODE_ENV": "development",
+        "PORT": "3000",
+        "REDIS_URL": "redis://redis:6379",
+        "MONGODB_URL": "mongodb://mongo:27017/{{project}}"
+      },
+      "depends_on": ["redis", "mongo"]
+    },
+    "redis": {
+      "type": "image",
+      "image": "redis:7-alpine",
+      "ports": ["6379:6379"],
+      "volumes": ["redis_data:/data"]
+    },
+    "mongo": {
+      "type": "image",
+      "image": "mongo:6",
+      "ports": ["27017:27017"],
+      "environment": {
+        "MONGO_INITDB_DATABASE": "{{project}}"
+      },
+      "volumes": ["mongo_data:/data/db"]
+    },
+    "mailhog": {
+      "type": "image",
+      "image": "mailhog/mailhog",
+      "ports": ["1025:1025", "8025:8025"]
+    }
+  },
+  "volumes": {
+    "redis_data": {
+      "driver": "local"
+    },
+    "mongo_data": {
+      "driver": "local"
+    }
+  },
+  "networks": {
+    "express": {
+      "driver": "bridge"
+    }
+  },
+  "post_install": [
+    "Copy AI context and Docker configuration to project",
+    "Create basic Express.js application structure",
+    "Set up package.json scripts for development",
+    "Initialize basic routing and middleware"
+  ]
+}

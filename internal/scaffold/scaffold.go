@@ -180,6 +180,8 @@ func validateVersion(requestedVersion string, meta Metadata) error {
 		return validateLaravelVersion(requestedVersion)
 	case "django":
 		return validateDjangoVersion(requestedVersion)
+	case "express":
+		return validateExpressVersion(requestedVersion)
 	}
 
 	return nil
@@ -212,6 +214,22 @@ func validateDjangoVersion(version string) error {
 
 	if majorVersion > 6 {
 		return fmt.Errorf("Django version %s is not yet supported (maximum: 6.x)", version)
+	}
+
+	return nil
+}
+
+// validateExpressVersion checks Express.js-specific version constraints
+func validateExpressVersion(version string) error {
+	// Express.js version constraints - Express v4.x is stable and widely used
+	majorVersion := utils.ParseVersionPart(strings.Split(version, ".")[0])
+
+	if majorVersion < 4 {
+		return fmt.Errorf("Express.js version %s is too old (minimum supported: 4.0)", version)
+	}
+
+	if majorVersion > 5 {
+		return fmt.Errorf("Express.js version %s is not yet supported (maximum: 5.x)", version)
 	}
 
 	return nil
@@ -365,6 +383,32 @@ func copyTemplateFiles(log *logger.Logger, step *logger.Step, projectDir, projec
 		}
 	}
 
+	// Copy Express.js-specific template files
+	if framework == "express" {
+		expressFiles := map[string]string{
+			"server.js":     "server.js",
+			".env.example":  ".env.example",
+		}
+
+		for templateFile, dstFile := range expressFiles {
+			dstPath := filepath.Join(projectDir, dstFile)
+
+			// Try embedded first, fallback to filesystem
+			embeddedPath := fmt.Sprintf("templates/frameworks/%s/%s", framework, templateFile)
+			if err := copyEmbeddedFileWithContext(templatesFS, embeddedPath, dstPath, projectName, projectDir, version); err != nil {
+				// Fallback to filesystem
+				srcPath, pathErr := getFilesystemTemplatePath(framework, templateFile)
+				if pathErr == nil {
+					if err := copyFilesystemFileWithContext(srcPath, dstPath, projectName, projectDir, version); err != nil {
+						log.WarningStep(step, fmt.Sprintf("Failed to copy %s: %v", templateFile, err))
+					}
+				} else {
+					log.WarningStep(step, fmt.Sprintf("Failed to find %s template: %v", templateFile, pathErr))
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -471,6 +515,11 @@ func runPostInstall(log *logger.Logger, step *logger.Step, meta Metadata, projec
 	// Set up Django environment
 	if meta.Framework == "django" {
 		return setupDjango(log, step, projectDir, version)
+	}
+
+	// Set up Express.js environment
+	if meta.Framework == "express" {
+		return setupExpress(log, step, projectDir)
 	}
 
 	return nil
@@ -628,6 +677,122 @@ func runDjangoSetup(log *logger.Logger, step *logger.Step, projectDir string) er
 	}
 
 	return nil
+}
+
+// setupExpress performs Express.js-specific post-installation setup
+func setupExpress(log *logger.Logger, step *logger.Step, projectDir string) error {
+	srcDir := filepath.Join(projectDir, "src")
+
+	// Copy template files to src directory
+	templateFiles := map[string]string{
+		"server.js":     filepath.Join(srcDir, "server.js"),
+		".env.example":  filepath.Join(srcDir, ".env.example"),
+	}
+
+	projectName := filepath.Base(projectDir)
+
+	for templateFile, dstPath := range templateFiles {
+		srcPath := filepath.Join(projectDir, templateFile)
+		if utils.FileExists(srcPath) {
+			// Process template variables
+			content, err := os.ReadFile(srcPath)
+			if err != nil {
+				log.WarningStep(step, fmt.Sprintf("Failed to read %s: %v", templateFile, err))
+				continue
+			}
+
+			processedContent := processTemplateContent(string(content), projectName, projectDir, "")
+			
+			if err := os.WriteFile(dstPath, []byte(processedContent), 0644); err != nil {
+				log.WarningStep(step, fmt.Sprintf("Failed to copy %s: %v", templateFile, err))
+				continue
+			}
+
+			// Remove the template file from project root
+			os.Remove(srcPath)
+		}
+	}
+
+	// Copy .env.example to .env if it doesn't exist
+	envExample := filepath.Join(srcDir, ".env.example")
+	envFile := filepath.Join(srcDir, ".env")
+
+	if utils.FileExists(envExample) && !utils.FileExists(envFile) {
+		if err := utils.CopyFile(envExample, envFile); err != nil {
+			return fmt.Errorf("failed to create .env file: %w", err)
+		}
+	}
+
+	// Update package.json with proper scripts and metadata
+	if err := updateExpressPackageJson(srcDir, projectName); err != nil {
+		log.WarningStep(step, fmt.Sprintf("Failed to update package.json: %v", err))
+	}
+
+	// Check if Docker is available and start services
+	if err := startDockerServices(log, step, projectDir); err != nil {
+		log.WarningStep(step, "Docker not available or failed to start services - run 'docker-compose up -d' manually")
+		return nil // Don't fail the entire setup if Docker isn't available
+	}
+
+	return nil
+}
+
+// updateExpressPackageJson updates the generated package.json with proper Express.js configuration
+func updateExpressPackageJson(srcDir, projectName string) error {
+	packageJsonPath := filepath.Join(srcDir, "package.json")
+	
+	if !utils.FileExists(packageJsonPath) {
+		return fmt.Errorf("package.json not found")
+	}
+
+	// Read current package.json
+	content, err := os.ReadFile(packageJsonPath)
+	if err != nil {
+		return err
+	}
+
+	// Parse JSON
+	var pkg map[string]interface{}
+	if err := json.Unmarshal(content, &pkg); err != nil {
+		return err
+	}
+
+	// Update package.json fields
+	pkg["name"] = projectName
+	pkg["description"] = "Express.js API service created with Atempo"
+	pkg["main"] = "server.js"
+	pkg["license"] = "MIT"
+	
+	// Update scripts
+	scripts := map[string]interface{}{
+		"start":        "node server.js",
+		"dev":          "nodemon server.js",
+		"test":         "jest",
+		"test:watch":   "jest --watch",
+		"test:coverage": "jest --coverage",
+		"lint":         "eslint .",
+		"lint:fix":     "eslint . --fix",
+		"format":       "prettier --write .",
+		"format:check": "prettier --check .",
+	}
+	pkg["scripts"] = scripts
+
+	// Add keywords
+	pkg["keywords"] = []string{"express", "api", "nodejs", "rest", "atempo"}
+
+	// Add engines
+	engines := map[string]interface{}{
+		"node": ">=18.0.0",
+	}
+	pkg["engines"] = engines
+
+	// Write updated package.json
+	updatedContent, err := json.MarshalIndent(pkg, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(packageJsonPath, updatedContent, 0644)
 }
 
 // processTemplateContent processes template variables in content

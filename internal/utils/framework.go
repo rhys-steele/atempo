@@ -78,8 +78,8 @@ func NewFrameworkDetector() *FrameworkDetector {
 			"express": {
 				Name:            "Express",
 				Language:        "javascript",
-				LatestVersion:   "4",
-				SupportedVersions: []string{"4"},
+				LatestVersion:   "4.18.0",
+				SupportedVersions: []string{"4.18.0", "4.19.0", "5.0.0"},
 				ConfigFiles:     []string{"package.json"},
 				DetectionFiles:  []string{"package.json", "app.js", "server.js"},
 			},

@@ -1,0 +1,139 @@
+{
+  "framework": "express",
+  "language": "JavaScript",
+  "latest_version": "4.18.0",
+  "ai_features": {
+    "default_project_types": ["REST API", "Web Service", "Microservice", "GraphQL API"],
+    "core_features": [
+      "Express Router",
+      "Middleware System", 
+      "HTTP Request/Response Handling",
+      "Template Engines (EJS, Handlebars)",
+      "Static File Serving",
+      "Error Handling Middleware"
+    ],
+    "architecture_patterns": {
+      "mvc_pattern": "Follow Express MVC with Controllers handling routes, Models for data, Views for templates",
+      "middleware_pattern": "Use middleware for cross-cutting concerns like authentication, logging, validation",
+      "router_pattern": "Use Express Router to organize routes into modules",
+      "service_layer": "Use Service classes for business logic to keep routes thin",
+      "validation": "Utilize express-validator or joi for input validation"
+    },
+    "framework_patterns_template": "\n**Express.js Patterns:**\n- Routes: Handle HTTP requests with Express Router\n- Controllers: Business logic and request/response handling\n- Middleware: Cross-cutting concerns (auth, logging, validation)\n- Services: Complex business operations and external integrations\n- Models: Data structure and database interaction (with ODM/ORM)\n- Utils: Helper functions and utilities\n- Config: Application configuration and environment setup\n",
+    "technical_stack": [
+      "Database (MongoDB/PostgreSQL/MySQL)",
+      "Redis (caching/sessions)",
+      "Authentication (JWT/Passport)",
+      "File Upload (Multer)",
+      "Mail Service (Nodemailer)"
+    ],
+    "project_analysis_keywords": {
+      "api": "REST API",
+      "crud": "CRUD API", 
+      "graphql": "GraphQL API",
+      "microservice": "Microservice",
+      "realtime": "Real-time API with Socket.io",
+      "auth": "Authentication Service"
+    }
+  },
+  "development_context": {
+    "package_manager": "npm",
+    "structure": {
+      "source_root": "src/",
+      "routes_dir": "src/routes/",
+      "controllers_dir": "src/controllers/",
+      "middleware_dir": "src/middleware/",
+      "models_dir": "src/models/",
+      "services_dir": "src/services/",
+      "utils_dir": "src/utils/",
+      "config_dir": "src/config/",
+      "tests_dir": "src/tests/"
+    },
+    "commands": {
+      "install_dependencies": "npm install",
+      "start_dev": "npm run dev",
+      "start_production": "npm start",
+      "run_tests": "npm test",
+      "lint": "npm run lint",
+      "format": "npm run format"
+    },
+    "docker": {
+      "app_container": "app",
+      "database_container": "mongo",
+      "redis_container": "redis",
+      "working_directory": "/app"
+    },
+    "patterns": {
+      "routes": [
+        "Use Express Router for modular route organization",
+        "Keep routes thin - delegate to controllers",
+        "Use middleware for common functionality",
+        "Follow RESTful conventions for API endpoints"
+      ],
+      "controllers": [
+        "Controllers handle request/response logic",
+        "Use async/await for asynchronous operations",
+        "Implement proper error handling with try-catch",
+        "Return consistent JSON responses"
+      ],
+      "middleware": [
+        "Use middleware for cross-cutting concerns",
+        "Implement error handling middleware as last middleware",
+        "Use third-party middleware (helmet, cors, compression)",
+        "Create custom middleware for app-specific logic"
+      ],
+      "models": [
+        "Use Mongoose for MongoDB or Sequelize for SQL",
+        "Define schema validation and constraints",
+        "Use model methods for data operations",
+        "Implement proper relationships between models"
+      ]
+    },
+    "best_practices": [
+      "Use environment variables for configuration",
+      "Implement proper error handling and logging",
+      "Use helmet for security headers",
+      "Implement rate limiting for APIs",
+      "Use compression middleware for performance",
+      "Validate all input data",
+      "Use HTTPS in production",
+      "Implement proper authentication and authorization",
+      "Write comprehensive tests for your APIs"
+    ],
+    "environment": {
+      "required_env_vars": [
+        "NODE_ENV", "PORT", "MONGODB_URL", "REDIS_URL", "JWT_SECRET"
+      ],
+      "development_tools": [
+        "Nodemon (auto-restart)",
+        "Jest (testing)",
+        "ESLint (linting)",
+        "Prettier (formatting)",
+        "Postman (API testing)"
+      ]
+    },
+    "troubleshooting": {
+      "port_issues": "Check if port is already in use: lsof -i :3000",
+      "module_issues": "Clear node_modules and reinstall: rm -rf node_modules && npm install",
+      "database_connection": "Check MongoDB/Redis connection strings in .env",
+      "permission_issues": "Ensure proper file permissions for log files and uploads"
+    },
+    "code_templates": {
+      "controller": "const asyncHandler = (fn) => (req, res, next) => {\n  Promise.resolve(fn(req, res, next)).catch(next);\n};\n\nconst {functionName} = asyncHandler(async (req, res) => {\n  // Implementation here\n  res.json({ success: true, data: {} });\n});",
+      "middleware": "const {middlewareName} = (req, res, next) => {\n  try {\n    // Middleware logic here\n    next();\n  } catch (error) {\n    next(error);\n  }\n};",
+      "route": "const express = require('express');\nconst router = express.Router();\nconst { {controllerName} } = require('../controllers/{controllerFile}');\n\nrouter.get('/', {controllerName});\nrouter.post('/', {controllerName});\n\nmodule.exports = router;"
+    }
+  },
+  "mcp_config": {
+    "servers": {
+      "atempo-express": {
+        "command": "node",
+        "args": ["ai/mcp-server/index.js"],
+        "cwd": ".",
+        "env": {
+          "NODE_ENV": "development"
+        }
+      }
+    }
+  }
+}
