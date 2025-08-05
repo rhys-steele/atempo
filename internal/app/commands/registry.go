@@ -28,6 +28,7 @@ func NewCommandRegistry(templatesFS, mcpServersFS embed.FS) *CommandRegistry {
 	registry.register(NewCreateCommand(ctx, templatesFS, mcpServersFS))
 	registry.register(NewAuthCommand(ctx)) // Deprecated - shows migration notice
 	registry.register(NewAICommand())
+	registry.register(NewCICommand(ctx, templatesFS))
 	registry.register(NewDockerCommand(ctx))
 	registry.register(NewProjectsCommand(ctx))
 	registry.register(NewReconfigureCommand(ctx))
@@ -105,7 +106,7 @@ Commands:`)
 
 	// Display commands in a logical order
 	commandOrder := []string{
-		"create", "ai", "projects", "describe", "docker", "dns", "ssl",
+		"create", "ai", "ci", "projects", "describe", "docker", "dns", "ssl",
 		"reconfigure", "add-service", "remove", "logs", "stop", "test", "audit", "reset",
 	}
 

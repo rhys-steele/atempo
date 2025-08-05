@@ -12,6 +12,20 @@ import (
 	"atempo/internal/utils"
 )
 
+// Forward declaration to avoid circular imports
+type CIConfig struct {
+	Provider      string                 `json:"provider"`
+	Framework     string                 `json:"framework"`
+	ProjectName   string                 `json:"project_name"`
+	ProjectPath   string                 `json:"project_path"`
+	RepoURL       string                 `json:"repo_url"`
+	Settings      map[string]interface{} `json:"settings"`
+	CreatedAt     time.Time              `json:"created_at"`
+	UpdatedAt     time.Time              `json:"updated_at"`
+	LastRunAt     *time.Time             `json:"last_run_at,omitempty"`
+	LastRunStatus string                 `json:"last_run_status,omitempty"`
+}
+
 // Project represents a registered Atempo project
 type Project struct {
 	Name         string    `json:"name"`
@@ -28,6 +42,10 @@ type Project struct {
 	GitBranch string    `json:"git_branch,omitempty"`
 	GitStatus string    `json:"git_status,omitempty"`
 	Services  []Service `json:"services"`
+
+	// CI/CD configuration (optional)
+	CIConfig *CIConfig `json:"ci_config,omitempty"` // CI configuration
+	CIStatus string    `json:"ci_status,omitempty"` // enabled, disabled, error
 }
 
 // Port represents a port mapping for a service
@@ -392,14 +410,14 @@ func (r *Registry) checkProjectHealth(projectPath string) (string, []Service, []
 									// Try to generate DNS URL first
 									projectName := filepath.Base(projectPath)
 									dnsURL := r.generateDNSURL(projectName, serviceName)
-									
+
 									var url string
 									if dnsURL != "" {
 										url = dnsURL
 									} else {
 										url = fmt.Sprintf("http://localhost:%d", int(publishedPort))
 									}
-									
+
 									urls = append(urls, url)
 
 									// Update service with URL
@@ -533,21 +551,21 @@ func (r *Registry) generateDNSURL(projectName, serviceName string) string {
 	if err != nil {
 		return ""
 	}
-	
+
 	dnsConfigPath := filepath.Join(homeDir, ".atempo", "dns", "projects", fmt.Sprintf("%s.dns", projectName))
-	
+
 	// Check if DNS config exists
 	if _, err := os.Stat(dnsConfigPath); os.IsNotExist(err) {
 		return ""
 	}
-	
+
 	// Check if SSL certificates are available
 	sslCertPath := filepath.Join(homeDir, ".atempo", "ssl", "certs", "wildcard.crt")
 	hasSSL := false
 	if _, err := os.Stat(sslCertPath); err == nil {
 		hasSSL = true
 	}
-	
+
 	// Generate DNS URL based on service name
 	var scheme string
 	if hasSSL {
@@ -555,7 +573,7 @@ func (r *Registry) generateDNSURL(projectName, serviceName string) string {
 	} else {
 		scheme = "http"
 	}
-	
+
 	if serviceName == "app" || serviceName == "webserver" {
 		return fmt.Sprintf("%s://%s.test", scheme, projectName)
 	} else {

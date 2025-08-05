@@ -92,8 +92,12 @@ func (r *CommandRegistry) executeProjectCommand(ctx context.Context, projectName
 
 		return auditCmd.Execute(ctx, args)
 
+	case "ci":
+		// Execute CI command for this project
+		return r.executeCICommand(ctx, projectName, args)
+
 	default:
-		return fmt.Errorf("unknown project command: %s. Available: up, down, status, logs, describe, shell, reconfigure, code, cd, delete, open, audit", command)
+		return fmt.Errorf("unknown project command: %s. Available: up, down, status, logs, describe, shell, reconfigure, code, cd, delete, open, audit, ci", command)
 	}
 }
 
@@ -202,4 +206,37 @@ func (r *CommandRegistry) deleteProject(projectName string) error {
 	ShowSuccess(fmt.Sprintf("Project '%s' deleted successfully!", projectName), "Files moved to Trash, removed from registry")
 
 	return nil
+}
+
+// executeCICommand handles CI commands for a specific project
+func (r *CommandRegistry) executeCICommand(ctx context.Context, projectName string, args []string) error {
+	// Load registry to get project details
+	reg, err := registry.LoadRegistry()
+	if err != nil {
+		return fmt.Errorf("failed to load project registry: %w", err)
+	}
+
+	// Find the specified project
+	project, err := reg.FindProject(projectName)
+	if err != nil {
+		return fmt.Errorf("project '%s' not found in registry", projectName)
+	}
+
+	// Change to project directory temporarily for CI operations
+	originalDir, _ := os.Getwd()
+	defer os.Chdir(originalDir)
+	
+	if err := os.Chdir(project.Path); err != nil {
+		return fmt.Errorf("failed to change to project directory: %w", err)
+	}
+
+	// Execute CI command with project context
+	ciCmd := r.commands["ci"]
+	
+	// For CI status command, pass the project name as first argument
+	if len(args) > 0 && args[0] == "status" {
+		return ciCmd.Execute(ctx, append([]string{"status", projectName}, args[1:]...))
+	}
+	
+	return ciCmd.Execute(ctx, args)
 }
