@@ -1,0 +1,90 @@
+name: {{.WorkflowName}}
+
+on:
+  {{range .Triggers}}
+  {{if eq . "push"}}push:
+    branches: [{{range $.Branches}}"{{.}}"{{if ne . (index $.Branches (sub (len $.Branches) 1))}}, {{end}}{{end}}]{{end}}
+  {{if eq . "pull_request"}}pull_request:
+    branches: [{{range $.Branches}}"{{.}}"{{if ne . (index $.Branches (sub (len $.Branches) 1))}}, {{end}}{{end}}]{{end}}
+  {{if eq . "schedule"}}schedule:
+    - cron: '0 2 * * *'{{end}}
+  {{if eq . "workflow_dispatch"}}workflow_dispatch:{{end}}
+  {{end}}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: {{.Timeout}}
+    
+    services:
+      {{range .Services}}
+      {{if eq . "postgres"}}postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5{{end}}
+      {{if eq . "redis"}}redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=5{{end}}
+      {{end}}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '{{.PythonVersion}}'
+      
+      {{range .CachePaths}}
+      - name: Cache {{.}}
+        uses: actions/cache@v3
+        with:
+          path: {{.}}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      {{end}}
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Set Environment Variables
+        run: |
+          {{range $key, $value := .Environment}}
+          echo "{{$key}}={{$value}}" >> $GITHUB_ENV
+          {{end}}
+      
+      - name: Run migrations
+        run: python manage.py migrate
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+      
+      - name: Run tests
+        run: |
+          python manage.py test --verbosity=2
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+      
+      - name: Generate coverage report
+        run: |
+          pip install coverage
+          coverage run --source='.' manage.py test
+          coverage xml
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+      
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella

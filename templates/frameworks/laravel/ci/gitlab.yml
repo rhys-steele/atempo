@@ -1,0 +1,58 @@
+image: {{.Image}}
+
+variables:
+  {{range $key, $value := .Variables}}
+  {{$key}}: "{{$value}}"
+  {{end}}
+
+services:
+  {{range .Services}}
+  - {{.}}
+  {{end}}
+
+stages:
+  {{range .Stages}}
+  - {{.}}
+  {{end}}
+
+cache:
+  paths:
+    {{range .CachePaths}}
+    - {{.}}
+    {{end}}
+
+before_script:
+  {{range .BeforeScript}}
+  - {{.}}
+  {{end}}
+
+build:
+  stage: build
+  script:
+    - {{.BuildCommand}}
+  artifacts:
+    paths:
+      - vendor/
+    expire_in: 1 hour
+
+test:
+  stage: test
+  dependencies:
+    - build
+  script:
+    - cp .env.example .env
+    - php artisan key:generate
+    - php artisan config:cache
+    - {{.TestCommand}}
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    paths:
+      {{range .ArtifactPaths}}
+      - {{.}}
+      {{end}}
+    expire_in: 1 week
+    when: always
+  coverage: '/^\s*Lines:\s*\d+.\d+\%/'

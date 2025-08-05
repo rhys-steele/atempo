@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"atempo/internal/ci/providers"
 	"atempo/internal/registry"
 	"atempo/internal/utils"
 )
@@ -15,8 +16,9 @@ import (
 // CICommand handles CI/CD operations for projects
 type CICommand struct {
 	*BaseCommand
-	registry    *registry.Registry
-	templatesFS embed.FS
+	registry         *registry.Registry
+	providerRegistry *providers.ProviderRegistry
+	templatesFS      embed.FS
 }
 
 // NewCICommand creates a new CI command
@@ -28,7 +30,8 @@ func NewCICommand(ctx *CommandContext, templatesFS embed.FS) *CICommand {
 			"ci <subcommand> [options]",
 			ctx,
 		),
-		templatesFS: templatesFS,
+		providerRegistry: providers.NewProviderRegistry(nil), // No logger for now
+		templatesFS:      templatesFS,
 	}
 }
 
@@ -52,6 +55,8 @@ func (c *CICommand) Execute(ctx context.Context, args []string) error {
 		return c.executeStatus(ctx, subArgs)
 	case "remove":
 		return c.executeRemove(ctx, subArgs)
+	case "providers":
+		return c.executeProviders(ctx, subArgs)
 	default:
 		return fmt.Errorf("unknown CI subcommand: %s", subcommand)
 	}
@@ -65,6 +70,7 @@ func (c *CICommand) showUsage() error {
   ci validate  Validate CI configuration files
   ci status    Show CI configuration status
   ci remove    Remove CI configuration
+  ci providers List available CI providers
 
 Usage:
   atempo ci <command> [options]
@@ -76,6 +82,7 @@ Examples:
   my-app ci run                     # Run CI pipeline locally
   my-app ci validate                # Validate CI configuration
   my-app ci status                  # Show CI status
+  atempo ci providers               # List available providers
 `)
 	return nil
 }
@@ -183,5 +190,42 @@ func (c *CICommand) executeRemove(ctx context.Context, args []string) error {
 	// For now, return a placeholder implementation
 	fmt.Println("CI removal is not yet implemented")
 	fmt.Println("This feature will be available in a future release")
+	return nil
+}
+
+// executeProviders lists available CI providers and their supported frameworks
+func (c *CICommand) executeProviders(ctx context.Context, args []string) error {
+	fmt.Printf("Available CI Providers\n")
+	fmt.Printf("─────────────────────\n\n")
+
+	providers := c.providerRegistry.List()
+	for _, providerName := range providers {
+		provider, err := c.providerRegistry.Get(providerName)
+		if err != nil {
+			continue
+		}
+
+		fmt.Printf("✓ %s\n", string(providerName))
+		
+		frameworks := provider.SupportedFrameworks()
+		fmt.Printf("  Supported frameworks: %s\n", strings.Join(frameworks, ", "))
+		
+		if len(args) > 0 && args[0] == "detailed" {
+			// Show detailed info for each framework
+			for _, framework := range frameworks {
+				defaults := provider.GetDefaultSettings(framework)
+				fmt.Printf("    %s defaults:\n", framework)
+				for key, value := range defaults {
+					fmt.Printf("      %s: %v\n", key, value)
+				}
+			}
+		}
+		fmt.Println()
+	}
+
+	if len(args) == 0 {
+		fmt.Printf("Use 'atempo ci providers detailed' for detailed framework settings\n")
+	}
+
 	return nil
 }

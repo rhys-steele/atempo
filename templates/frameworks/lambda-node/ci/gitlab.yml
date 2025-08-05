@@ -1,0 +1,73 @@
+image: {{.Image}}
+
+variables:
+  {{range $key, $value := .Variables}}
+  {{$key}}: "{{$value}}"
+  {{end}}
+
+services:
+  {{range .Services}}
+  - {{.}}
+  {{end}}
+
+stages:
+  {{range .Stages}}
+  - {{.}}
+  {{end}}
+
+cache:
+  paths:
+    {{range .CachePaths}}
+    - {{.}}
+    {{end}}
+
+before_script:
+  {{range .BeforeScript}}
+  - {{.}}
+  {{end}}
+
+build:
+  stage: build
+  script:
+    - {{.BuildCommand}}
+    - npm run build --if-present
+  artifacts:
+    paths:
+      - node_modules/
+      - dist/
+    expire_in: 1 hour
+
+test:
+  stage: test
+  dependencies:
+    - build
+  script:
+    - npm run lint --if-present
+    - {{.TestCommand}}
+    - npm run test:integration --if-present
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    paths:
+      {{range .ArtifactPaths}}
+      - {{.}}
+      {{end}}
+    expire_in: 1 week
+    when: always
+  coverage: '/Lines\s*:\s*(\d+.\d+)%/'
+
+package:
+  stage: build
+  dependencies:
+    - build
+  script:
+    - zip -r lambda-package.zip . -x "*.git*" "node_modules/.cache/*" "tests/*" "*.md" ".gitlab-ci.yml"
+  artifacts:
+    paths:
+      - lambda-package.zip
+    expire_in: 1 week
+  only:
+    - main
+    - develop

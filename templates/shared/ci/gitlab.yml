@@ -1,0 +1,40 @@
+image: ubuntu:20.04
+
+variables:
+  {{range $key, $value := .Variables}}
+  {{$key}}: "{{$value}}"
+  {{end}}
+
+services:
+  {{range .Services}}
+  - {{.}}
+  {{end}}
+
+stages:
+  {{range .Stages}}
+  - {{.}}
+  {{end}}
+
+cache:
+  paths:
+    {{range .CachePaths}}
+    - {{.}}
+    {{end}}
+
+before_script:
+  {{range .BeforeScript}}
+  - {{.}}
+  {{end}}
+  - echo "Setting up basic CI environment"
+
+build:
+  stage: build
+  script:
+    - echo "Add your build commands here"
+    - echo "Example: npm install, pip install -r requirements.txt, etc."
+
+test:
+  stage: test
+  script:
+    - echo "Add your test commands here"
+    - echo "Example: npm test, pytest, make test, etc."

@@ -1,0 +1,88 @@
+name: {{.WorkflowName}}
+
+on:
+  {{range .Triggers}}
+  {{if eq . "push"}}push:
+    branches: [{{range $.Branches}}"{{.}}", {{end}}]{{end}}
+  {{if eq . "pull_request"}}pull_request:
+    branches: [{{range $.Branches}}"{{.}}", {{end}}]{{end}}
+  {{if eq . "schedule"}}schedule:
+    - cron: '0 2 * * *'{{end}}
+  {{if eq . "workflow_dispatch"}}workflow_dispatch:{{end}}
+  {{end}}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: {{.Timeout}}
+    
+    services:
+      {{range .Services}}
+      {{if eq . "mysql"}}mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports: 
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=3{{end}}
+      {{if eq . "redis"}}redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=5{{end}}
+      {{end}}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '{{.PHPVersion}}'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: xdebug
+      
+      {{range .CachePaths}}
+      - name: Cache {{.}}
+        uses: actions/cache@v3
+        with:
+          path: {{.}}
+          key: ${{ runner.os }}-{{.}}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-{{.}}-
+      {{end}}
+      
+      - name: Install Dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+      
+      - name: Copy Environment File
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+      
+      - name: Generate Application Key
+        run: php artisan key:generate
+      
+      - name: Set Environment Variables
+        run: |
+          {{range $key, $value := .Environment}}
+          echo "{{$key}}={{$value}}" >> $GITHUB_ENV
+          {{end}}
+      
+      - name: Create Database
+        run: |
+          mkdir -p database
+          touch database/database.sqlite
+      
+      - name: Execute tests (Unit and Feature tests) via PHPUnit
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+        run: vendor/bin/phpunit --coverage-clover coverage.xml
+      
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella

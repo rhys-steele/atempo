@@ -1,0 +1,38 @@
+name: {{.WorkflowName}}
+
+on:
+  {{range .Triggers}}
+  {{if eq . "push"}}push:
+    branches: [{{range $.Branches}}"{{.}}"{{if ne . (index $.Branches (sub (len $.Branches) 1))}}, {{end}}{{end}}]{{end}}
+  {{if eq . "pull_request"}}pull_request:
+    branches: [{{range $.Branches}}"{{.}}"{{if ne . (index $.Branches (sub (len $.Branches) 1))}}, {{end}}{{end}}]{{end}}
+  {{if eq . "schedule"}}schedule:
+    - cron: '0 2 * * *'{{end}}
+  {{if eq . "workflow_dispatch"}}workflow_dispatch:{{end}}
+  {{end}}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: {{.Timeout}}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup environment
+        run: |
+          echo "Setting up basic CI environment"
+          {{range $key, $value := .Environment}}
+          echo "{{$key}}={{$value}}" >> $GITHUB_ENV
+          {{end}}
+      
+      - name: Run tests
+        run: |
+          echo "Add your test commands here"
+          echo "Example: npm test, pytest, make test, etc."
+      
+      - name: Build project
+        run: |
+          echo "Add your build commands here"
+          echo "Example: npm run build, make build, etc."

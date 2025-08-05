@@ -1,0 +1,89 @@
+name: {{.WorkflowName}}
+
+on:
+  {{range .Triggers}}
+  {{if eq . "push"}}push:
+    branches: [{{range $.Branches}}"{{.}}"{{if ne . (index $.Branches (sub (len $.Branches) 1))}}, {{end}}{{end}}]{{end}}
+  {{if eq . "pull_request"}}pull_request:
+    branches: [{{range $.Branches}}"{{.}}"{{if ne . (index $.Branches (sub (len $.Branches) 1))}}, {{end}}{{end}}]{{end}}
+  {{if eq . "schedule"}}schedule:
+    - cron: '0 2 * * *'{{end}}
+  {{if eq . "workflow_dispatch"}}workflow_dispatch:{{end}}
+  {{end}}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: {{.Timeout}}
+
+    strategy:
+      matrix:
+        node-version: [{{.NodeVersion}}]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      
+      {{range .CachePaths}}
+      - name: Cache {{.}}
+        uses: actions/cache@v3
+        with:
+          path: {{.}}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      {{end}}
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Set Environment Variables
+        run: |
+          {{range $key, $value := .Environment}}
+          echo "{{$key}}={{$value}}" >> $GITHUB_ENV
+          {{end}}
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+      
+      - name: Run linter
+        run: npm run lint --if-present
+      
+      - name: Run unit tests
+        run: npm test
+      
+      - name: Build Lambda package
+        run: npm run build --if-present
+      
+      - name: Run integration tests
+        run: npm run test:integration --if-present
+      
+      - name: Package Lambda function
+        run: |
+          zip -r lambda-package.zip . -x "*.git*" "node_modules/.cache/*" "tests/*" "*.md"
+      
+      - name: Upload Lambda package
+        uses: actions/upload-artifact@v3
+        with:
+          name: lambda-package
+          path: lambda-package.zip
+      
+      - name: Generate coverage report
+        run: npm run coverage --if-present
+      
+      - name: Upload coverage reports to Codecov
+        if: success()
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
