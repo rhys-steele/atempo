@@ -7,11 +7,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"atempo/internal/ci"
 	"atempo/internal/ci/providers"
 	"atempo/internal/registry"
 	"atempo/internal/utils"
 )
+
+// Type aliases to work with both ci and providers types
+type CIProvider = providers.CIProvider
 
 // CICommand handles CI/CD operations for projects
 type CICommand struct {
@@ -89,9 +94,111 @@ Examples:
 
 // executeInit initializes CI configuration for a project
 func (c *CICommand) executeInit(ctx context.Context, args []string) error {
-	// For now, return a placeholder implementation
-	fmt.Println("CI initialization is not yet implemented")
-	fmt.Println("This feature will be available in a future release")
+	// Step 1: Determine project context
+	projectPath, err := c.resolveProjectPath(args)
+	if err != nil {
+		return fmt.Errorf("failed to resolve project path: %w", err)
+	}
+
+	// Create interactive prompter
+	prompter := ci.NewInteractivePrompter()
+	
+	// Show header
+	prompter.ShowHeader()
+
+	// Step 2: Detect framework using existing utilities
+	framework, err := utils.DetectFramework(projectPath)
+	if err != nil {
+		ShowWarning(fmt.Sprintf("Could not auto-detect framework: %v", err))
+		framework = "unknown"
+	}
+
+	// Step 3: Get available providers
+	providers := c.providerRegistry.List()
+	if len(providers) == 0 {
+		return fmt.Errorf("no CI providers available")
+	}
+
+	// Step 4: Interactive provider selection
+	// Convert providers slice to ci.CIProvider slice
+	ciProviders := make([]ci.CIProvider, len(providers))
+	for i, p := range providers {
+		ciProviders[i] = ci.CIProvider(p)
+	}
+	selectedProvider, err := prompter.PromptProviderSelection(ciProviders)
+	if err != nil {
+		return fmt.Errorf("provider selection failed: %w", err)
+	}
+
+	// Get provider implementation - convert ci.CIProvider to providers.CIProvider
+	// Use string values directly to avoid import issues
+	providerImpl, err := c.providerRegistry.Get(CIProvider(string(selectedProvider)))
+	if err != nil {
+		return fmt.Errorf("failed to get provider: %w", err)
+	}
+
+	// Step 5: Interactive framework selection/confirmation
+	supportedFrameworks := providerImpl.SupportedFrameworks()
+	selectedFramework, err := prompter.PromptFrameworkSelection(
+		framework,
+		supportedFrameworks,
+	)
+	if err != nil {
+		return fmt.Errorf("framework selection failed: %w", err)
+	}
+
+	// Validate framework compatibility
+	if err := c.providerRegistry.ValidateProviderFrameworkCombination(CIProvider(string(selectedProvider)), selectedFramework); err != nil {
+		return fmt.Errorf("provider/framework compatibility error: %w", err)
+	}
+
+	// Step 6: Get default settings and prompt for customization
+	defaultSettings := providerImpl.GetDefaultSettings(selectedFramework)
+	settings, err := prompter.PromptSettings(selectedProvider, selectedFramework, defaultSettings)
+	if err != nil {
+		return fmt.Errorf("settings configuration failed: %w", err)
+	}
+
+	// Step 7: Create CI configuration
+	projectName := c.getProjectName(projectPath)
+	ciConfig := &ci.CIConfig{
+		Provider:    selectedProvider,
+		Framework:   selectedFramework,
+		ProjectName: projectName,
+		ProjectPath: projectPath,
+		Settings:    settings,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	// Show configuration summary
+	prompter.ShowConfigurationSummary(ciConfig)
+
+	// Step 8: Confirm generation
+	if !prompter.ConfirmGeneration() {
+		fmt.Printf("\n%s⏺%s CI initialization cancelled.\n", ColorYellow, ColorReset)
+		return nil
+	}
+
+	// Step 9: Generate CI files
+	fileGenerator := ci.NewFileGenerator(c.providerRegistry, c.templatesFS)
+	
+	// Backup existing config if it exists
+	if err := fileGenerator.BackupExistingConfig(projectPath, selectedProvider); err != nil {
+		ShowWarning(fmt.Sprintf("Failed to backup existing config: %v", err))
+	}
+
+	// Generate files
+	ShowWorking("Generating CI configuration files...")
+	result, err := fileGenerator.GenerateFiles(ciConfig, projectPath)
+	if err != nil {
+		ShowError("CI file generation failed", err.Error())
+		return err
+	}
+
+	// Show results
+	fileGenerator.ShowGenerationSummary(result)
+
 	return nil
 }
 
@@ -228,4 +335,33 @@ func (c *CICommand) executeProviders(ctx context.Context, args []string) error {
 	}
 
 	return nil
+}
+
+// Helper methods
+
+// resolveProjectPath resolves the project path from arguments or current directory
+func (c *CICommand) resolveProjectPath(args []string) (string, error) {
+	if len(args) > 0 && args[0] != "" {
+		// Use provided path/project name
+		return registry.ResolveProjectPath(args[0])
+	}
+	
+	// Use current directory
+	return os.Getwd()
+}
+
+// getProjectName determines the project name from path or registry
+func (c *CICommand) getProjectName(projectPath string) string {
+	// Try to find in registry first
+	reg, err := registry.LoadRegistry()
+	if err == nil {
+		for _, project := range reg.Projects {
+			if project.Path == projectPath {
+				return project.Name
+			}
+		}
+	}
+	
+	// Fallback to directory basename
+	return filepath.Base(projectPath)
 }

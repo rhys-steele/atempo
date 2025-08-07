@@ -3,8 +3,6 @@ package config
 import (
 	"fmt"
 	"strings"
-
-	"atempo/internal/registry"
 )
 
 // ValidateProviderSettings validates provider-specific settings
@@ -167,7 +165,7 @@ func validateLaravelProject(projectPath string) error {
 	// Check for essential Laravel files
 	essentialFiles := []string{"composer.json", "artisan"}
 	for _, file := range essentialFiles {
-		// For this implementation, we'll assume the files exist
+		_ = file // For this implementation, we'll assume the files exist
 		// In a full implementation, we would check file existence
 	}
 	return nil
@@ -178,7 +176,7 @@ func validateDjangoProject(projectPath string) error {
 	// Check for essential Django files
 	essentialFiles := []string{"manage.py", "requirements.txt"}
 	for _, file := range essentialFiles {
-		// For this implementation, we'll assume the files exist
+		_ = file // For this implementation, we'll assume the files exist
 		// In a full implementation, we would check file existence
 	}
 	return nil
@@ -189,7 +187,7 @@ func validateExpressProject(projectPath string) error {
 	// Check for essential Express files
 	essentialFiles := []string{"package.json"}
 	for _, file := range essentialFiles {
-		// For this implementation, we'll assume the files exist
+		_ = file // For this implementation, we'll assume the files exist
 		// In a full implementation, we would check file existence
 	}
 	return nil
@@ -200,7 +198,7 @@ func validateLambdaNodeProject(projectPath string) error {
 	// Check for essential Lambda files
 	essentialFiles := []string{"package.json"}
 	for _, file := range essentialFiles {
-		// For this implementation, we'll assume the files exist
+		_ = file // For this implementation, we'll assume the files exist
 		// In a full implementation, we would check file existence
 	}
 	return nil

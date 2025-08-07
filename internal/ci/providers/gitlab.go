@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 
-	"atempo/internal/ci"
 	"atempo/internal/logger"
 	"gopkg.in/yaml.v3"
 )
@@ -46,12 +46,12 @@ func (g *GitLabProvider) SupportedFrameworks() []string {
 }
 
 // ValidateConfig validates a CI configuration for GitLab CI
-func (g *GitLabProvider) ValidateConfig(config *ci.CIConfig) error {
+func (g *GitLabProvider) ValidateConfig(config *CIConfig) error {
 	if config == nil {
 		return fmt.Errorf("configuration is nil")
 	}
 
-	if config.Provider != ci.ProviderGitLab {
+	if config.Provider != ProviderGitLab {
 		return fmt.Errorf("invalid provider '%s' for GitLab CI", config.Provider)
 	}
 
@@ -77,17 +77,54 @@ func (g *GitLabProvider) ValidateConfig(config *ci.CIConfig) error {
 }
 
 // GenerateConfig generates a GitLab CI configuration
-func (g *GitLabProvider) GenerateConfig(config *ci.CIConfig, templateFS embed.FS) ([]byte, error) {
-	// Template path based on framework (new structure)
+func (g *GitLabProvider) GenerateConfig(config *CIConfig, templateFS embed.FS) ([]byte, error) {
+	// Template path based on framework (new structure)  
 	templatePath := fmt.Sprintf("templates/frameworks/%s/ci/gitlab.yml", config.Framework)
 	
 	// Try to read the framework-specific template
 	templateContent, err := templateFS.ReadFile(templatePath)
 	if err != nil {
-		// Fallback to shared basic template
-		templateContent, err = templateFS.ReadFile("templates/shared/ci/gitlab.yml")
-		if err != nil {
-			return nil, fmt.Errorf("template not found for framework '%s' and basic template unavailable: %w", config.Framework, err)
+		// Fallback to filesystem for development (when embedding is disabled)
+		possiblePaths := []string{
+			templatePath,
+			fmt.Sprintf("../%s", templatePath),
+			fmt.Sprintf("../../%s", templatePath),
+			fmt.Sprintf("../../../%s", templatePath),
+		}
+
+		var fsErr error
+		found := false
+		for _, fallbackPath := range possiblePaths {
+			if templateContent, fsErr = os.ReadFile(fallbackPath); fsErr == nil {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			// Try shared template
+			sharedPath := "templates/shared/ci/gitlab.yml"
+			templateContent, err = templateFS.ReadFile(sharedPath)
+			if err != nil {
+				// Fallback to filesystem for shared template
+				sharedPossiblePaths := []string{
+					sharedPath,
+					fmt.Sprintf("../%s", sharedPath),
+					fmt.Sprintf("../../%s", sharedPath),
+					fmt.Sprintf("../../../%s", sharedPath),
+				}
+				
+				for _, fallbackPath := range sharedPossiblePaths {
+					if templateContent, fsErr = os.ReadFile(fallbackPath); fsErr == nil {
+						found = true
+						break
+					}
+				}
+				
+				if !found {
+					return nil, fmt.Errorf("template not found for framework '%s' and basic template unavailable (tried embedded and filesystem): %w", config.Framework, err)
+				}
+			}
 		}
 	}
 

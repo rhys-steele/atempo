@@ -4,14 +4,32 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 
-	"atempo/internal/ci"
 	"atempo/internal/logger"
 	"gopkg.in/yaml.v3"
 )
+
+// CIProvider represents the CI/CD provider (duplicated to avoid import cycle)
+type CIProvider string
+
+const (
+	ProviderGitHub CIProvider = "github"
+	ProviderGitLab CIProvider = "gitlab"
+)
+
+// CIConfig represents CI configuration (duplicated to avoid import cycle)
+type CIConfig struct {
+	Provider      CIProvider              `json:"provider"`
+	Framework     string                  `json:"framework"`
+	ProjectName   string                  `json:"project_name"`
+	ProjectPath   string                  `json:"project_path"`
+	RepoURL       string                  `json:"repo_url"`
+	Settings      map[string]interface{}  `json:"settings"`
+}
 
 // GitHubProvider implements the Provider interface for GitHub Actions
 type GitHubProvider struct {
@@ -46,12 +64,12 @@ func (g *GitHubProvider) SupportedFrameworks() []string {
 }
 
 // ValidateConfig validates a CI configuration for GitHub Actions
-func (g *GitHubProvider) ValidateConfig(config *ci.CIConfig) error {
+func (g *GitHubProvider) ValidateConfig(config *CIConfig) error {
 	if config == nil {
 		return fmt.Errorf("configuration is nil")
 	}
 
-	if config.Provider != ci.ProviderGitHub {
+	if config.Provider != ProviderGitHub {
 		return fmt.Errorf("invalid provider '%s' for GitHub Actions", config.Provider)
 	}
 
@@ -77,17 +95,54 @@ func (g *GitHubProvider) ValidateConfig(config *ci.CIConfig) error {
 }
 
 // GenerateConfig generates a GitHub Actions workflow configuration
-func (g *GitHubProvider) GenerateConfig(config *ci.CIConfig, templateFS embed.FS) ([]byte, error) {
+func (g *GitHubProvider) GenerateConfig(config *CIConfig, templateFS embed.FS) ([]byte, error) {
 	// Template path based on framework (new structure)
 	templatePath := fmt.Sprintf("templates/frameworks/%s/ci/github.yml", config.Framework)
 	
 	// Try to read the framework-specific template
 	templateContent, err := templateFS.ReadFile(templatePath)
 	if err != nil {
-		// Fallback to shared basic template
-		templateContent, err = templateFS.ReadFile("templates/shared/ci/github.yml")
-		if err != nil {
-			return nil, fmt.Errorf("template not found for framework '%s' and basic template unavailable: %w", config.Framework, err)
+		// Fallback to filesystem for development (when embedding is disabled)
+		possiblePaths := []string{
+			templatePath,
+			fmt.Sprintf("../%s", templatePath),
+			fmt.Sprintf("../../%s", templatePath),
+			fmt.Sprintf("../../../%s", templatePath),
+		}
+
+		var fsErr error
+		found := false
+		for _, fallbackPath := range possiblePaths {
+			if templateContent, fsErr = os.ReadFile(fallbackPath); fsErr == nil {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			// Try shared template
+			sharedPath := "templates/shared/ci/github.yml"
+			templateContent, err = templateFS.ReadFile(sharedPath)
+			if err != nil {
+				// Fallback to filesystem for shared template
+				sharedPossiblePaths := []string{
+					sharedPath,
+					fmt.Sprintf("../%s", sharedPath),
+					fmt.Sprintf("../../%s", sharedPath),
+					fmt.Sprintf("../../../%s", sharedPath),
+				}
+				
+				for _, fallbackPath := range sharedPossiblePaths {
+					if templateContent, fsErr = os.ReadFile(fallbackPath); fsErr == nil {
+						found = true
+						break
+					}
+				}
+				
+				if !found {
+					return nil, fmt.Errorf("template not found for framework '%s' and basic template unavailable (tried embedded and filesystem): %w", config.Framework, err)
+				}
+			}
 		}
 	}
 
