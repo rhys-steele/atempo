@@ -16,17 +16,6 @@ func (c *CreateCommand) Execute(_ context.Context, _ []string) error {
 	return nil // Phase 7
 }
 
-// --- doctor ---
-
-type DoctorCommand struct{ *BaseCommand }
-
-func NewDoctorCommand(ctx *CommandContext) *DoctorCommand {
-	return &DoctorCommand{newBase("doctor", "Check system dependencies", "atempo doctor", ctx)}
-}
-func (c *DoctorCommand) Execute(_ context.Context, _ []string) error {
-	return nil // Phase 3
-}
-
 // --- projects ---
 
 type ProjectsCommand struct{ *BaseCommand }
