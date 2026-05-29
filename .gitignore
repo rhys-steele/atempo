@@ -1,0 +1,30 @@
+# Build output
+atempo
+/build/
+/dist/
+
+# Test artifacts
+testing/
+/tmp/
+
+# Go
+*.test
+*.out
+coverage.html
+
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# Atempo runtime data (user-specific, not project config)
+# Note: atempo.json in project dirs IS committed — it's project config
+.atempo/
