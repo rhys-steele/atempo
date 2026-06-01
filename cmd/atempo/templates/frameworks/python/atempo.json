@@ -1,0 +1,23 @@
+{
+  "name": "{{project}}",
+  "framework": "python",
+  "language": "python",
+  "version": "{{version}}",
+  "installer": {
+    "type": "template",
+    "command": []
+  },
+  "services": {
+    "app": {
+      "type": "build",
+      "dockerfile": "infra/docker/Dockerfile",
+      "working_dir": "/app",
+      "volumes": ["./src:/app"],
+      "restart": "no"
+    }
+  },
+  "volumes": {},
+  "networks": {
+    "default": { "driver": "bridge" }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "{{project}}",
+  "framework": "bun",
+  "language": "typescript",
+  "version": "{{version}}",
+  "installer": {
+    "type": "template",
+    "command": []
+  },
+  "services": {
+    "app": {
+      "type": "build",
+      "dockerfile": "infra/docker/Dockerfile",
+      "working_dir": "/app",
+      "volumes": ["./src:/app"],
+      "ports": ["3000:3000"],
+      "restart": "unless-stopped"
+    }
+  },
+  "volumes": {},
+  "networks": {
+    "default": { "driver": "bridge" }
+  }
+}

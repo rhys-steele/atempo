@@ -5,18 +5,6 @@ package commands
 
 import "context"
 
-// --- create ---
-
-type CreateCommand struct{ *BaseCommand }
-
-func NewCreateCommand(ctx *CommandContext, _ interface{}) *CreateCommand {
-	return &CreateCommand{newBase("create", "Scaffold a new project", "atempo create <framework>[:<version>] [name]", ctx)}
-}
-func (c *CreateCommand) Execute(_ context.Context, _ []string) error {
-	return nil // Phase 7
-}
-
-
 // --- add-service ---
 
 type AddServiceCommand struct{ *BaseCommand }

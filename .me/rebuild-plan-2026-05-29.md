@@ -37,10 +37,13 @@ A CLI tool that bootstraps Docker-based web development environments. You run on
 | Framework | Templates | Docker stack | Installer |
 |---|---|---|---|
 | `laravel` | ✅ complete | PHP-FPM + Nginx + MySQL + Redis + Mailhog | `composer create-project` in Docker |
-| `django` | ✅ complete | Python + Postgres + Redis + Celery + Mailhog | `django-admin startproject` in Docker |
-| `express` | ✅ complete | Node.js | `npm init` + server.js template |
+| `fastapi` | 🔨 new | Python + Uvicorn + Postgres + Redis | `pip install fastapi uvicorn` in Docker |
+| `bun` | 🔨 new | Bun runtime (`oven/bun`) | `bun init` in Docker, `Bun.serve()` only — no Elysia |
+| `python` | 🔨 new | Plain Python container, no HTTP | Static template only — scripts/workers/pipelines |
 
-**Arduino, MicroPython, lambda-node** — templates exist but are wrong domain or incomplete. Cut from V1.
+**Dropped**: `django` (replaced by fastapi), `express` (replaced by bun).  
+**Rationale**: FastAPI is the modern Python HTTP API choice; Bun replaces Node+Express with a leaner runtime; plain `python` covers containerised scripts/workers without HTTP overhead.  
+**Arduino, MicroPython, lambda-node** — wrong domain or incomplete. Cut entirely.
 
 ### Project output structure (what `create` produces)
 
@@ -125,8 +128,9 @@ atempo/
 
    Each framework template defines preferred defaults per service:
    - Laravel: app=8000, mysql=3306, redis=6379, mailhog=8025
-   - Django: app=8000, postgres=5432, redis=6379, mailhog=8025
-   - Express: app=3000
+   - FastAPI: app=8000, postgres=5432, redis=6379
+   - Bun: app=3000
+   - Python: (no exposed ports — scripts/workers only)
 
 7. **Shell injection prevention** — any user input that touches `exec.Command` is passed as a separate arg, never interpolated into a string.
 
@@ -245,7 +249,10 @@ The main event. Framework installation + template copy + registration.
 
 **Packages**:
 - `internal/scaffold/scaffold.go` — clean port, use embedded FS only (no filesystem fallback), pass explicit `projectPath` not `os.Chdir`
-- `templates/` — copy laravel, django, express templates verbatim from old repo (they're already good)
+- `templates/frameworks/laravel/` — copy from old repo (complete)
+- `templates/frameworks/fastapi/` — new (replaces django)
+- `templates/frameworks/bun/` — new (replaces express), minimal `Bun.serve()` only
+- `templates/frameworks/python/` — new, plain container with no HTTP
 - `internal/app/commands/create.go` — clean port, no AI planning stub, no `os.Chdir`
 
 **Validation**: `atempo create laravel testing/my-app` produces correct directory structure with all files.
@@ -294,22 +301,28 @@ These are real features worth building, just not blocking V1:
 
 ---
 
-## Template Audit (What to Copy)
+## Template Audit (What to Copy / Build)
 
-Copy these as-is — they're complete and correct:
-
+Copy from old repo:
 ```
-templates/frameworks/laravel/   ← copy all
-templates/frameworks/django/    ← copy all  
-templates/frameworks/express/   ← copy all (includes .env.example, server.js)
+templates/frameworks/laravel/   ← copy all (complete and correct)
+```
+
+Build fresh (no old-repo equivalent):
+```
+templates/frameworks/fastapi/   ← new — Python + Uvicorn + Postgres + Redis
+templates/frameworks/bun/       ← new — Bun.serve() TypeScript minimal
+templates/frameworks/python/    ← new — plain Python container, no HTTP
 ```
 
 Leave behind:
 ```
+templates/frameworks/django/       ← replaced by fastapi
+templates/frameworks/express/      ← replaced by bun
 templates/frameworks/arduino/      ← wrong domain
 templates/frameworks/micropython/  ← wrong domain
 templates/frameworks/lambda-node/  ← only has CI templates, nothing else
-templates/ai/                      ← these are generation prompts for the AI API feature (V2)
+templates/ai/                      ← generation prompts for AI API feature (V2)
 ```
 
 The `templates/shared/ci/` files (github.yml, gitlab.yml) — copy to V2 when CI command is implemented.
@@ -319,8 +332,9 @@ The `templates/shared/ci/` files (github.yml, gitlab.yml) — copy to V2 when CI
 ## Definition of Done for V1
 
 - [ ] `atempo create laravel my-app` produces a working project that `docker compose up` starts successfully
-- [ ] `atempo create django my-api` same
-- [ ] `atempo create express my-site` same
+- [ ] `atempo create fastapi my-api` same
+- [ ] `atempo create bun my-site` same
+- [ ] `atempo create python my-worker` same
 - [ ] `atempo doctor` correctly identifies Docker v2, Git
 - [ ] `atempo projects` lists registered projects
 - [ ] `atempo start/stop/logs/status` all work against a real running project

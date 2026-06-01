@@ -133,8 +133,9 @@ func (r *CommandRegistry) ShowUsage() {
 %sExamples:%s
   atempo create laravel my-app        Laravel (latest) in ./my-app/
   atempo create laravel:12 my-app     Laravel 12 in ./my-app/
-  atempo create django my-api         Django (latest) in ./my-api/
-  atempo create express my-site       Express in ./my-site/
+  atempo create fastapi my-api        FastAPI in ./my-api/
+  atempo create bun my-site           Bun in ./my-site/
+  atempo create python my-worker      Plain Python in ./my-worker/
   atempo start my-app                 Start project containers
   atempo logs my-app                  Stream container logs
   atempo projects                     List all registered projects
