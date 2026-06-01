@@ -17,50 +17,6 @@ func (c *CreateCommand) Execute(_ context.Context, _ []string) error {
 }
 
 
-// --- start ---
-
-type StartCommand struct{ *BaseCommand }
-
-func NewStartCommand(ctx *CommandContext) *StartCommand {
-	return &StartCommand{newBase("start", "Start project containers", "atempo start [project]", ctx)}
-}
-func (c *StartCommand) Execute(_ context.Context, _ []string) error {
-	return nil // Phase 6
-}
-
-// --- stop ---
-
-type StopCommand struct{ *BaseCommand }
-
-func NewStopCommand(ctx *CommandContext) *StopCommand {
-	return &StopCommand{newBase("stop", "Stop project containers", "atempo stop [project]", ctx)}
-}
-func (c *StopCommand) Execute(_ context.Context, _ []string) error {
-	return nil // Phase 6
-}
-
-// --- logs ---
-
-type LogsCommand struct{ *BaseCommand }
-
-func NewLogsCommand(ctx *CommandContext) *LogsCommand {
-	return &LogsCommand{newBase("logs", "Stream container logs", "atempo logs [project]", ctx)}
-}
-func (c *LogsCommand) Execute(_ context.Context, _ []string) error {
-	return nil // Phase 6
-}
-
-// --- status ---
-
-type StatusCommand struct{ *BaseCommand }
-
-func NewStatusCommand(ctx *CommandContext) *StatusCommand {
-	return &StatusCommand{newBase("status", "Show service health", "atempo status [project]", ctx)}
-}
-func (c *StatusCommand) Execute(_ context.Context, _ []string) error {
-	return nil // Phase 6
-}
-
 // --- add-service ---
 
 type AddServiceCommand struct{ *BaseCommand }
