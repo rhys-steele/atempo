@@ -16,27 +16,6 @@ func (c *CreateCommand) Execute(_ context.Context, _ []string) error {
 	return nil // Phase 7
 }
 
-// --- projects ---
-
-type ProjectsCommand struct{ *BaseCommand }
-
-func NewProjectsCommand(ctx *CommandContext) *ProjectsCommand {
-	return &ProjectsCommand{newBase("projects", "List registered projects", "atempo projects", ctx)}
-}
-func (c *ProjectsCommand) Execute(_ context.Context, _ []string) error {
-	return nil // Phase 4
-}
-
-// --- describe ---
-
-type DescribeCommand struct{ *BaseCommand }
-
-func NewDescribeCommand(ctx *CommandContext) *DescribeCommand {
-	return &DescribeCommand{newBase("describe", "Show project details", "atempo describe [project]", ctx)}
-}
-func (c *DescribeCommand) Execute(_ context.Context, _ []string) error {
-	return nil // Phase 4
-}
 
 // --- start ---
 
@@ -91,28 +70,6 @@ func NewAddServiceCommand(ctx *CommandContext) *AddServiceCommand {
 }
 func (c *AddServiceCommand) Execute(_ context.Context, _ []string) error {
 	return nil // Phase 8
-}
-
-// --- reconfigure ---
-
-type ReconfigureCommand struct{ *BaseCommand }
-
-func NewReconfigureCommand(ctx *CommandContext) *ReconfigureCommand {
-	return &ReconfigureCommand{newBase("reconfigure", "Regenerate docker-compose.yml", "atempo reconfigure [project]", ctx)}
-}
-func (c *ReconfigureCommand) Execute(_ context.Context, _ []string) error {
-	return nil // Phase 5
-}
-
-// --- remove ---
-
-type RemoveCommand struct{ *BaseCommand }
-
-func NewRemoveCommand(ctx *CommandContext) *RemoveCommand {
-	return &RemoveCommand{newBase("remove", "Remove a project from the registry", "atempo remove <project>", ctx)}
-}
-func (c *RemoveCommand) Execute(_ context.Context, _ []string) error {
-	return nil // Phase 4
 }
 
 // --- shell ---
