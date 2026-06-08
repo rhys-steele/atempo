@@ -28,3 +28,5 @@ coverage.html
 # Atempo runtime data (user-specific, not project config)
 # Note: atempo.json in project dirs IS committed — it's project config
 .atempo/
+
+.me/
