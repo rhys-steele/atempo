@@ -1,0 +1,59 @@
+<!-- @dsCard group="Brand" viewport="700x190" subtitle="The 4-bar meter — logo, and tempo as a feeling of pace" name="Tempo meter & logo" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--canvas); font-family: var(--font-mono); color: var(--text-faint); padding: 26px; }
+  .row { display: flex; gap: 40px; align-items: center; }
+  .item { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .meter { display: flex; gap: 4px; align-items: flex-end; height: 30px; }
+  .meter span { width: 7px; border-radius: 2px; }
+  .lab { font-size: 10px; letter-spacing: 0.14em; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo .meter span { width: 8px; }
+  .word { font-family: var(--font-display); font-weight: 700; font-size: 30px; color: var(--text-strong); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="logo">
+      <div class="meter" style="height: 34px;">
+        <span style="height: 34px; background: var(--teal-500);"></span>
+        <span style="height: 24px; background: var(--teal-500);"></span>
+        <span style="height: 30px; background: var(--teal-500);"></span>
+        <span style="height: 18px; background: var(--teal-500);"></span>
+      </div>
+      <span class="word">atempo</span>
+    </div>
+    <div class="item">
+      <div class="meter">
+        <span style="height: 30px; background: var(--tempo-in);"></span>
+        <span style="height: 22px; background: var(--tempo-in);"></span>
+        <span style="height: 26px; background: var(--tempo-in);"></span>
+        <span style="height: 16px; background: var(--tempo-in);"></span>
+      </div>
+      <span class="lab" style="color: var(--tempo-in);">IN TEMPO</span>
+    </div>
+    <div class="item">
+      <div class="meter">
+        <span style="height: 20px; background: var(--tempo-steady);"></span>
+        <span style="height: 14px; background: var(--tempo-steady);"></span>
+        <span style="height: 9px; background: rgba(201,185,163,0.4);"></span>
+        <span style="height: 9px; background: rgba(201,185,163,0.25);"></span>
+      </div>
+      <span class="lab" style="color: var(--tempo-steady);">STEADY</span>
+    </div>
+    <div class="item">
+      <div class="meter">
+        <span style="height: 11px; background: rgba(124,109,92,0.6);"></span>
+        <span style="height: 9px; background: rgba(124,109,92,0.4);"></span>
+        <span style="height: 9px; background: rgba(124,109,92,0.25);"></span>
+        <span style="height: 9px; background: rgba(124,109,92,0.15);"></span>
+      </div>
+      <span class="lab" style="color: var(--tempo-cold);">COLD</span>
+    </div>
+  </div>
+</body>
+</html>

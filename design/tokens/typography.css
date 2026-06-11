@@ -1,0 +1,47 @@
+:root {
+  /* ============================================================
+     ATEMPO TYPE SYSTEM — the mono/human split is sacred.
+     Display + UI use a human face; anything the machine touches
+     (paths, ports, branches, commits, commands) is monospace.
+     ============================================================ */
+
+  /* ---- Families ---- */
+  --font-display: 'Bricolage Grotesque', sans-serif;  /* headings, project names, big numbers */
+  --font-ui:      'Hanken Grotesk', sans-serif;        /* body, descriptions, prose */
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace; /* the machine: paths, ports, git, commands */
+
+  /* ---- Weights ---- */
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold: 600;
+  --weight-bold:    700;
+
+  /* ---- Display scale (Bricolage) ---- */
+  --display-xxl: 64px;  /* hero / index headline */
+  --display-xl:  56px;  /* project detail title */
+  --display-l:   38px;  /* section hero / project name (detail) */
+  --display-m:   30px;  /* panel title */
+  --display-s:   24px;  /* sub-section */
+
+  /* ---- Body scale (Hanken) ---- */
+  --body-xl: 18px;
+  --body-l:  16px;   /* default body */
+  --body-m:  14.5px; /* dense table body, next-beat copy */
+  --body-s:  13px;   /* descriptions, helper */
+
+  /* ---- Mono scale (JetBrains) ---- */
+  --mono-l:  14px;   /* commands, prominent paths */
+  --mono-m:  12.5px; /* git lines, breadcrumbs, runtime */
+  --mono-s:  12px;   /* meta, timestamps */
+  --mono-xs: 11px;   /* part counts, micro-meta */
+
+  /* ---- Eyebrow / label (mono, tracked-out, uppercase) ---- */
+  --label-size: 11px;
+  --label-tracking: 0.16em;       /* section labels */
+  --label-tracking-wide: 0.20em;  /* group dividers */
+
+  /* ---- Line heights ---- */
+  --leading-tight: 1.05;  /* display */
+  --leading-snug:  1.45;  /* dense copy */
+  --leading-body:  1.55;  /* body prose */
+}

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&amp;family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&amp;family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&amp;display=swap">
+  <style>
+    html, body { margin: 0; padding: 0; background: #16110d; }
+    @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes playhead { 0% { left: 0%; } 100% { left: 100%; } }
+  </style>
+</helmet>
+
+<div style="min-height: 100vh; min-width: fit-content; background: #16110d; padding: 56px 40px 120px; font-family: 'Hanken Grotesk', sans-serif; color: #f2e9dd; display: flex; flex-direction: column; align-items: center; gap: 44px;">
+
+  <!-- ===== Direction header ===== -->
+  <div style="width: 1440px; display: flex; flex-direction: column; gap: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.18em; color: #8d7c67;">DIRECTION 01 / 03</div>
+      <div style="display: flex; gap: 28px; font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+        <a href="Atempo Directions.dc.html" style="color: #8d7c67; text-decoration: none;">↑ all directions</a>
+        <a href="The Studio.dc.html" style="color: #8d7c67; text-decoration: none;">02 the studio →</a>
+        <a href="The Cockpit.dc.html" style="color: #8d7c67; text-decoration: none;">03 the cockpit →</a>
+      </div>
+    </div>
+    <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 54px; line-height: 1; color: #f2e9dd;">The Sequencer</div>
+    <div style="font-size: 17px; color: #b3a28c; max-width: 780px; line-height: 1.55;">Atempo as a session in a modern DAW. Projects are tracks, components are channels, activity is velocity, and the playhead holds your place — re-entry is pressing play, not setting up.</div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Screen A — The Session (overview)                             -->
+  <!-- ============================================================ -->
+  <div style="width: 1440px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; color: #8d7c67;">A · THE SESSION — FLEET SORTED BY TEMPO</div>
+
+    <div data-screen-label="Sequencer — Session overview" style="width: 1440px; background: #1d1712; border: 1px solid rgba(242,233,221,0.07); border-radius: 14px; box-shadow: 0 32px 80px rgba(0,0,0,0.55); overflow: hidden; color: #f2e9dd;">
+
+      <!-- window chrome -->
+      <div style="display: flex; align-items: center; gap: 16px; padding: 15px 20px; border-bottom: 1px solid rgba(242,233,221,0.07);">
+        <div style="display: flex; gap: 8px;">
+          <span style="display: block; width: 12px; height: 12px; border-radius: 50%; background: #ff5f57;"></span>
+          <span style="display: block; width: 12px; height: 12px; border-radius: 50%; background: #febc2e;"></span>
+          <span style="display: block; width: 12px; height: 12px; border-radius: 50%; background: #28c840;"></span>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8d7c67;"><span style="color: #d8cab6;">atempo</span> / session</div>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #56b3a3;">
+          <span style="display: block; width: 6px; height: 6px; border-radius: 50%; background: #56b3a3; animation: pulseDot 2.2s ease-in-out infinite;"></span>
+          ♩ 132 · 1 track playing
+        </div>
+      </div>
+
+      <div style="padding: 48px 80px 64px;">
+
+        <!-- header -->
+        <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 32px;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 40px; line-height: 1.05;">Welcome back</div>
+            <div style="font-size: 16px; color: #b3a28c;"><span style="color: #f2e9dd; font-weight: 600;">7 tracks</span> in the session · 2 in tempo · 1 playing now</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 14px; background: #251d16; border: 1px solid rgba(242,233,221,0.09); border-radius: 12px; padding: 12px 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #b3a28c;">
+              <span style="color: #6d5f4e;">⌕</span> search or run a command <span style="color: #6d5f4e; border: 1px solid rgba(242,233,221,0.13); border-radius: 5px; padding: 1px 7px; font-size: 11px;">⌘K</span>
+            </div>
+            <div style="background: #56b3a3; color: #16110d; border-radius: 12px; padding: 13px 22px; font-weight: 600; font-size: 14.5px; display: flex; align-items: center; gap: 8px;">+ New track</div>
+          </div>
+        </div>
+
+        <!-- ruler -->
+        <div style="margin-top: 40px; display: grid; grid-template-columns: 220px 1fr 320px 130px; gap: 28px; align-items: center; padding: 0 20px 10px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.18em; color: #6d5f4e;">
+          <div>TRACK</div>
+          <div style="display: flex; justify-content: space-between;"><span>ACTIVITY · LAST 16 DAYS</span><span>TODAY ▾</span></div>
+          <div>GIT / PARTS</div>
+          <div style="text-align: right;">RE-ENTER</div>
+        </div>
+
+        <!-- ===== group: in tempo ===== -->
+        <div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px 10px;">
+          <span style="display: block; width: 7px; height: 7px; border-radius: 50%; background: #56b3a3;"></span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.2em; color: #56b3a3;">IN TEMPO</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #6d5f4e;">2</span>
+          <span style="flex: 1; height: 1px; background: rgba(242,233,221,0.08);"></span>
+        </div>
+
+        <!-- atlas (playing) -->
+        <div style="display: grid; grid-template-columns: 220px 1fr 320px 130px; gap: 28px; align-items: center; padding: 18px 20px; background: rgba(86,179,163,0.05); border: 1px solid rgba(86,179,163,0.18); border-radius: 14px; margin-bottom: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 21px; color: #f2e9dd;">atlas</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #56b3a3; background: rgba(86,179,163,0.12); border-radius: 6px; padding: 2px 8px;">♩ 132</span>
+            </div>
+            <div style="font-size: 13px; color: #8d7c67;">screenshot tagging &amp; search</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px;">
+            <div style="position: relative; display: flex; gap: 4px; align-items: flex-end; height: 26px;">
+              <span style="width: 14px; height: 8px; border-radius: 3px; background: rgba(86,179,163,0.25);"></span>
+              <span style="width: 14px; height: 14px; border-radius: 3px; background: rgba(86,179,163,0.4);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(86,179,163,0.2);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 18px; border-radius: 3px; background: rgba(86,179,163,0.5);"></span>
+              <span style="width: 14px; height: 12px; border-radius: 3px; background: rgba(86,179,163,0.35);"></span>
+              <span style="width: 14px; height: 20px; border-radius: 3px; background: rgba(86,179,163,0.55);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 16px; border-radius: 3px; background: rgba(86,179,163,0.45);"></span>
+              <span style="width: 14px; height: 22px; border-radius: 3px; background: rgba(86,179,163,0.6);"></span>
+              <span style="width: 14px; height: 10px; border-radius: 3px; background: rgba(86,179,163,0.3);"></span>
+              <span style="width: 14px; height: 18px; border-radius: 3px; background: rgba(86,179,163,0.5);"></span>
+              <span style="width: 14px; height: 24px; border-radius: 3px; background: rgba(86,179,163,0.7);"></span>
+              <span style="width: 14px; height: 14px; border-radius: 3px; background: rgba(86,179,163,0.45);"></span>
+              <span style="width: 14px; height: 22px; border-radius: 3px; background: rgba(86,179,163,0.75);"></span>
+              <span style="width: 14px; height: 26px; border-radius: 3px; background: #56b3a3;"></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #56b3a3;">
+              <span style="display: block; width: 5px; height: 5px; border-radius: 50%; background: #56b3a3; animation: pulseDot 2.2s ease-in-out infinite;"></span>
+              playing — api :4100 · desktop :1420 · 2h ago
+            </div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8d7c67; display: flex; flex-direction: column; gap: 5px;">
+            <span>feat/captions · 4 changed</span>
+            <span style="color: #6d5f4e;">3 channels — api · desktop · site</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="The Sequencer.dc.html" style="text-decoration: none; background: #56b3a3; color: #16110d; border-radius: 10px; padding: 10px 18px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">▶ Rejoin</a>
+          </div>
+        </div>
+
+        <!-- recipe-box -->
+        <div style="display: grid; grid-template-columns: 220px 1fr 320px 130px; gap: 28px; align-items: center; padding: 18px 20px; border: 1px solid rgba(242,233,221,0.07); border-radius: 14px; margin-bottom: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 21px; color: #f2e9dd;">recipe-box</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #56b3a3; background: rgba(86,179,163,0.12); border-radius: 6px; padding: 2px 8px;">♩ 118</span>
+            </div>
+            <div style="font-size: 13px; color: #8d7c67;">recipes + weekly meal planning</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px;">
+            <div style="display: flex; gap: 4px; align-items: flex-end; height: 26px;">
+              <span style="width: 14px; height: 16px; border-radius: 3px; background: rgba(86,179,163,0.4);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 10px; border-radius: 3px; background: rgba(86,179,163,0.3);"></span>
+              <span style="width: 14px; height: 20px; border-radius: 3px; background: rgba(86,179,163,0.5);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 14px; border-radius: 3px; background: rgba(86,179,163,0.35);"></span>
+              <span style="width: 14px; height: 18px; border-radius: 3px; background: rgba(86,179,163,0.45);"></span>
+              <span style="width: 14px; height: 8px; border-radius: 3px; background: rgba(86,179,163,0.25);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 16px; border-radius: 3px; background: rgba(86,179,163,0.4);"></span>
+              <span style="width: 14px; height: 12px; border-radius: 3px; background: rgba(86,179,163,0.3);"></span>
+              <span style="width: 14px; height: 18px; border-radius: 3px; background: rgba(86,179,163,0.5);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 22px; border-radius: 3px; background: rgba(86,179,163,0.6);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #8d7c67;">stopped — last played yesterday</div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8d7c67; display: flex; flex-direction: column; gap: 5px;">
+            <span>feat/meal-plan · clean</span>
+            <span style="color: #6d5f4e;">1 channel</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="#" style="text-decoration: none; border: 1px solid rgba(86,179,163,0.4); color: #56b3a3; border-radius: 10px; padding: 10px 18px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">▶ Rejoin</a>
+          </div>
+        </div>
+
+        <!-- ===== group: steady ===== -->
+        <div style="display: flex; align-items: center; gap: 12px; padding: 22px 20px 10px;">
+          <span style="display: block; width: 7px; height: 7px; border-radius: 50%; background: #c9b9a3;"></span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.2em; color: #c9b9a3;">STEADY</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #6d5f4e;">2</span>
+          <span style="flex: 1; height: 1px; background: rgba(242,233,221,0.08);"></span>
+        </div>
+
+        <!-- pricing-page -->
+        <div style="display: grid; grid-template-columns: 220px 1fr 320px 130px; gap: 28px; align-items: center; padding: 18px 20px; border: 1px solid rgba(242,233,221,0.06); border-radius: 14px; margin-bottom: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 20px; color: #e4d7c5;">pricing-page</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #b3a28c; background: rgba(242,233,221,0.07); border-radius: 6px; padding: 2px 8px;">♩ 96</span>
+            </div>
+            <div style="font-size: 13px; color: #8d7c67;">launch site — pricing + waitlist</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px;">
+            <div style="display: flex; gap: 4px; align-items: flex-end; height: 26px;">
+              <span style="width: 14px; height: 14px; border-radius: 3px; background: rgba(201,185,163,0.4);"></span>
+              <span style="width: 14px; height: 20px; border-radius: 3px; background: rgba(201,185,163,0.5);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 10px; border-radius: 3px; background: rgba(201,185,163,0.3);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 16px; border-radius: 3px; background: rgba(201,185,163,0.4);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 12px; border-radius: 3px; background: rgba(201,185,163,0.35);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 18px; border-radius: 3px; background: rgba(201,185,163,0.45);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 14px; border-radius: 3px; background: rgba(201,185,163,0.4);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #8d7c67;">stopped — last played 2d ago</div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8d7c67; display: flex; flex-direction: column; gap: 5px;">
+            <span>feat/checkout · 2 changed</span>
+            <span style="color: #6d5f4e;">1 channel</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="#" style="text-decoration: none; border: 1px solid rgba(242,233,221,0.16); color: #d8cab6; border-radius: 10px; padding: 10px 18px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">▶ Rejoin</a>
+          </div>
+        </div>
+
+        <!-- portfolio-site -->
+        <div style="display: grid; grid-template-columns: 220px 1fr 320px 130px; gap: 28px; align-items: center; padding: 18px 20px; border: 1px solid rgba(242,233,221,0.06); border-radius: 14px; margin-bottom: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 20px; color: #e4d7c5;">portfolio-site</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #b3a28c; background: rgba(242,233,221,0.07); border-radius: 6px; padding: 2px 8px;">♩ 88</span>
+            </div>
+            <div style="font-size: 13px; color: #8d7c67;">personal site &amp; now page</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px;">
+            <div style="display: flex; gap: 4px; align-items: flex-end; height: 26px;">
+              <span style="width: 14px; height: 18px; border-radius: 3px; background: rgba(201,185,163,0.45);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 12px; border-radius: 3px; background: rgba(201,185,163,0.35);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 10px; border-radius: 3px; background: rgba(201,185,163,0.3);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 14px; border-radius: 3px; background: rgba(201,185,163,0.4);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+              <span style="width: 14px; height: 8px; border-radius: 3px; background: rgba(201,185,163,0.25);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.07);"></span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #8d7c67;">stopped — last played 6d ago</div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8d7c67; display: flex; flex-direction: column; gap: 5px;">
+            <span>main · clean</span>
+            <span style="color: #6d5f4e;">1 channel</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="#" style="text-decoration: none; border: 1px solid rgba(242,233,221,0.16); color: #d8cab6; border-radius: 10px; padding: 10px 18px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">▶ Rejoin</a>
+          </div>
+        </div>
+
+        <!-- ===== group: cold ===== -->
+        <div style="display: flex; align-items: center; gap: 12px; padding: 22px 20px 10px;">
+          <span style="display: block; width: 7px; height: 7px; border-radius: 50%; background: #6d5f4e;"></span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.2em; color: #8d7c67;">COLD — THE PLAYHEAD KEPT YOUR PLACE</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #6d5f4e;">3</span>
+          <span style="flex: 1; height: 1px; background: rgba(242,233,221,0.08);"></span>
+        </div>
+
+        <!-- midi-sketch -->
+        <div style="display: grid; grid-template-columns: 220px 1fr 320px 130px; gap: 28px; align-items: center; padding: 16px 20px; border: 1px solid rgba(242,233,221,0.05); border-radius: 14px; margin-bottom: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 500; font-size: 19px; color: #b3a28c;">midi-sketch</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8d7c67; background: rgba(242,233,221,0.05); border-radius: 6px; padding: 2px 8px;">held</span>
+            </div>
+            <div style="font-size: 13px; color: #7c6d5c;">browser MIDI doodling toy</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px;">
+            <div style="display: flex; gap: 4px; align-items: flex-end; height: 26px;">
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #7c6d5c;">held 6 weeks — audio engine plays notes cleanly, no save yet</div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7c6d5c; display: flex; flex-direction: column; gap: 5px;">
+            <span>main · clean</span>
+            <span style="color: #6d5f4e;">1 channel</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="#" style="text-decoration: none; border: 1px solid rgba(242,233,221,0.13); color: #b3a28c; border-radius: 10px; padding: 10px 18px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">▶ Rejoin</a>
+          </div>
+        </div>
+
+        <!-- invoice-zen -->
+        <div style="display: grid; grid-template-columns: 220px 1fr 320px 130px; gap: 28px; align-items: center; padding: 16px 20px; border: 1px solid rgba(242,233,221,0.05); border-radius: 14px; margin-bottom: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 500; font-size: 19px; color: #b3a28c;">invoice-zen</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8d7c67; background: rgba(242,233,221,0.05); border-radius: 6px; padding: 2px 8px;">held</span>
+            </div>
+            <div style="font-size: 13px; color: #7c6d5c;">tiny invoicing for freelancers</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px;">
+            <div style="display: flex; gap: 4px; align-items: flex-end; height: 26px;">
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #7c6d5c;">held 2 months — schema &amp; auth done, PDF export not started</div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7c6d5c; display: flex; flex-direction: column; gap: 5px;">
+            <span>main · clean</span>
+            <span style="color: #6d5f4e;">1 channel</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="#" style="text-decoration: none; border: 1px solid rgba(242,233,221,0.13); color: #b3a28c; border-radius: 10px; padding: 10px 18px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">▶ Rejoin</a>
+          </div>
+        </div>
+
+        <!-- habit-dots -->
+        <div style="display: grid; grid-template-columns: 220px 1fr 320px 130px; gap: 28px; align-items: center; padding: 16px 20px; border: 1px solid rgba(242,233,221,0.05); border-radius: 14px;">
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 500; font-size: 19px; color: #b3a28c;">habit-dots</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8d7c67; background: rgba(242,233,221,0.05); border-radius: 6px; padding: 2px 8px;">held</span>
+            </div>
+            <div style="font-size: 13px; color: #7c6d5c;">minimal dot-grid habit tracker</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px;">
+            <div style="display: flex; gap: 4px; align-items: flex-end; height: 26px;">
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+              <span style="width: 14px; height: 6px; border-radius: 3px; background: rgba(242,233,221,0.05);"></span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #7c6d5c;">held 3 months — Figma mocks only, a clean slate when you're ready</div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7c6d5c; display: flex; flex-direction: column; gap: 5px;">
+            <span>main · clean</span>
+            <span style="color: #6d5f4e;">1 channel</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <a href="#" style="text-decoration: none; border: 1px solid rgba(242,233,221,0.13); color: #b3a28c; border-radius: 10px; padding: 10px 18px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">▶ Rejoin</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Screen B — Track view (project detail)                        -->
+  <!-- ============================================================ -->
+  <div style="width: 1440px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; color: #8d7c67;">B · TRACK VIEW — ATLAS, THREE CHANNELS</div>
+
+    <div data-screen-label="Sequencer — Atlas track view" style="width: 1440px; background: #1d1712; border: 1px solid rgba(242,233,221,0.07); border-radius: 14px; box-shadow: 0 32px 80px rgba(0,0,0,0.55); overflow: hidden; color: #f2e9dd;">
+
+      <!-- window chrome -->
+      <div style="display: flex; align-items: center; gap: 16px; padding: 15px 20px; border-bottom: 1px solid rgba(242,233,221,0.07);">
+        <div style="display: flex; gap: 8px;">
+          <span style="display: block; width: 12px; height: 12px; border-radius: 50%; background: #ff5f57;"></span>
+          <span style="display: block; width: 12px; height: 12px; border-radius: 50%; background: #febc2e;"></span>
+          <span style="display: block; width: 12px; height: 12px; border-radius: 50%; background: #28c840;"></span>
+        </div>
+        <div style="border: 1px solid rgba(242,233,221,0.12); border-radius: 8px; padding: 5px 12px; font-size: 13px; color: #d8cab6; display: flex; align-items: center; gap: 7px;">← Session</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8d7c67;"><span style="color: #d8cab6;">atempo</span> / session / <span style="color: #56b3a3;">atlas</span></div>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #56b3a3;">
+          <span style="display: block; width: 6px; height: 6px; border-radius: 50%; background: #56b3a3; animation: pulseDot 2.2s ease-in-out infinite;"></span>
+          playing
+        </div>
+      </div>
+
+      <div style="padding: 48px 80px 64px;">
+
+        <!-- track header -->
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 32px;">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #56b3a3; background: rgba(86,179,163,0.12); border-radius: 8px; padding: 5px 12px;">♩ 132</span>
+              <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 44px; line-height: 1;">atlas</span>
+              <span style="display: flex; gap: 8px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #b3a28c; border: 1px solid rgba(242,233,221,0.13); border-radius: 7px; padding: 3px 10px;">go</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #b3a28c; border: 1px solid rgba(242,233,221,0.13); border-radius: 7px; padding: 3px 10px;">swift</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #b3a28c; border: 1px solid rgba(242,233,221,0.13); border-radius: 7px; padding: 3px 10px;">astro</span>
+              </span>
+            </div>
+            <div style="font-size: 16px; color: #b3a28c;">Screenshot tagging &amp; search — API, desktop app &amp; marketing site.</div>
+          </div>
+          <div style="text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #8d7c67; display: flex; flex-direction: column; gap: 6px; padding-top: 6px;">
+            <span>last active <span style="color: #f2e9dd; font-weight: 500;">2h ago</span></span>
+            <span>feat/captions · 4 changed</span>
+          </div>
+        </div>
+
+        <!-- recap + threads -->
+        <div style="margin-top: 40px; display: grid; grid-template-columns: 1fr 400px; gap: 24px; align-items: start;">
+
+          <!-- recap card -->
+          <div style="border: 1px solid rgba(86,179,163,0.25); background: rgba(86,179,163,0.04); border-radius: 16px; padding: 32px 36px; display: flex; flex-direction: column; gap: 22px;">
+            <div style="display: flex; align-items: center; gap: 9px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #56b3a3;">
+              <span style="display: block; width: 6px; height: 6px; border-radius: 50%; background: #56b3a3;"></span>
+              where you left off · 2h ago
+            </div>
+            <div style="font-size: 23px; line-height: 1.5; color: #e4d7c5; text-wrap: pretty;">You were wiring <span style="color: #f2e9dd; font-weight: 600;">caption search</span>. The API streams matches now — but the desktop list still queries the old endpoint, so <span style="font-family: 'JetBrains Mono', monospace; font-size: 19px; color: #56b3a3; background: rgba(86,179,163,0.1); border-radius: 7px; padding: 2px 9px;">⌘F</span> returns nothing past page one. <span style="color: #8d7c67;">The site is green and deployed.</span></div>
+            <div style="display: flex; align-items: center; gap: 16px; border: 1px solid rgba(86,179,163,0.3); background: rgba(86,179,163,0.07); border-radius: 12px; padding: 16px 20px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; color: #56b3a3; white-space: nowrap;">NEXT BEAT</span>
+              <span style="font-size: 16.5px; color: #f2e9dd;">Point <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #56b3a3; background: rgba(86,179,163,0.1); border-radius: 6px; padding: 2px 8px;">SearchList.swift</span> at <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #56b3a3; background: rgba(86,179,163,0.1); border-radius: 6px; padding: 2px 8px;">/v2/captions/search</span>, then delete the mock.</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <a href="#" style="text-decoration: none; background: #56b3a3; color: #16110d; border-radius: 11px; padding: 13px 24px; font-weight: 600; font-size: 15px;">Resume with Claude</a>
+              <a href="#" style="text-decoration: none; border: 1px solid rgba(242,233,221,0.16); color: #d8cab6; border-radius: 11px; padding: 13px 24px; font-weight: 600; font-size: 15px;">Pick up in code</a>
+              <span style="font-size: 13.5px; color: #8d7c67; max-width: 320px; line-height: 1.45;">Claude gets the recap, the diff, and the open threads — so it lands in tempo, not cold.</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; border-top: 1px solid rgba(242,233,221,0.08); padding-top: 18px;">
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #8d7c67;">YOU WERE IN</div>
+              <div style="display: flex; gap: 10px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #d8cab6; border: 1px solid rgba(242,233,221,0.12); border-radius: 8px; padding: 6px 12px;"><span style="color: #e0a458;">●</span> SearchList.swift · modified</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #d8cab6; border: 1px solid rgba(242,233,221,0.12); border-radius: 8px; padding: 6px 12px;"><span style="color: #56b3a3;">●</span> search.go · the new endpoint</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #d8cab6; border: 1px solid rgba(242,233,221,0.12); border-radius: 8px; padding: 6px 12px;"><span style="color: #8d7c67;">●</span> mock_results.json · delete me</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- open threads -->
+          <div style="border: 1px solid rgba(242,233,221,0.08); border-radius: 16px; padding: 26px 28px; display: flex; flex-direction: column; gap: 20px;">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.16em; color: #8d7c67;">OPEN THREADS</div>
+            <div style="display: flex; gap: 12px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #e0a458;">?</span>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 15px; color: #e4d7c5; line-height: 1.45;">Index captions in SQLite FTS, or keep Postgres tsvector?</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #6d5f4e;">you · 2d ago</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #e0a458;">?</span>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 15px; color: #e4d7c5; line-height: 1.45;">Ship search behind a flag, or wait for thumbnails too?</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #6d5f4e;">open</span>
+              </div>
+            </div>
+            <div style="border-top: 1px solid rgba(242,233,221,0.08); padding-top: 18px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.16em; color: #8d7c67;">SINCE YOU LAST LOOKED</div>
+              <div style="display: flex; flex-direction: column; gap: 11px; font-size: 14px; color: #b3a28c;">
+                <div style="display: flex; gap: 10px;"><span style="color: #56b3a3;">●</span><span>Committed <span style="color: #e4d7c5; font-weight: 600;">stream search matches</span> <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #6d5f4e;">· you · 2h</span></span></div>
+                <div style="display: flex; gap: 10px;"><span style="color: #e0a458;">●</span><span>Claude scaffolded the captions index <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #6d5f4e;">· 1d</span></span></div>
+                <div style="display: flex; gap: 10px;"><span style="color: #56b3a3;">●</span><span>Note to self — "FTS vs tsvector?" <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #6d5f4e;">· note · 2d</span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- channels -->
+        <div style="margin-top: 48px; display: flex; align-items: baseline; justify-content: space-between;">
+          <div style="display: flex; align-items: baseline; gap: 14px;">
+            <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 24px;">Channels</span>
+            <span style="font-size: 14.5px; color: #8d7c67;">three parts, one track — atempo mixes them for you</span>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8d7c67;">~/dev/atlas</div>
+        </div>
+
+        <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 10px;">
+
+          <!-- channel 1: api -->
+          <div style="display: grid; grid-template-columns: 56px 250px 1fr 340px; gap: 24px; align-items: center; border: 1px solid rgba(242,233,221,0.08); border-radius: 14px; padding: 18px 22px; background: rgba(86,179,163,0.03);">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(86,179,163,0.12); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #56b3a3;">01</div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #f2e9dd; font-weight: 500;">atlas-api</span>
+              <span style="font-size: 13px; color: #8d7c67;">the engine — Go + Postgres</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #8d7c67;">
+              <span><span style="color: #b3a28c;">feat/captions</span> · "stream search matches" · 2h</span>
+              <span style="color: #6d5f4e;">api/ · 2 files changed</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+              <span style="color: #8d7c67;">go run · postgres:16</span>
+              <span style="display: flex; align-items: center; gap: 7px; color: #56b3a3; background: rgba(86,179,163,0.1); border-radius: 8px; padding: 6px 12px;">
+                <span style="display: block; width: 5px; height: 5px; border-radius: 50%; background: #56b3a3; animation: pulseDot 2.2s ease-in-out infinite;"></span>
+                live :4100
+              </span>
+            </div>
+          </div>
+
+          <!-- channel 2: desktop -->
+          <div style="display: grid; grid-template-columns: 56px 250px 1fr 340px; gap: 24px; align-items: center; border: 1px solid rgba(242,233,221,0.08); border-radius: 14px; padding: 18px 22px; background: rgba(86,179,163,0.03);">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(86,179,163,0.12); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #56b3a3;">02</div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #f2e9dd; font-weight: 500;">atlas-desktop</span>
+              <span style="font-size: 13px; color: #8d7c67;">the instrument — Swift, macOS</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #8d7c67;">
+              <span><span style="color: #b3a28c;">feat/captions</span> · "wip: search list" · 2h</span>
+              <span style="color: #e0a458;">desktop/ · 2 files uncommitted</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+              <span style="color: #8d7c67;">xcode preview</span>
+              <span style="display: flex; align-items: center; gap: 7px; color: #56b3a3; background: rgba(86,179,163,0.1); border-radius: 8px; padding: 6px 12px;">
+                <span style="display: block; width: 5px; height: 5px; border-radius: 50%; background: #56b3a3; animation: pulseDot 2.2s ease-in-out infinite;"></span>
+                live :1420
+              </span>
+            </div>
+          </div>
+
+          <!-- channel 3: site (bypassed) -->
+          <div style="display: grid; grid-template-columns: 56px 250px 1fr 340px; gap: 24px; align-items: center; border: 1px solid rgba(242,233,221,0.06); border-radius: 14px; padding: 18px 22px;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(242,233,221,0.05); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8d7c67;">03</div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #d8cab6; font-weight: 500;">atlas-site</span>
+              <span style="font-size: 13px; color: #8d7c67;">the lobby — Astro, static</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #8d7c67;">
+              <span><span style="color: #b3a28c;">main</span> · "copy: tighten pricing" · 3w</span>
+              <span style="color: #6d5f4e;">site/ · clean · deployed</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+              <span style="color: #6d5f4e; border: 1px dashed rgba(242,233,221,0.15); border-radius: 8px; padding: 6px 12px;">bypassed — nothing to run</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- play chain -->
+        <div style="margin-top: 44px; border: 1px solid rgba(242,233,221,0.08); border-radius: 16px; padding: 26px 30px; display: flex; flex-direction: column; gap: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: baseline; gap: 14px;">
+              <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 20px;">The play chain</span>
+              <span style="font-size: 14px; color: #8d7c67;">atempo ordered the entrances and cleared the ports — one press, then it's out of the way</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #56b3a3;">✓ all live in 14s · 2h ago</span>
+              <a href="#" style="text-decoration: none; background: #56b3a3; color: #16110d; border-radius: 11px; padding: 12px 24px; font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 9px;">▶ Play</a>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0;">
+            <div style="flex: 1; display: flex; align-items: center; gap: 14px; border: 1px solid rgba(86,179,163,0.3); background: rgba(86,179,163,0.06); border-radius: 12px; padding: 14px 18px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #56b3a3;">1</span>
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #f2e9dd;">postgres:16</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8d7c67;">docker · ✓ up</span>
+              </div>
+            </div>
+            <span style="width: 28px; height: 1px; background: rgba(86,179,163,0.4);"></span>
+            <div style="flex: 1; display: flex; align-items: center; gap: 14px; border: 1px solid rgba(86,179,163,0.3); background: rgba(86,179,163,0.06); border-radius: 12px; padding: 14px 18px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #56b3a3;">2</span>
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #f2e9dd;">atlas-api</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8d7c67;">:4100 · ✓ live</span>
+              </div>
+            </div>
+            <span style="width: 28px; height: 1px; background: rgba(86,179,163,0.4);"></span>
+            <div style="flex: 1; display: flex; align-items: center; gap: 14px; border: 1px solid rgba(86,179,163,0.3); background: rgba(86,179,163,0.06); border-radius: 12px; padding: 14px 18px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #56b3a3;">3</span>
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #f2e9dd;">atlas-desktop</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8d7c67;">:1420 · ✓ live</span>
+              </div>
+            </div>
+            <span style="width: 28px; height: 1px; background: rgba(242,233,221,0.1);"></span>
+            <div style="flex: 1; display: flex; align-items: center; gap: 14px; border: 1px dashed rgba(242,233,221,0.12); border-radius: 12px; padding: 14px 18px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6d5f4e;">—</span>
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8d7c67;">atlas-site</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6d5f4e;">bypassed · static</span>
+              </div>
+            </div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6d5f4e;">$ atempo play atlas <span style="color: #8d7c67;">— the one command; ports deconflicted, env loaded, Claude fed runtime over MCP</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

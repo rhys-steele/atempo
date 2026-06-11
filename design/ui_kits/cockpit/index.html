@@ -1,0 +1,364 @@
+<!-- @dsCard group="Cockpit" viewport="1440x760" subtitle="Fleet overview + Atlas briefing — click-through" -->
+<!-- @startingPoint section="Cockpit" subtitle="Atempo Cockpit — fleet overview & project briefing" viewport="1440x900" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Atempo — Cockpit</title>
+<link rel="stylesheet" href="../../styles.css">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html, body { margin: 0; background: var(--canvas); }
+  body { font-family: var(--font-ui); color: var(--text-strong); min-width: fit-content; }
+  a { text-decoration: none; color: inherit; }
+  button.bare { background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: inherit; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+    const mono = { fontFamily: 'var(--font-mono)' };
+    const M = (s, extra={}) => ({ ...mono, ...s, ...extra });
+
+    /* ── Atempo primitives (self-contained mirror of the DS components in /components) ── */
+    function Button({ children, variant='secondary', size='md', glyph, disabled=false, onClick, style={} }) {
+      const pad = size==='sm' ? '9px 16px' : '11px 22px';
+      const fontSize = size==='sm' ? '13.5px' : '14.5px';
+      const V = {
+        primary:{ background:'var(--accent)', color:'var(--on-accent)', border:'1px solid transparent', fontWeight:600 },
+        secondary:{ background:'transparent', color:'var(--text-heading)', border:'1px solid var(--line-16)', fontWeight:600 },
+        ghost:{ background:'transparent', color:'var(--text-body)', border:'1px solid transparent', fontWeight:500 },
+        accentOutline:{ background:'transparent', color:'var(--accent)', border:'1px solid var(--teal-line-40)', fontWeight:600 },
+      }[variant];
+      return (
+        <button onClick={disabled?undefined:onClick} disabled={disabled} style={{
+          display:'inline-flex', alignItems:'center', gap:8, padding:pad, borderRadius:'var(--radius-md)',
+          fontFamily:'var(--font-ui)', fontSize, lineHeight:1, cursor:disabled?'not-allowed':'pointer',
+          opacity:disabled?0.4:1, transition:'background 140ms, color 140ms', ...V, ...style }}>
+          {glyph && <span style={M({ fontSize:'0.92em' })}>{glyph}</span>}{children}
+        </button>
+      );
+    }
+    function Badge({ children, tone='neutral', dot=false, live=false, style={} }) {
+      const T = {
+        tempo:{ color:'var(--accent)', bg:'var(--teal-tint-10)', d:'var(--accent)' },
+        steady:{ color:'var(--cream-300)', bg:'rgba(201,185,163,0.10)', d:'var(--cream-300)' },
+        cold:{ color:'var(--cream-600)', bg:'rgba(242,233,221,0.04)', d:'var(--cream-600)' },
+        attention:{ color:'var(--amber-400)', bg:'rgba(224,164,88,0.10)', d:'var(--amber-400)' },
+        neutral:{ color:'var(--text-heading)', bg:'transparent', d:'var(--text-muted)', border:'var(--line-12)' },
+      }[tone];
+      return (
+        <span style={M({ display:'inline-flex', alignItems:'center', gap:7, fontSize:11.5, lineHeight:1,
+          color:T.color, background:T.bg, border:`1px solid ${T.border||'transparent'}`, borderRadius:'var(--radius-sm)', padding:'5px 10px', ...style })}>
+          {dot && <span style={{ width:5, height:5, borderRadius:'50%', background:T.d, animation: live?'pulseDot var(--pulse-duration) ease-in-out infinite':'none' }}/>}
+          {children}
+        </span>
+      );
+    }
+    function Tag({ children, style={} }) {
+      return <span style={M({ display:'inline-flex', alignItems:'center', fontSize:11.5, lineHeight:1, color:'var(--text-body)', border:'1px solid var(--line-12)', borderRadius:'var(--radius-sm)', padding:'4px 10px', ...style })}>{children}</span>;
+    }
+    function KeyCap({ children }) {
+      return <span style={M({ display:'inline-flex', alignItems:'center', fontSize:11, lineHeight:1, color:'var(--text-faint)', border:'1px solid var(--line-12)', borderRadius:5, padding:'2px 7px' })}>{children}</span>;
+    }
+    function StatusDot({ tone='live', live=false, size=6, style={} }) {
+      const C = { live:'var(--accent)', attention:'var(--amber-400)', steady:'var(--cream-300)', cold:'var(--cream-600)', neutral:'var(--text-muted)' }[tone];
+      return <span style={{ display:'inline-block', width:size, height:size, borderRadius:'50%', background:C, animation: live?'pulseDot var(--pulse-duration) ease-in-out infinite':'none', ...style }}/>;
+    }
+    function TempoMeter({ tempo='in', size='md', style={} }) {
+      const U = size==='lg'?{w:8,gap:4,h:[34,24,30,18]} : size==='sm'?{w:5,gap:3,h:[18,14,16,11]} : {w:6,gap:3,h:[22,17,20,13]};
+      const P = {
+        in:['var(--teal-500)','var(--teal-500)','var(--teal-500)','var(--teal-500)'],
+        steady:['var(--cream-300)','var(--cream-300)','rgba(201,185,163,0.4)','rgba(201,185,163,0.25)'],
+        cold:['rgba(124,109,92,0.6)','rgba(124,109,92,0.4)','rgba(124,109,92,0.25)','rgba(124,109,92,0.15)'],
+      }[tempo];
+      const H = tempo==='cold' ? U.h.map((h,i)=> i===0?Math.round(h*0.5):9) : tempo==='steady' ? U.h.map((h,i)=> i<2?h:9) : U.h;
+      return <span style={{ display:'inline-flex', alignItems:'flex-end', gap:U.gap, height:Math.max(...U.h), ...style }}>
+        {H.map((h,i)=><span key={i} style={{ width:U.w, height:h, borderRadius:2, background:P[i] }}/>)}
+      </span>;
+    }
+    function RuntimePill({ state='ready', label, style={} }) {
+      if (state==='live') return <span style={M({ display:'inline-flex', alignItems:'center', gap:7, fontSize:11.5, color:'var(--accent)', background:'var(--teal-tint-10)', borderRadius:'var(--radius-sm)', padding:'5px 10px', ...style })}><StatusDot tone="live" live size={5} />{label||'live'}</span>;
+      if (state==='bypassed') return <span style={M({ display:'inline-flex', alignItems:'center', fontSize:11.5, color:'var(--text-faint)', border:'1px dashed var(--line-16)', borderRadius:'var(--radius-sm)', padding:'5px 10px', ...style })}>{label||'static · skipped'}</span>;
+      return <span style={M({ fontSize:11.5, color: state==='none'?'var(--text-faint)':'var(--text-muted)', ...style })}>{label||(state==='none'?'no runtime':'ready')}</span>;
+    }
+    function Card({ children, emphasis='flat', radius='xl', padding=24, style={} }) {
+      const E = {
+        flat:{ background:'transparent', border:'1px solid var(--line-08)' },
+        active:{ background:'var(--teal-tint-04)', border:'1px solid var(--teal-line-20)' },
+        cold:{ background:'transparent', border:'1px solid var(--line-04)' },
+        hero:{ background:'var(--teal-tint-04)', border:'1px solid var(--teal-line-20)' },
+      }[emphasis];
+      const R = { lg:'var(--radius-lg)', xl:'var(--radius-xl)', '2xl':'var(--radius-2xl)' }[radius];
+      return <div style={{ borderRadius: emphasis==='hero'?'var(--radius-2xl)':R, padding: typeof padding==='number'?padding:padding, boxSizing:'border-box', ...E, ...style }}>{children}</div>;
+    }
+    function EyebrowLabel({ children, tone='muted', style={} }) {
+      const C = { muted:'var(--text-muted)', accent:'var(--accent)', faint:'var(--text-faint)' }[tone];
+      return <div style={M({ fontSize:'var(--label-size)', letterSpacing:'var(--label-tracking)', textTransform:'uppercase', color:C, ...style })}>{children}</div>;
+    }
+
+    // ---- window chrome ----
+    function Chrome({ crumbs, right, back, onBack }) {
+      return (
+        <div style={{ display:'flex', alignItems:'center', gap:16, padding:'15px 20px', borderBottom:'1px solid var(--line-07)' }}>
+          <div style={{ display:'flex', gap:8 }}>
+            <span style={{width:12,height:12,borderRadius:'50%',background:'var(--light-red)'}}/>
+            <span style={{width:12,height:12,borderRadius:'50%',background:'var(--light-yellow)'}}/>
+            <span style={{width:12,height:12,borderRadius:'50%',background:'var(--light-green)'}}/>
+          </div>
+          {back && <button className="bare" onClick={onBack} style={{ border:'1px solid var(--line-12)', borderRadius:8, padding:'5px 12px', fontSize:13, color:'var(--text-heading)' }}>← Fleet</button>}
+          <div style={M({ fontSize:13, color:'var(--text-muted)' })}>
+            {crumbs.map((c, i) => (
+              <span key={i}>{i>0 && ' / '}<span style={{ color: c.accent ? 'var(--accent)' : (i===0?'var(--text-heading)':'var(--text-muted)') }}>{c.label}</span></span>
+            ))}
+          </div>
+          <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:18 }}>{right}</div>
+        </div>
+      );
+    }
+
+    // ---- fleet row ----
+    function FleetRow({ p, onOpen }) {
+      const cold = p.tempo === 'cold';
+      return (
+        <div style={{
+          display:'grid', gridTemplateColumns:'64px 230px 1fr 230px 250px 110px', gap:20, alignItems:'center',
+          padding: cold ? '14px 18px' : '16px 18px',
+          background: p.live ? 'var(--teal-tint-04)' : 'transparent',
+          border: `1px solid ${p.live ? 'var(--teal-line-20)' : (cold ? 'var(--line-04)' : 'var(--line-07)')}`,
+          borderRadius:'var(--radius-lg)',
+        }}>
+          <TempoMeter tempo={p.tempo} size="sm" />
+          <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+            <span style={{ fontFamily:'var(--font-display)', fontWeight: cold?500:600, fontSize: cold?16.5:17.5, color: cold?'var(--cream-400)':'var(--text-strong)' }}>{p.name}</span>
+            <span style={M({ fontSize:11, color:'var(--text-faint)' })}>{p.parts}</span>
+          </div>
+          <div style={{ fontSize:cold?14:14.5, color: cold?'var(--text-muted)':'var(--text-heading)', lineHeight:1.45 }}
+               dangerouslySetInnerHTML={{ __html: p.next }} />
+          <div style={M({ fontSize:12, color:'var(--text-muted)', display:'flex', flexDirection:'column', gap:3 })}>
+            <span style={{ color: cold?'var(--cream-600)':'var(--text-body)' }}>{p.branch}</span>
+            <span style={{ color:'var(--text-muted)' }}>{p.git}</span>
+          </div>
+          <div>{p.runtime}</div>
+          <div style={{ display:'flex', justifyContent:'flex-end' }}>{p.action(onOpen)}</div>
+        </div>
+      );
+    }
+
+    // ---- FLEET SCREEN ----
+    function Fleet({ onOpen }) {
+      return (
+        <div style={{ width:1440, background:'var(--surface-window)', border:'1px solid var(--line-07)', borderRadius:14, boxShadow:'var(--shadow-window)', overflow:'hidden' }}>
+          <Chrome
+            crumbs={[{label:'atempo'},{label:'fleet'}]}
+            right={<>
+              <span style={M({ fontSize:12.5, color:'var(--text-muted)' })}>thu 11 jun · 09:42</span>
+              <span style={M({ fontSize:12.5, color:'var(--accent)', display:'flex', alignItems:'center', gap:8 })}><StatusDot tone="live" live /> atlas live — 2 services</span>
+            </>}
+          />
+          <div style={{ padding:'40px 56px 56px' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24 }}>
+              <div style={{ display:'flex', alignItems:'baseline', gap:22 }}>
+                <span style={{ fontFamily:'var(--font-display)', fontWeight:600, fontSize:30 }}>The fleet</span>
+                <span style={M({ fontSize:13, color:'var(--text-muted)' })}>7 projects · 2 in tempo · 2 steady · 3 cold</span>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <div style={M({ display:'flex', alignItems:'center', gap:12, background:'var(--surface-inset)', border:'1px solid var(--field-border)', borderRadius:10, padding:'10px 18px', fontSize:12.5, color:'var(--text-muted)' })}>
+                  ⌕ jump to project · run · resume <KeyCap>⌘K</KeyCap>
+                </div>
+                <Button variant="primary" size="sm" glyph="+">New</Button>
+              </div>
+            </div>
+
+            <div style={{ marginTop:32, display:'grid', gridTemplateColumns:'64px 230px 1fr 230px 250px 110px', gap:20, padding:'0 18px 10px' }}>
+              {['TEMPO','PROJECT','NEXT BEAT','GIT','RUNTIME',''].map((h,i)=>(
+                <div key={i} style={M({ fontSize:10.5, letterSpacing:'0.18em', color:'var(--text-disabled)', textAlign: i===5?'right':'left' })}>{i===5?'GO':h}</div>
+              ))}
+            </div>
+
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {PROJECTS.inTempo.map(p => <FleetRow key={p.name} p={p} onOpen={onOpen} />)}
+              {PROJECTS.steady.map(p => <FleetRow key={p.name} p={p} onOpen={onOpen} />)}
+              <div style={{ display:'flex', alignItems:'center', gap:12, padding:'18px 18px 8px' }}>
+                <span style={M({ fontSize:11, letterSpacing:'0.2em', color:'var(--text-faint)' })}>COLD — NO RUSH, EVERYTHING KEPT WARM FOR RE-ENTRY</span>
+                <span style={{ flex:1, height:1, background:'var(--line-05)' }}/>
+              </div>
+              {PROJECTS.cold.map(p => <FleetRow key={p.name} p={p} onOpen={onOpen} />)}
+            </div>
+
+            <div style={{ marginTop:28, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <span style={M({ fontSize:12, color:'var(--text-faint)' })}>this week — 5 sessions · 2 projects moved · 1 shipped</span>
+              <span style={M({ fontSize:12, color:'var(--text-faint)' })}>tempo decays on its own — cold is physics, not a verdict</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ---- ATLAS BRIEFING SCREEN ----
+    function Atlas({ onBack }) {
+      const [running, setRunning] = useState(true);
+      return (
+        <div style={{ width:1440, background:'var(--surface-window)', border:'1px solid var(--line-07)', borderRadius:14, boxShadow:'var(--shadow-window)', overflow:'hidden' }}>
+          <Chrome back onBack={onBack}
+            crumbs={[{label:'atempo'},{label:'fleet'},{label:'atlas', accent:true}]}
+            right={<span style={M({ fontSize:13, color: running?'var(--accent)':'var(--text-muted)', display:'flex', alignItems:'center', gap:10 })}><StatusDot tone={running?'live':'neutral'} live={running} /> {running?'live — 2 of 2 services':'stopped'}</span>}
+          />
+          <div style={{ padding:'40px 56px 56px' }}>
+            {/* header + launch */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:32 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:18 }}>
+                <TempoMeter tempo="in" size="lg" />
+                <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:38, lineHeight:1 }}>atlas</span>
+                <Badge tone="tempo">in tempo · 2h</Badge>
+                <span style={M({ fontSize:12, color:'var(--text-muted)' })}>~/dev/atlas · feat/captions · 4 changed</span>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                <span style={M({ fontSize:12, color:'var(--accent)' })}>✓ all live in 14s · 09:41</span>
+                <Button variant="secondary">Open app</Button>
+                <Button variant="primary" glyph="▶" onClick={()=>setRunning(true)}>Run all — 3 steps</Button>
+              </div>
+            </div>
+
+            {/* briefing trio */}
+            <div style={{ marginTop:36, display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr', gap:14 }}>
+              <Card emphasis="active" padding={26} style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                <EyebrowLabel tone="accent">WHERE YOU LEFT OFF · 2H AGO</EyebrowLabel>
+                <div style={{ fontSize:17, lineHeight:1.55, color:'var(--text-emphasis)' }}>The API streams caption matches; the desktop list still queries the old endpoint, so search dies past page one. Site is green and deployed.</div>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                  <Tag><span style={{color:'var(--amber-400)'}}>●</span>&nbsp; SearchList.swift</Tag>
+                  <Tag><span style={{color:'var(--accent)'}}>●</span>&nbsp; search.go</Tag>
+                  <Tag><span style={{color:'var(--text-muted)'}}>●</span>&nbsp; mock_results.json</Tag>
+                </div>
+              </Card>
+              <Card emphasis="hero" radius="xl" padding={26} style={{ background:'var(--teal-tint-12)', border:'1px solid var(--teal-line-30)', display:'flex', flexDirection:'column', gap:14 }}>
+                <EyebrowLabel tone="accent">NEXT BEAT</EyebrowLabel>
+                <div style={{ fontSize:17, lineHeight:1.55, color:'var(--text-strong)' }}>Point <span style={M({fontSize:14,color:'var(--accent)'})}>SearchList.swift</span> at <span style={M({fontSize:14,color:'var(--accent)'})}>/v2/captions/search</span>, then delete the mock.</div>
+                <div style={{ marginTop:'auto', display:'flex', gap:10 }}>
+                  <Button variant="primary" size="sm">Resume with Claude</Button>
+                  <Button variant="secondary" size="sm">In code</Button>
+                </div>
+              </Card>
+              <Card emphasis="flat" padding={26} style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                <EyebrowLabel>OPEN THREADS · 2</EyebrowLabel>
+                <div style={{ display:'flex', gap:10 }}><span style={M({fontSize:13,color:'var(--amber-400)'})}>?</span><span style={{fontSize:14.5,color:'var(--text-heading)',lineHeight:1.5}}>SQLite FTS or Postgres tsvector for the caption index?</span></div>
+                <div style={{ display:'flex', gap:10 }}><span style={M({fontSize:13,color:'var(--amber-400)'})}>?</span><span style={{fontSize:14.5,color:'var(--text-heading)',lineHeight:1.5}}>Ship search behind a flag, or wait for thumbnails?</span></div>
+                <div style={M({ marginTop:'auto', fontSize:11.5, color:'var(--text-faint)' })}>answer them in the resume — Claude reads these first</div>
+              </Card>
+            </div>
+
+            {/* launch ramp */}
+            <Card emphasis="flat" padding={26} style={{ marginTop:28, display:'flex', flexDirection:'column', gap:16 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <EyebrowLabel>LAUNCH RAMP — ORDERED BY DEPENDENCY, PORTS DECONFLICTED FOR YOU</EyebrowLabel>
+                <span style={M({ fontSize:12, color:'var(--text-faint)' })}>$ atempo run atlas</span>
+              </div>
+              <div style={{ display:'flex', alignItems:'center' }}>
+                {RAMP.map((step, i) => (
+                  <React.Fragment key={i}>
+                    {i>0 && <span style={{ width:24, height:1, background: step.on?'var(--teal-line-40)':'var(--line-12)' }}/>}
+                    <div style={{ flex:1, display:'flex', alignItems:'center', gap:12, border:`1px ${step.on?'solid var(--teal-line-30)':'dashed var(--line-12)'}`, background: step.on?'var(--teal-tint-06)':'transparent', borderRadius:11, padding:'13px 16px' }}>
+                      <span style={M({ fontSize:11.5, color: step.on?'var(--accent)':'var(--text-faint)' })}>{step.n}</span>
+                      <span style={M({ fontSize:12.5, color: step.on?'var(--text-strong)':'var(--text-muted)' })}>{step.label}</span>
+                      <span style={M({ marginLeft:'auto', fontSize:11, color: step.on?'var(--accent)':'var(--text-faint)' })}>{step.state}</span>
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+              <span style={{ fontSize:13, color:'var(--text-muted)' }}>It confirmed everything is live, fed Claude the runtime over MCP, and got out of the way. No gauges to watch — go build.</span>
+            </Card>
+
+            {/* parts */}
+            <div style={{ marginTop:28 }}>
+              <EyebrowLabel style={{ paddingBottom:12 }}>PARTS · 3</EyebrowLabel>
+              <div style={{ display:'grid', gridTemplateColumns:'240px 1fr 1fr 200px 170px', gap:20, padding:'10px 18px', borderBottom:'1px solid var(--line-07)' }}>
+                {['PART','BRANCH / LAST COMMIT','CHANGES','RUNTIME','STATE'].map((h,i)=>(
+                  <div key={i} style={M({ fontSize:10.5, letterSpacing:'0.16em', color:'var(--text-disabled)', textAlign:i===4?'right':'left' })}>{h}</div>
+                ))}
+              </div>
+              {PARTS.map((pt,i)=>(
+                <div key={i} style={{ display:'grid', gridTemplateColumns:'240px 1fr 1fr 200px 170px', gap:20, alignItems:'center', padding:'16px 18px', borderBottom:'1px solid var(--line-05)' }}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                    <span style={M({ fontSize:14, color: pt.dim?'var(--text-heading)':'var(--text-strong)', fontWeight:500 })}>{pt.name}</span>
+                    <span style={{ fontSize:12.5, color:'var(--text-faint)' }}>{pt.kind}</span>
+                  </div>
+                  <div style={M({ fontSize:12, color:'var(--text-muted)' })}>{pt.commit}</div>
+                  <div style={M({ fontSize:12, color: pt.warn?'var(--amber-400)':'var(--text-muted)' })}>{pt.changes}</div>
+                  <div style={M({ fontSize:12, color:'var(--text-muted)' })}>{pt.run}</div>
+                  <div style={{ display:'flex', justifyContent:'flex-end' }}>{pt.state}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ---- data ----
+    const RAMP = [
+      { n:'1', label:'postgres:16', state:'✓ up', on:true },
+      { n:'2', label:'atlas-api :4100', state:'✓ live', on:true },
+      { n:'3', label:'atlas-desktop :1420', state:'✓ live', on:true },
+      { n:'—', label:'atlas-site', state:'static · skipped', on:false },
+    ];
+    const PARTS = [
+      { name:'atlas-api', kind:'Go + Postgres', commit:'feat/captions · "stream search matches" · 2h', changes:'api/ · 2 files', run:'go run · docker pg', state:<RuntimePill state="live" label="live :4100" /> },
+      { name:'atlas-desktop', kind:'Swift · macOS', commit:'feat/captions · "wip: search list" · 2h', changes:'desktop/ · 2 uncommitted', warn:true, run:'xcode preview', state:<RuntimePill state="live" label="live :1420" /> },
+      { name:'atlas-site', kind:'Astro · static', dim:true, commit:'main · "copy: tighten pricing" · 3w', changes:'clean', run:'none — deployed', state:<RuntimePill state="none" label="no runtime" /> },
+    ];
+
+    const liveBadge = <RuntimePill state="live" label=":4100 :1420" />;
+    const PROJECTS = {
+      inTempo: [
+        { name:'atlas', tempo:'in', live:true, parts:'3 parts · api desktop site',
+          next:'Wire <span style="font-family:var(--font-mono);font-size:12.5px;color:var(--accent)">SearchList.swift</span> to <span style="font-family:var(--font-mono);font-size:12.5px;color:var(--accent)">/v2/captions/search</span>, drop the mock',
+          branch:'feat/captions', git:'4 changed · 2h', runtime: liveBadge,
+          action:(o)=><Button variant="primary" size="sm" glyph="→" onClick={()=>o('atlas')}>Open</Button> },
+        { name:'recipe-box', tempo:'in', parts:'1 part · next + sqlite',
+          next:'Build the meal-plan week grid', branch:'feat/meal-plan', git:'clean · 1d',
+          runtime:<RuntimePill state="ready" label="ready — 1 service" />,
+          action:()=><Button variant="accentOutline" size="sm" glyph="▸">Run</Button> },
+      ],
+      steady: [
+        { name:'pricing-page', tempo:'steady', parts:'1 part · astro',
+          next:'Persist the session in <span style="font-family:var(--font-mono);font-size:12.5px;color:var(--text-muted)">session.ts</span>, gate <span style="font-family:var(--font-mono);font-size:12.5px;color:var(--text-muted)">/dashboard</span>',
+          branch:'feat/checkout', git:'2 changed · 2d', runtime:<RuntimePill state="ready" label="ready — 1 service" />,
+          action:()=><Button variant="secondary" size="sm" glyph="▸">Run</Button> },
+        { name:'portfolio-site', tempo:'steady', parts:'1 part · astro',
+          next:'Typeset the footnotes on the new essay', branch:'main', git:'clean · 6d',
+          runtime:<RuntimePill state="ready" label="ready — 1 service" />,
+          action:()=><Button variant="secondary" size="sm" glyph="▸">Run</Button> },
+      ],
+      cold: [
+        { name:'midi-sketch', tempo:'cold', parts:'1 part · ts web-audio',
+          next:'Engine plays cleanly — pick up at save/export', branch:'main', git:'clean · 6w',
+          runtime:<RuntimePill state="ready" label="ready — 1 service" />,
+          action:()=><Button variant="ghost" size="sm">Pick up</Button> },
+        { name:'invoice-zen', tempo:'cold', parts:'1 part · rails',
+          next:'Schema & auth done — pick up at PDF export', branch:'main', git:'clean · 2mo',
+          runtime:<RuntimePill state="ready" label="ready — 2 services" />,
+          action:()=><Button variant="ghost" size="sm">Pick up</Button> },
+        { name:'habit-dots', tempo:'cold', parts:'1 part · svelte',
+          next:'Figma mocks only — clean slate when ready', branch:'main', git:'clean · 3mo',
+          runtime:<RuntimePill state="none" label="nothing built yet" />,
+          action:()=><Button variant="ghost" size="sm">Pick up</Button> },
+      ],
+    };
+
+    function App() {
+      const [screen, setScreen] = useState('fleet');
+      return (
+        <div style={{ minHeight:'100vh', minWidth:'fit-content', padding:'40px', display:'flex', justifyContent:'center' }}>
+          {screen === 'fleet'
+            ? <Fleet onOpen={() => setScreen('atlas')} />
+            : <Atlas onBack={() => setScreen('fleet')} />}
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

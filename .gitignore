@@ -3,6 +3,14 @@
 /build/
 /dist/
 
+# Frontend
+desktop/frontend/node_modules/
+desktop/frontend/dist/
+
+# Rust / Tauri
+desktop/backend/target/
+desktop/backend/binaries/atempo-*
+
 # Test artifacts
 testing/
 /tmp/

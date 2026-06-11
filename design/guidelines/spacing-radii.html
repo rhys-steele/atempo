@@ -1,0 +1,25 @@
+<!-- @dsCard group="Spacing" viewport="700x170" subtitle="Corner radii — chips through heroes" name="Radii" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--canvas); font-family: var(--font-mono); color: var(--text-faint); padding: 26px; }
+  .row { display: flex; gap: 18px; align-items: flex-end; }
+  .item { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .box { width: 84px; height: 60px; background: var(--teal-tint-06); border: 1px solid var(--teal-line-20); }
+  .lab { font-size: 10px; letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="item"><div class="box" style="border-radius: var(--radius-sm);"></div><span class="lab">sm · 7</span></div>
+    <div class="item"><div class="box" style="border-radius: var(--radius-md);"></div><span class="lab">md · 10</span></div>
+    <div class="item"><div class="box" style="border-radius: var(--radius-lg);"></div><span class="lab">lg · 12</span></div>
+    <div class="item"><div class="box" style="border-radius: var(--radius-xl);"></div><span class="lab">xl · 14</span></div>
+    <div class="item"><div class="box" style="border-radius: var(--radius-2xl);"></div><span class="lab">2xl · 20</span></div>
+    <div class="item"><div class="box" style="border-radius: var(--radius-pill); width: 60px;"></div><span class="lab">pill</span></div>
+  </div>
+</body>
+</html>

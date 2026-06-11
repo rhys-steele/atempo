@@ -1,0 +1,53 @@
+<!-- @dsCard group="Components" viewport="700x250" subtitle="Card surfaces + EyebrowLabel" name="Surfaces · Card" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--canvas); padding: 30px; font-family: var(--font-ui); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .name { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--text-strong); }
+  .desc { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    function findNS(keys) {
+      for (const k of Object.keys(window)) {
+        try { const v = window[k]; if (v && typeof v === 'object' && keys.every(kk => kk in v)) return v; } catch (e) {}
+      }
+      return {};
+    }
+    const NS = findNS(['Card', 'EyebrowLabel']);
+    const { Card, EyebrowLabel } = NS;
+    function Demo() {
+      return (
+        <div className="grid">
+          <Card emphasis="active">
+            <EyebrowLabel tone="accent">IN TEMPO · 2H</EyebrowLabel>
+            <div className="name" style={{marginTop: 10}}>atlas</div>
+            <div className="desc">teal tint + teal hairline</div>
+          </Card>
+          <Card emphasis="flat">
+            <EyebrowLabel>STEADY · 2D</EyebrowLabel>
+            <div className="name" style={{marginTop: 10}}>pricing-page</div>
+            <div className="desc">neutral hairline</div>
+          </Card>
+          <Card emphasis="cold">
+            <EyebrowLabel tone="faint">COLD · 6W</EyebrowLabel>
+            <div className="name" style={{marginTop: 10, color: 'var(--cream-400)'}}>midi-sketch</div>
+            <div className="desc">receded, faded hairline</div>
+          </Card>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+  </script>
+</body>
+</html>

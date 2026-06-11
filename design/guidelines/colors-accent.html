@@ -1,0 +1,36 @@
+<!-- @dsCard group="Colors" viewport="700x180" subtitle="One teal accent, a reserved amber, tempo tones" name="Accent & signals" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--canvas); font-family: var(--font-mono); color: var(--text-muted); padding: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .chip { border-radius: 10px; border: 1px solid var(--line-08); padding: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 78px; box-sizing: border-box; }
+  .dot { width: 26px; height: 26px; border-radius: 50%; }
+  .name { font-size: 11px; color: var(--text-heading); }
+  .hex { font-size: 10.5px; color: var(--text-faint); }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="chip" style="background: var(--teal-tint-06); border-color: var(--teal-line-20);">
+      <span class="dot" style="background: var(--teal-500);"></span>
+      <div><div class="name">accent · teal-500</div><div class="hex">#56b3a3 — in tempo / live / action</div></div>
+    </div>
+    <div class="chip">
+      <span class="dot" style="background: var(--amber-400);"></span>
+      <div><div class="name">signal · amber-400</div><div class="hex">#e0a458 — note / uncommitted / open</div></div>
+    </div>
+    <div class="chip">
+      <span class="dot" style="background: var(--cream-300);"></span>
+      <div><div class="name">tempo · steady</div><div class="hex">#c9b9a3 — andante</div></div>
+    </div>
+    <div class="chip">
+      <span class="dot" style="background: var(--cream-600);"></span>
+      <div><div class="name">tempo · cold</div><div class="hex">#7c6d5c — physics, not a verdict</div></div>
+    </div>
+  </div>
+</body>
+</html>
