@@ -1,4 +1,4 @@
-import React from 'react';
+/* global React */
 
 /**
  * Atempo Button — calm, flat, warm. Three variants:
@@ -6,8 +6,12 @@ import React from 'react';
  *  - secondary: hairline outline on the espresso ground
  *  - ghost:    text-only until hover
  * Sizes: sm | md. Use the `glyph` prop for a leading functional mark (▶, →, +).
+ *
+ * No build step: this attaches to the window.AtempoDS namespace and reads the
+ * React UMD global. The matching .d.ts is the typed contract for production use.
  */
-export function Button({
+window.AtempoDS = window.AtempoDS || {};
+window.AtempoDS.Button = function Button({
   children,
   variant = 'secondary',
   size = 'md',
@@ -70,4 +74,4 @@ export function Button({
       {children}
     </button>
   );
-}
+};

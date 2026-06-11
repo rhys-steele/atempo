@@ -6,9 +6,21 @@
 <meta charset="utf-8">
 <title>Atempo — Cockpit</title>
 <link rel="stylesheet" href="../../styles.css">
-<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Vendored, pinned, production builds — renders offline with no build step. -->
+<script src="../../vendor/react.production.min.js"></script>
+<script src="../../vendor/react-dom.production.min.js"></script>
+<script src="../../vendor/babel.min.js"></script>
+<!-- The real DS primitives — one source of truth, loaded straight from components/.
+     No inline mirror: this kit composes the same files the specimen cards use. -->
+<script type="text/babel" src="../../components/status/StatusDot.jsx"></script>
+<script type="text/babel" src="../../components/status/TempoMeter.jsx"></script>
+<script type="text/babel" src="../../components/status/RuntimePill.jsx"></script>
+<script type="text/babel" src="../../components/core/Button.jsx"></script>
+<script type="text/babel" src="../../components/core/Badge.jsx"></script>
+<script type="text/babel" src="../../components/core/Tag.jsx"></script>
+<script type="text/babel" src="../../components/core/KeyCap.jsx"></script>
+<script type="text/babel" src="../../components/surfaces/Card.jsx"></script>
+<script type="text/babel" src="../../components/surfaces/EyebrowLabel.jsx"></script>
 <style>
   html, body { margin: 0; background: var(--canvas); }
   body { font-family: var(--font-ui); color: var(--text-strong); min-width: fit-content; }
@@ -20,85 +32,11 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState } = React;
+    // The product primitives — resolved once from the shared namespace.
+    const { Button, Badge, Tag, KeyCap, StatusDot, TempoMeter, RuntimePill, Card, EyebrowLabel } = window.AtempoDS;
+
     const mono = { fontFamily: 'var(--font-mono)' };
     const M = (s, extra={}) => ({ ...mono, ...s, ...extra });
-
-    /* ── Atempo primitives (self-contained mirror of the DS components in /components) ── */
-    function Button({ children, variant='secondary', size='md', glyph, disabled=false, onClick, style={} }) {
-      const pad = size==='sm' ? '9px 16px' : '11px 22px';
-      const fontSize = size==='sm' ? '13.5px' : '14.5px';
-      const V = {
-        primary:{ background:'var(--accent)', color:'var(--on-accent)', border:'1px solid transparent', fontWeight:600 },
-        secondary:{ background:'transparent', color:'var(--text-heading)', border:'1px solid var(--line-16)', fontWeight:600 },
-        ghost:{ background:'transparent', color:'var(--text-body)', border:'1px solid transparent', fontWeight:500 },
-        accentOutline:{ background:'transparent', color:'var(--accent)', border:'1px solid var(--teal-line-40)', fontWeight:600 },
-      }[variant];
-      return (
-        <button onClick={disabled?undefined:onClick} disabled={disabled} style={{
-          display:'inline-flex', alignItems:'center', gap:8, padding:pad, borderRadius:'var(--radius-md)',
-          fontFamily:'var(--font-ui)', fontSize, lineHeight:1, cursor:disabled?'not-allowed':'pointer',
-          opacity:disabled?0.4:1, transition:'background 140ms, color 140ms', ...V, ...style }}>
-          {glyph && <span style={M({ fontSize:'0.92em' })}>{glyph}</span>}{children}
-        </button>
-      );
-    }
-    function Badge({ children, tone='neutral', dot=false, live=false, style={} }) {
-      const T = {
-        tempo:{ color:'var(--accent)', bg:'var(--teal-tint-10)', d:'var(--accent)' },
-        steady:{ color:'var(--cream-300)', bg:'rgba(201,185,163,0.10)', d:'var(--cream-300)' },
-        cold:{ color:'var(--cream-600)', bg:'rgba(242,233,221,0.04)', d:'var(--cream-600)' },
-        attention:{ color:'var(--amber-400)', bg:'rgba(224,164,88,0.10)', d:'var(--amber-400)' },
-        neutral:{ color:'var(--text-heading)', bg:'transparent', d:'var(--text-muted)', border:'var(--line-12)' },
-      }[tone];
-      return (
-        <span style={M({ display:'inline-flex', alignItems:'center', gap:7, fontSize:11.5, lineHeight:1,
-          color:T.color, background:T.bg, border:`1px solid ${T.border||'transparent'}`, borderRadius:'var(--radius-sm)', padding:'5px 10px', ...style })}>
-          {dot && <span style={{ width:5, height:5, borderRadius:'50%', background:T.d, animation: live?'pulseDot var(--pulse-duration) ease-in-out infinite':'none' }}/>}
-          {children}
-        </span>
-      );
-    }
-    function Tag({ children, style={} }) {
-      return <span style={M({ display:'inline-flex', alignItems:'center', fontSize:11.5, lineHeight:1, color:'var(--text-body)', border:'1px solid var(--line-12)', borderRadius:'var(--radius-sm)', padding:'4px 10px', ...style })}>{children}</span>;
-    }
-    function KeyCap({ children }) {
-      return <span style={M({ display:'inline-flex', alignItems:'center', fontSize:11, lineHeight:1, color:'var(--text-faint)', border:'1px solid var(--line-12)', borderRadius:5, padding:'2px 7px' })}>{children}</span>;
-    }
-    function StatusDot({ tone='live', live=false, size=6, style={} }) {
-      const C = { live:'var(--accent)', attention:'var(--amber-400)', steady:'var(--cream-300)', cold:'var(--cream-600)', neutral:'var(--text-muted)' }[tone];
-      return <span style={{ display:'inline-block', width:size, height:size, borderRadius:'50%', background:C, animation: live?'pulseDot var(--pulse-duration) ease-in-out infinite':'none', ...style }}/>;
-    }
-    function TempoMeter({ tempo='in', size='md', style={} }) {
-      const U = size==='lg'?{w:8,gap:4,h:[34,24,30,18]} : size==='sm'?{w:5,gap:3,h:[18,14,16,11]} : {w:6,gap:3,h:[22,17,20,13]};
-      const P = {
-        in:['var(--teal-500)','var(--teal-500)','var(--teal-500)','var(--teal-500)'],
-        steady:['var(--cream-300)','var(--cream-300)','rgba(201,185,163,0.4)','rgba(201,185,163,0.25)'],
-        cold:['rgba(124,109,92,0.6)','rgba(124,109,92,0.4)','rgba(124,109,92,0.25)','rgba(124,109,92,0.15)'],
-      }[tempo];
-      const H = tempo==='cold' ? U.h.map((h,i)=> i===0?Math.round(h*0.5):9) : tempo==='steady' ? U.h.map((h,i)=> i<2?h:9) : U.h;
-      return <span style={{ display:'inline-flex', alignItems:'flex-end', gap:U.gap, height:Math.max(...U.h), ...style }}>
-        {H.map((h,i)=><span key={i} style={{ width:U.w, height:h, borderRadius:2, background:P[i] }}/>)}
-      </span>;
-    }
-    function RuntimePill({ state='ready', label, style={} }) {
-      if (state==='live') return <span style={M({ display:'inline-flex', alignItems:'center', gap:7, fontSize:11.5, color:'var(--accent)', background:'var(--teal-tint-10)', borderRadius:'var(--radius-sm)', padding:'5px 10px', ...style })}><StatusDot tone="live" live size={5} />{label||'live'}</span>;
-      if (state==='bypassed') return <span style={M({ display:'inline-flex', alignItems:'center', fontSize:11.5, color:'var(--text-faint)', border:'1px dashed var(--line-16)', borderRadius:'var(--radius-sm)', padding:'5px 10px', ...style })}>{label||'static · skipped'}</span>;
-      return <span style={M({ fontSize:11.5, color: state==='none'?'var(--text-faint)':'var(--text-muted)', ...style })}>{label||(state==='none'?'no runtime':'ready')}</span>;
-    }
-    function Card({ children, emphasis='flat', radius='xl', padding=24, style={} }) {
-      const E = {
-        flat:{ background:'transparent', border:'1px solid var(--line-08)' },
-        active:{ background:'var(--teal-tint-04)', border:'1px solid var(--teal-line-20)' },
-        cold:{ background:'transparent', border:'1px solid var(--line-04)' },
-        hero:{ background:'var(--teal-tint-04)', border:'1px solid var(--teal-line-20)' },
-      }[emphasis];
-      const R = { lg:'var(--radius-lg)', xl:'var(--radius-xl)', '2xl':'var(--radius-2xl)' }[radius];
-      return <div style={{ borderRadius: emphasis==='hero'?'var(--radius-2xl)':R, padding: typeof padding==='number'?padding:padding, boxSizing:'border-box', ...E, ...style }}>{children}</div>;
-    }
-    function EyebrowLabel({ children, tone='muted', style={} }) {
-      const C = { muted:'var(--text-muted)', accent:'var(--accent)', faint:'var(--text-faint)' }[tone];
-      return <div style={M({ fontSize:'var(--label-size)', letterSpacing:'var(--label-tracking)', textTransform:'uppercase', color:C, ...style })}>{children}</div>;
-    }
 
     // ---- window chrome ----
     function Chrome({ crumbs, right, back, onBack }) {

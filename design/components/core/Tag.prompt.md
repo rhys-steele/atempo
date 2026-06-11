@@ -1,8 +1,7 @@
-Hairline mono chips for stack labels (`Tag`) and keyboard shortcuts (`KeyCap`); use `Tag` to label a project's tech and `KeyCap` for command hints.
+Hairline mono chip for stack/kind labels (`go`, `swift`, `astro`, `ts`). Mono, low-emphasis.
 
 ```jsx
 <Tag>go</Tag> <Tag>swift</Tag> <Tag>astro</Tag>
-<KeyCap>⌘K</KeyCap>
 ```
 
-`Tag` only ever labels a stack/kind — for status use `Badge`. `KeyCap` is for shortcut hints in command bars.
+`Tag` only ever labels a stack/kind — for status use `Badge`, for keyboard hints use `KeyCap`. Never put a status dot or live state in a Tag.

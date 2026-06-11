@@ -1,10 +1,11 @@
-import React from 'react';
+/* global React */
 
 /**
  * StatusDot — the atomic state mark. teal = live, amber = attention, cream = neutral/cold.
  * `live` turns on the single slow `pulseDot` breath.
  */
-export function StatusDot({ tone = 'live', live = false, size = 6, style = {} }) {
+window.AtempoDS = window.AtempoDS || {};
+window.AtempoDS.StatusDot = function StatusDot({ tone = 'live', live = false, size = 6, style = {} }) {
   const colors = {
     live: 'var(--accent)',
     attention: 'var(--amber-400)',
@@ -21,4 +22,4 @@ export function StatusDot({ tone = 'live', live = false, size = 6, style = {} })
       ...style,
     }} />
   );
-}
+};

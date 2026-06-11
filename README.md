@@ -49,6 +49,31 @@ The split isn't cosmetic. It's the product: the CLI is where you drive, the desk
 
 ---
 
+## What's in this repo
+
+Atempo is a monorepo. Each top-level directory is one face of the product:
+
+```
+cli/        # The Go engine + CLI. All orchestration logic lives here:
+            # scaffolding, the project registry, docker-compose generation,
+            # port assignment, and the embedded framework templates.
+
+desktop/    # The Tauri desktop app — Rust backend + React/Vite/Tailwind
+            # frontend. It never reimplements CLI logic; it runs the Go
+            # binary as a sidecar and talks to it over a structured JSON
+            # protocol (--json for one-shot calls, --stream-json for
+            # streaming progress and logs).
+
+design/     # The design system — tokens, components, guidelines, and a
+            # full UI kit as plain HTML/CSS. The visual source of truth
+            # for every Atempo surface, readable by humans and by Claude.
+            # See "Design system" below.
+```
+
+Planned siblings: a marketing/docs site and, later, a web app — both will draw on `design/` directly.
+
+---
+
 ## What it does
 
 Atempo manages three moments of flow.
@@ -214,15 +239,45 @@ Add to any existing project with `atempo add-service <name>`:
 
 ---
 
-## Design language
+## Design system
 
-Context for anyone touching the UI:
+The visual identity lives in `design/` as a self-contained design system — plain HTML and CSS, no build step. It's the source of truth for every Atempo surface: the desktop app today, the website and web app later. Because it's static files, it serves two audiences at once: a human can open any file in a browser and see rendered specimens, and Claude can read the same files as code and design new surfaces that stay on-brand.
 
-* **Warm espresso ground** , not server-black — a deliberate brown-black (Ink / Surface / Paper).
-* **One energetic accent** (teal); everything else earns its keep through restraint.
-* **Bricolage Grotesque** for display and warmth, **Hanken Grotesk** for dense UI, and **monospace reserved strictly for anything the machine touches** — code, paths, ports, branches, commands, the tempo mark. The human parts feel human; the machine parts look like machine; the line between them is intentional.
-* Signature mark: **four rising bars** (metronome / waveform / momentum).
-* Copy is plain, sentence case, warm. Empty and idle states are invitations, not apologies. Load-bearing phrases:  *where you left off* ,  *next beat* ,  *pick up* ,  *return to tempo* .
+```
+design/
+├── index.html            # The system viewer/gallery — serve, then open this
+├── PRINCIPLES.md         # The cheap-to-read rules: invariants + voice
+├── README.md             # The full system spec: content + visual foundations,
+│                         # iconography, manifest
+├── styles.css            # Root entry — @imports all tokens. Link this and
+│                         # you inherit the whole system.
+├── tokens/               # colors.css, typography.css, spacing.css, fonts.css
+├── guidelines/           # Foundation specimen cards: type, color ramps,
+│                         # spacing scale, radii, the tempo-meter brand mark
+├── components/           # 9 primitives, each as .jsx + .d.ts + a
+│   ├── core/             #   .prompt.md usage guide: Button, Badge, Tag, KeyCap
+│   ├── status/           #   StatusDot, TempoMeter, RuntimePill
+│   └── surfaces/         #   Card, EyebrowLabel
+├── ui_kits/cockpit/      # The full product kit — fleet overview + project
+│                         # briefing as a click-through, built from the primitives
+├── vendor/               # Pinned React + ReactDOM + Babel — renders offline,
+│                         # no build step
+├── archive/              # Direction studies (*.dc.html), the generated
+│                         # support.js, and the source screenshots — history
+└── SKILL.md              # Pointer to the .claude/skills/atempo-design/ skill
+```
+
+### The design language in brief
+
+* **Warm, not server-black.** An espresso ground (`#16110d`) with a cream foreground ramp doing the hierarchy work. One teal accent (`#56b3a3`) carries every active meaning — in tempo, live, primary action. A reserved amber appears only for "give this a glance" signals: uncommitted changes, open questions.
+* **The mono/human split is sacred.** **Bricolage Grotesque** for display, **Hanken Grotesk** for UI prose, and **JetBrains Mono** strictly for anything the machine touches — paths, ports, branches, commits, commands, the tempo mark. The human parts feel human; the machine parts look like machine; the line between them is intentional.
+* **Tempo is pace, not health.** Status renders as a **4-bar meter** — tall and teal for in tempo, mid tan for steady, short and faint for cold. The same 4-bar mark is the logo. Cold copy is matter-of-fact and inviting, never guilt-laden.
+* **Near-iconless.** No icon font, no emoji — a handful of functional Unicode glyphs (`▶ → ✓ ? · ●`) and type doing the work.
+* **Copy is plain, sentence case, warm.** Always "you", never "we". Empty and idle states are invitations, not apologies. Load-bearing phrases: *where you left off*, *next beat*, *pick up*, *return to tempo*.
+
+### Using it
+
+To view it, serve the folder — `python3 -m http.server 4400 -d design/` (or `design/serve.sh`) — and open `localhost:4400` for the gallery; `ui_kits/cockpit/index.html` is the hero. Serving (not opening over `file://`) is required because the component cards and the kit render the real components through Babel's `text/babel` scripts. To build with it, link `styles.css` for the full token set and webfonts, and read `design/PRINCIPLES.md` for the invariants and voice (or `design/README.md` for the full spec). When designing with Claude, the `atempo-design` skill (`.claude/skills/atempo-design/`) wires the whole system in — invoke `/atempo-design` and Claude designs as an Atempo designer rather than from scratch.
 
 ---
 
@@ -237,4 +292,4 @@ Context for anyone touching the UI:
 
 ## License
 
-[Atempo License v1.0](https://claude.ai/chat/LICENCE) — open source with attribution.
+[Atempo License v1.0](LICENCE) — open source with attribution.

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atempo Design System</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--canvas);
+    color: var(--text-strong);
+    font-family: var(--font-ui);
+    line-height: var(--leading-body);
+    min-width: fit-content;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 80px 56px 120px; }
+
+  /* ---- masthead ---- */
+  .masthead { display: flex; align-items: flex-end; gap: 22px; padding-bottom: 28px; border-bottom: 1px solid var(--line-08); }
+  .logo { display: inline-flex; align-items: flex-end; gap: 4px; height: 34px; }
+  .logo span { width: 8px; border-radius: 2px; background: var(--teal-500); }
+  .logo span:nth-child(1) { height: 34px; }
+  .logo span:nth-child(2) { height: 24px; }
+  .logo span:nth-child(3) { height: 30px; }
+  .logo span:nth-child(4) { height: 18px; }
+  .masthead h1 { font-family: var(--font-display); font-weight: 700; font-size: var(--display-l); line-height: 1; margin: 0; }
+  .masthead .sub { font-family: var(--font-mono); font-size: var(--mono-m); color: var(--text-muted); margin-left: auto; padding-bottom: 4px; }
+  .lede { margin: 26px 0 0; max-width: 760px; font-size: var(--body-l); color: var(--text-body); }
+  .lede strong { color: var(--text-emphasis); font-weight: var(--weight-semibold); }
+
+  /* ---- sections ---- */
+  section { margin-top: 64px; }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--label-size); letter-spacing: var(--label-tracking-wide); text-transform: uppercase; color: var(--text-faint); }
+  .section-head { display: flex; align-items: baseline; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--line-07); }
+  .section-head h2 { font-family: var(--font-display); font-weight: 600; font-size: var(--display-m); margin: 0; }
+  .section-head .note { font-family: var(--font-mono); font-size: var(--mono-s); color: var(--text-faint); margin-left: auto; }
+
+  /* ---- specimen grid ---- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); gap: 18px; margin-top: 24px; }
+  .specimen { border: 1px solid var(--line-08); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface-window); }
+  .specimen .cap { display: flex; align-items: baseline; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line-07); }
+  .specimen .cap .name { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--text-emphasis); }
+  .specimen .cap .desc { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+  .specimen iframe { display: block; width: 100%; border: 0; background: var(--canvas); }
+
+  /* ---- cockpit hero ---- */
+  .hero { margin-top: 24px; display: flex; align-items: center; gap: 28px; padding: 32px; border-radius: var(--radius-2xl); background: var(--teal-tint-04); border: 1px solid var(--teal-line-20); }
+  .hero .meter { display: inline-flex; align-items: flex-end; gap: 4px; height: 34px; }
+  .hero .meter span { width: 8px; border-radius: 2px; background: var(--teal-500); }
+  .hero .meter span:nth-child(1){height:34px} .hero .meter span:nth-child(2){height:24px} .hero .meter span:nth-child(3){height:30px} .hero .meter span:nth-child(4){height:18px}
+  .hero .copy h3 { font-family: var(--font-display); font-weight: 600; font-size: var(--display-s); margin: 0 0 6px; }
+  .hero .copy p { margin: 0; font-size: var(--body-m); color: var(--text-body); max-width: 620px; }
+  .hero .go { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: var(--radius-md); background: var(--accent); color: var(--on-accent); font-weight: var(--weight-semibold); font-size: 14.5px; white-space: nowrap; transition: background 140ms; }
+  .hero .go:hover { background: var(--accent-hover); }
+  .hero .go .glyph { font-family: var(--font-mono); font-size: 0.92em; }
+
+  /* ---- docs links ---- */
+  .docs { margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .docs a { display: flex; flex-direction: column; gap: 6px; padding: 22px 24px; border: 1px solid var(--line-08); border-radius: var(--radius-lg); transition: border-color 140ms, background 140ms; }
+  .docs a:hover { border-color: var(--line-16); background: rgba(242,233,221,0.02); }
+  .docs a .k { font-family: var(--font-mono); font-size: var(--mono-m); color: var(--accent); }
+  .docs a .d { font-size: var(--body-s); color: var(--text-muted); }
+
+  footer { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--line-07); display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  footer span { font-family: var(--font-mono); font-size: var(--mono-s); color: var(--text-faint); }
+  code { font-family: var(--font-mono); font-size: 0.92em; color: var(--text-heading); background: var(--surface-inset); padding: 2px 7px; border-radius: 5px; }
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- masthead -->
+    <header class="masthead">
+      <span class="logo" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+      <h1>Atempo Design System</h1>
+      <span class="sub">cockpit · v1</span>
+    </header>
+    <p class="lede">
+      A warm, low-lit flow-state studio for a solo builder running many AI-assisted projects at once.
+      Espresso ground, a single teal accent, and a sacred <strong>mono/human split</strong>. This page is
+      itself built with the system — no build step, plain HTML/CSS, served straight from the folder.
+    </p>
+
+    <!-- cockpit -->
+    <section>
+      <div class="section-head">
+        <span class="eyebrow">The product surface</span>
+        <h2 style="display:none"></h2>
+      </div>
+      <a class="hero" href="ui_kits/cockpit/index.html">
+        <span class="meter" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+        <span class="copy">
+          <h3>The Cockpit</h3>
+          <p>The chosen direction — the whole fleet readable in a glance, the launch ramp under your thumb, runtime surfaced as a result. A click-through: fleet overview → atlas briefing. Built from the primitives below.</p>
+        </span>
+        <span class="go">Open the Cockpit <span class="glyph">→</span></span>
+      </a>
+    </section>
+
+    <!-- foundations -->
+    <section>
+      <div class="section-head">
+        <span class="eyebrow">Foundations</span>
+        <h2>The raw material</h2>
+        <span class="note">guidelines/*.html</span>
+      </div>
+      <div class="grid">
+        <div class="specimen">
+          <div class="cap"><span class="name">Display — Bricolage Grotesque</span><span class="desc">headings · names · numbers</span></div>
+          <iframe src="guidelines/type-display.html" height="210" scrolling="no" title="Display type"></iframe>
+        </div>
+        <div class="specimen">
+          <div class="cap"><span class="name">Body — Hanken Grotesk</span><span class="desc">body · recap prose</span></div>
+          <iframe src="guidelines/type-body.html" height="210" scrolling="no" title="Body type"></iframe>
+        </div>
+        <div class="specimen">
+          <div class="cap"><span class="name">Mono — JetBrains Mono</span><span class="desc">the machine</span></div>
+          <iframe src="guidelines/type-mono.html" height="210" scrolling="no" title="Mono type"></iframe>
+        </div>
+        <div class="specimen">
+          <div class="cap"><span class="name">Ground &amp; cream ramp</span><span class="desc">espresso + 8-step cream</span></div>
+          <iframe src="guidelines/colors-ground.html" height="190" scrolling="no" title="Ground colors"></iframe>
+        </div>
+        <div class="specimen">
+          <div class="cap"><span class="name">Accent &amp; signals</span><span class="desc">one teal · reserved amber</span></div>
+          <iframe src="guidelines/colors-accent.html" height="180" scrolling="no" title="Accent colors"></iframe>
+        </div>
+        <div class="specimen">
+          <div class="cap"><span class="name">Spacing scale</span><span class="desc">2px base · 8/12/16/20/24</span></div>
+          <iframe src="guidelines/spacing-scale.html" height="170" scrolling="no" title="Spacing scale"></iframe>
+        </div>
+        <div class="specimen">
+          <div class="cap"><span class="name">Radii</span><span class="desc">chips → heroes</span></div>
+          <iframe src="guidelines/spacing-radii.html" height="170" scrolling="no" title="Radii"></iframe>
+        </div>
+        <div class="specimen">
+          <div class="cap"><span class="name">Tempo meter &amp; logo</span><span class="desc">the brand mark</span></div>
+          <iframe src="guidelines/brand-tempo-meter.html" height="190" scrolling="no" title="Tempo meter"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- components -->
+    <section>
+      <div class="section-head">
+        <span class="eyebrow">Components</span>
+        <h2>The primitives</h2>
+        <span class="note">components/**/*.card.html</span>
+      </div>
+      <div class="grid">
+        <div class="specimen">
+          <div class="cap"><span class="name">Core</span><span class="desc">Button · Tag · KeyCap</span></div>
+          <iframe src="components/core/core.card.html" height="260" scrolling="no" title="Core components"></iframe>
+        </div>
+        <div class="specimen">
+          <div class="cap"><span class="name">Status</span><span class="desc">TempoMeter · StatusDot · RuntimePill · Badge</span></div>
+          <iframe src="components/status/status.card.html" height="210" scrolling="no" title="Status components"></iframe>
+        </div>
+        <div class="specimen">
+          <div class="cap"><span class="name">Surfaces</span><span class="desc">Card · EyebrowLabel</span></div>
+          <iframe src="components/surfaces/surfaces.card.html" height="250" scrolling="no" title="Surface components"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- system docs -->
+    <section>
+      <div class="section-head">
+        <span class="eyebrow">System docs</span>
+        <h2>The spec</h2>
+      </div>
+      <div class="docs">
+        <a href="README.md">
+          <span class="k">README.md →</span>
+          <span class="d">The system definition — invariants, content &amp; visual foundations, iconography, manifest.</span>
+        </a>
+        <a href="SKILL.md">
+          <span class="k">SKILL.md →</span>
+          <span class="d">Pointer to the Claude Code skill — how to design on-brand for Atempo.</span>
+        </a>
+      </div>
+    </section>
+
+    <footer>
+      <span>serve: <code>python3 -m http.server 4400 -d design/</code> → localhost:4400</span>
+      <span>tempo decays on its own — cold is physics, not a verdict</span>
+    </footer>
+
+  </div>
+</body>
+</html>

@@ -5,8 +5,8 @@
 This design system encodes the **Cockpit** direction — Atempo as a cockpit for one. The whole fleet's state is readable in a single glance, the launch ramp is under your thumb, and runtime is surfaced confidently — but it stays a **re‑entry surface, never a monitoring console.** No gauges, CPU, uptime, live logs, or per‑service controls. That's the foil (k9s, lazydocker, mission control), not this.
 
 ## Sources
-- Built from the in‑product direction studies in this project: `The Cockpit.dc.html` (chosen), plus `The Sequencer.dc.html` and `The Studio.dc.html` (alternates), and `Atempo Directions.dc.html` (index).
-- Original product screenshots provided by the builder (dark espresso desktop app, teal accent, "Welcome back" overview + `pricing-page` project detail).
+- Built from the in‑product direction studies, now kept in `archive/`: `The Cockpit.dc.html` (chosen), plus `The Sequencer.dc.html` and `The Studio.dc.html` (alternates), and `Atempo Directions.dc.html` (index). The canonical Cockpit implementation lives in `ui_kits/cockpit/`; the study is archival.
+- Original product screenshots provided by the builder (dark espresso desktop app, teal accent, "Welcome back" overview + `pricing-page` project detail) are in `archive/uploads/`.
 - No external codebase or Figma was attached; the system is the source of truth for these visuals. If a real codebase exists, re‑attach it and this system should be reconciled against it.
 
 ---
@@ -84,11 +84,30 @@ If you need a broader icon set for a future surface, substitute **Lucide** (matc
 
 ---
 
+## RUNNING IT
+
+Plain HTML/CSS with a vendored React runtime — **no build step, no npm.** Serve the folder
+and open it in a browser:
+
+```
+python3 -m http.server 4400 -d design/   # or: ./design/serve.sh
+```
+
+→ `localhost:4400` is the gallery (`index.html`). The component cards and the Cockpit kit use
+Babel's `text/babel` scripts, which need HTTP, not `file://`. Everything renders offline; the
+only network dependency is the Google Fonts CDN (`tokens/fonts.css`), and the `--font-*`
+tokens carry system-font fallbacks so it degrades gracefully when offline.
+
 ## INDEX / MANIFEST
 
-- **`styles.css`** — root entry; `@import`s all tokens. Link this.
+- **`index.html`** — the system viewer/gallery; the entry point when serving. Start here.
+- **`PRINCIPLES.md`** — the cheap-to-read rules (the six invariants + voice). Read this on any task; read this README for the full spec.
+- **`styles.css`** — root entry; `@import`s all tokens. Link this in any artifact.
 - **`tokens/`** — `colors.css`, `typography.css`, `spacing.css`, `fonts.css`.
-- **`guidelines/`** — foundation specimen cards (Type, Colors, Spacing, Brand) shown in the Design System tab.
-- **`components/`** — reusable primitives: `core/` (Button, Badge, Tag, KeyCap), `status/` (StatusDot, TempoMeter, RuntimePill), `surfaces/` (Card, EyebrowLabel).
-- **`ui_kits/cockpit/`** — the Cockpit product kit: Fleet overview + Atlas project briefing, click‑through.
-- **`SKILL.md`** — portable skill manifest for use in Claude Code.
+- **`guidelines/`** — foundation specimen cards (Type, Colors, Spacing, Brand).
+- **`components/`** — reusable primitives, one source of truth (`.jsx` + `.d.ts` + `.prompt.md` each): `core/` (Button, Badge, Tag, KeyCap), `status/` (StatusDot, TempoMeter, RuntimePill), `surfaces/` (Card, EyebrowLabel).
+- **`ui_kits/cockpit/`** — the Cockpit product kit: Fleet overview + Atlas project briefing, click‑through, composed from the primitives.
+- **`vendor/`** — pinned React + ReactDOM (production) + Babel standalone, so cards and the kit render offline with no build step.
+- **`SKILL.md`** — pointer to the Claude Code skill (`.claude/skills/atempo-design/`).
+- **`serve.sh`** — one-line wrapper around `python3 -m http.server`.
+- **`archive/`** — the original direction studies (`*.dc.html`), the generated `support.js` runtime, and the source screenshots in `uploads/`. History, not the working set.

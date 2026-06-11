@@ -4,10 +4,11 @@
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="../../styles.css">
-<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="../../_ds_bundle.js"></script>
+<script src="../../vendor/react.production.min.js"></script>
+<script src="../../vendor/react-dom.production.min.js"></script>
+<script src="../../vendor/babel.min.js"></script>
+<script type="text/babel" src="./Card.jsx"></script>
+<script type="text/babel" src="./EyebrowLabel.jsx"></script>
 <style>
   body { margin: 0; background: var(--canvas); padding: 30px; font-family: var(--font-ui); }
   .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
@@ -18,14 +19,7 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    function findNS(keys) {
-      for (const k of Object.keys(window)) {
-        try { const v = window[k]; if (v && typeof v === 'object' && keys.every(kk => kk in v)) return v; } catch (e) {}
-      }
-      return {};
-    }
-    const NS = findNS(['Card', 'EyebrowLabel']);
-    const { Card, EyebrowLabel } = NS;
+    const { Card, EyebrowLabel } = window.AtempoDS;
     function Demo() {
       return (
         <div className="grid">

@@ -1,13 +1,17 @@
-<!-- @dsCard group="Components" viewport="700x200" subtitle="Button — primary / secondary / accentOutline / ghost" name="Core · Button" -->
+<!-- @dsCard group="Components" viewport="700x260" subtitle="Button · Tag · KeyCap" name="Core · Button / Tag / KeyCap" -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="../../styles.css">
-<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="../../_ds_bundle.js"></script>
+<!-- Vendored, pinned, production builds — renders offline with no build step. -->
+<script src="../../vendor/react.production.min.js"></script>
+<script src="../../vendor/react-dom.production.min.js"></script>
+<script src="../../vendor/babel.min.js"></script>
+<!-- The real DS primitives — one source of truth, loaded straight from components/. -->
+<script type="text/babel" src="./Button.jsx"></script>
+<script type="text/babel" src="./Tag.jsx"></script>
+<script type="text/babel" src="./KeyCap.jsx"></script>
 <style>
   body { margin: 0; background: var(--canvas); padding: 30px; }
   .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
@@ -17,15 +21,7 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    // Resolve the generated DS namespace without hardcoding it (crash-safe across cross-origin frames).
-    function findNS(keys) {
-      for (const k of Object.keys(window)) {
-        try { const v = window[k]; if (v && typeof v === 'object' && keys.every(kk => kk in v)) return v; } catch (e) {}
-      }
-      return {};
-    }
-    const NS = findNS(['Button', 'Badge']);
-    const { Button } = NS;
+    const { Button, Tag, KeyCap } = window.AtempoDS;
     function Demo() {
       return (
         <>
@@ -39,6 +35,14 @@
             <Button variant="primary" size="sm" glyph="+">New</Button>
             <Button variant="secondary" size="sm">Resume with Claude</Button>
             <Button variant="secondary" disabled>Disabled</Button>
+          </div>
+          <div className="row">
+            <Tag>go</Tag>
+            <Tag>swift</Tag>
+            <Tag>astro</Tag>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--text-muted)' }}>
+              jump to project · run · resume&nbsp; <KeyCap>⌘K</KeyCap>
+            </span>
           </div>
         </>
       );

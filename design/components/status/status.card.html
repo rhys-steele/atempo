@@ -4,10 +4,14 @@
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="../../styles.css">
-<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="../../_ds_bundle.js"></script>
+<script src="../../vendor/react.production.min.js"></script>
+<script src="../../vendor/react-dom.production.min.js"></script>
+<script src="../../vendor/babel.min.js"></script>
+<!-- StatusDot first: RuntimePill resolves it from the namespace. -->
+<script type="text/babel" src="./StatusDot.jsx"></script>
+<script type="text/babel" src="./TempoMeter.jsx"></script>
+<script type="text/babel" src="./RuntimePill.jsx"></script>
+<script type="text/babel" src="../core/Badge.jsx"></script>
 <style>
   body { margin: 0; background: var(--canvas); padding: 30px; font-family: var(--font-mono); color: var(--text-muted); }
   .row { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
@@ -20,14 +24,7 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    function findNS(keys) {
-      for (const k of Object.keys(window)) {
-        try { const v = window[k]; if (v && typeof v === 'object' && keys.every(kk => kk in v)) return v; } catch (e) {}
-      }
-      return {};
-    }
-    const NS = findNS(['TempoMeter', 'RuntimePill']);
-    const { TempoMeter, StatusDot, RuntimePill, Badge } = NS;
+    const { TempoMeter, StatusDot, RuntimePill, Badge } = window.AtempoDS;
     function Demo() {
       return (
         <>

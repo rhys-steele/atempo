@@ -5,10 +5,14 @@
      (paths, ports, branches, commits, commands) is monospace.
      ============================================================ */
 
-  /* ---- Families ---- */
-  --font-display: 'Bricolage Grotesque', sans-serif;  /* headings, project names, big numbers */
-  --font-ui:      'Hanken Grotesk', sans-serif;        /* body, descriptions, prose */
-  --font-mono:    'JetBrains Mono', ui-monospace, monospace; /* the machine: paths, ports, git, commands */
+  /* ---- Families ----
+     The webfonts load from Google Fonts (tokens/fonts.css). The trailing
+     system stacks are graceful fallbacks so the system still reads correctly
+     offline / before the webfonts arrive — a creamed system sans, never a
+     jarring substitute. */
+  --font-display: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;  /* headings, project names, big numbers */
+  --font-ui:      'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; /* body, descriptions, prose */
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace; /* the machine: paths, ports, git, commands */
 
   /* ---- Weights ---- */
   --weight-regular: 400;

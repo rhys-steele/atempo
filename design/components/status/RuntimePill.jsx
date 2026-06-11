@@ -1,5 +1,4 @@
-import React from 'react';
-import { StatusDot } from './StatusDot.jsx';
+/* global React */
 
 /**
  * RuntimePill — shows a part's runtime state as a result, never a control.
@@ -8,8 +7,13 @@ import { StatusDot } from './StatusDot.jsx';
  *  - bypassed: dashed inert pill ("static · skipped")
  *  - none:     faint "no runtime"
  * This is read-only by design — Atempo runs things for you; you don't operate them here.
+ *
+ * Depends on the StatusDot primitive; resolved from the shared namespace at render time
+ * so script load order doesn't matter.
  */
-export function RuntimePill({ state = 'ready', label, style = {} }) {
+window.AtempoDS = window.AtempoDS || {};
+window.AtempoDS.RuntimePill = function RuntimePill({ state = 'ready', label, style = {} }) {
+  const { StatusDot } = window.AtempoDS;
   if (state === 'live') {
     return (
       <span style={{
@@ -43,4 +47,4 @@ export function RuntimePill({ state = 'ready', label, style = {} }) {
       {label || (state === 'none' ? 'no runtime' : 'ready')}
     </span>
   );
-}
+};

@@ -82,7 +82,24 @@ desktop/
       hooks/useProjects.ts     # React Query hooks
       pages/                   # Dashboard, CreateProject, ProjectDetail, Doctor
       components/              # Layout, Sidebar, ProjectCard, ServiceBadge, LogStream
+
+design/                        # Design system — plain HTML/CSS, no build step
+  index.html                   # the system viewer/gallery (serve, then open this)
+  PRINCIPLES.md                # the invariants + voice (cheap-to-read rules)
+  README.md                    # the full system spec + manifest
+  styles.css                   # links all tokens/
+  tokens/                      # colors, typography, spacing, fonts (Google Fonts CDN)
+  guidelines/                  # foundation specimen cards (type, color, spacing, brand)
+  components/                  # 9 primitives — one source of truth (.jsx + .d.ts + .prompt.md)
+  ui_kits/cockpit/             # the chosen product kit (fleet → atlas, click-through)
+  vendor/                      # pinned React + ReactDOM + Babel (offline, no build)
+  archive/                     # original direction studies + support.js + screenshots
 ```
+
+The design system is consumed by the `atempo-design` Claude Code skill
+(`.claude/skills/atempo-design/`) — invoke it before building any Atempo UI or visual asset.
+Serve it with `python3 -m http.server 4400 -d design/` (or `design/serve.sh`); it needs HTTP,
+not `file://`, because the component cards and kit use Babel's `text/babel` scripts.
 
 ---
 

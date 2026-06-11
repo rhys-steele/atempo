@@ -1,13 +1,14 @@
-import React from 'react';
+/* global React */
 
 /**
  * TempoMeter — the signature mark. A 4-bar equalizer reading status as pace.
  *  - in:     tall, full teal
  *  - steady: mid, cream, last bars fading
  *  - cold:   short, faint brown
- * Also the Atempo logo glyph (use size="lg").
+ * Also the Atempo logo glyph (use size="lg"). Never animate it — pace is read at a glance.
  */
-export function TempoMeter({ tempo = 'in', size = 'md', style = {} }) {
+window.AtempoDS = window.AtempoDS || {};
+window.AtempoDS.TempoMeter = function TempoMeter({ tempo = 'in', size = 'md', style = {} }) {
   const unit = size === 'lg' ? { w: 8, gap: 4, h: [34, 24, 30, 18] }
             : size === 'sm' ? { w: 5, gap: 3, h: [18, 14, 16, 11] }
             : { w: 6, gap: 3, h: [22, 17, 20, 13] };
@@ -38,4 +39,4 @@ export function TempoMeter({ tempo = 'in', size = 'md', style = {} }) {
       ))}
     </span>
   );
-}
+};

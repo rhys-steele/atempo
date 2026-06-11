@@ -1,4 +1,4 @@
-import React from 'react';
+/* global React */
 
 /**
  * Card — the base surface. Flat espresso with a hairline; no drop shadow (shadow is
@@ -8,7 +8,8 @@ import React from 'react';
  *  - cold:   faded hairline, recedes
  *  - hero:   large radius for feature/recap surfaces
  */
-export function Card({ children, emphasis = 'flat', radius = 'xl', padding = 24, style = {} }) {
+window.AtempoDS = window.AtempoDS || {};
+window.AtempoDS.Card = function Card({ children, emphasis = 'flat', radius = 'xl', padding = 24, style = {} }) {
   const emph = {
     flat:   { background: 'transparent', border: '1px solid var(--line-08)' },
     active: { background: 'var(--teal-tint-04)', border: '1px solid var(--teal-line-20)' },
@@ -29,4 +30,4 @@ export function Card({ children, emphasis = 'flat', radius = 'xl', padding = 24,
       {children}
     </div>
   );
-}
+};

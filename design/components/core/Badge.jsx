@@ -1,4 +1,4 @@
-import React from 'react';
+/* global React */
 
 /**
  * Badge — a small status capsule. Tones map to Atempo's meaning system:
@@ -9,7 +9,8 @@ import React from 'react';
  *  - neutral:   hairline only
  * Pass `dot` to prepend a status dot; `live` makes the dot breathe.
  */
-export function Badge({ children, tone = 'neutral', dot = false, live = false, style = {} }) {
+window.AtempoDS = window.AtempoDS || {};
+window.AtempoDS.Badge = function Badge({ children, tone = 'neutral', dot = false, live = false, style = {} }) {
   const tones = {
     tempo:     { color: 'var(--accent)', bg: 'var(--teal-tint-10)', border: 'transparent', dotColor: 'var(--accent)' },
     steady:    { color: 'var(--cream-300)', bg: 'rgba(201,185,163,0.10)', border: 'transparent', dotColor: 'var(--cream-300)' },
@@ -35,4 +36,4 @@ export function Badge({ children, tone = 'neutral', dot = false, live = false, s
       {children}
     </span>
   );
-}
+};
