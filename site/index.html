@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Atempo — come back in tempo, not from a cold start</title>
+  <meta name="description" content="A flow-state studio for solo builders running many AI-assisted projects. Come back three weeks later and pick up in tempo — Atempo holds what's running, where you left off, and your next move.">
+  <link rel="canonical" href="https://atempo.dev/">
+
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+
+  <!-- Open Graph / Twitter — card image built in Phase 3 (assets/og.html → og.png) -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://atempo.dev/">
+  <meta property="og:title" content="Atempo — come back in tempo, not from a cold start">
+  <meta property="og:description" content="A flow-state studio for solo builders running many AI-assisted projects. It abolishes the cold start.">
+  <meta property="og:image" content="https://atempo.dev/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Atempo — come back in tempo, not from a cold start">
+  <meta name="twitter:description" content="A flow-state studio for solo builders running many AI-assisted projects. It abolishes the cold start.">
+  <meta name="twitter:image" content="https://atempo.dev/assets/og.png">
+
+  <!-- Webfonts in one combined request, parallel to the stylesheet. preconnect
+       warms the connection; display=swap paints in the fallback stack first
+       (see tokens/typography.css) so text never blocks on the fonts. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap">
+
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+  <!-- ============================================================ HEADER -->
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="#top" aria-label="atempo home">
+        <span class="tempo-meter tempo-meter--in" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+        <span class="brand__word">atempo</span>
+      </a>
+      <nav class="site-nav">
+        <a class="site-nav__secondary" href="#how">How it works</a>
+        <a class="site-nav__secondary" href="#tempo">Tempo</a>
+        <a href="#install">Install</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ============================================================ HERO -->
+    <section class="hero" id="hero">
+      <div class="container hero__grid">
+        <div class="hero__copy">
+          <span class="tempo-meter tempo-meter--in hero__mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+          <h1>Come back <span class="nowrap">in&nbsp;tempo</span>, not from a cold start.</h1>
+          <p class="hero__lead">
+            Atempo is a CLI and desktop app that scaffolds your project stacks, runs
+            them, and keeps your whole portfolio in one place — so you can drop a
+            project and pick it back up weeks later, <em>in tempo</em>.
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn--primary" href="#install"><span class="btn__glyph">→</span>Install</a>
+            <a class="btn btn--ghost" href="#what">See how it works</a>
+          </div>
+        </div>
+
+        <!-- Right column: the live wake-a-project demo (decorative) stacked over
+             the real command block, so both columns end together and the two
+             machine-facing artifacts sit side by side. -->
+        <div class="hero__aside">
+        <!-- Interactive demo: hover a row and a project "wakes" to in tempo —
+             the re-entry thesis, performed. Decorative (aria-hidden); the real
+             product info lives in the prose + product shot below. The wake is
+             pure CSS :hover/:focus; site.js auto-cycles a woken row so it's
+             alive on touch too. Echoes the product-shot window chrome. -->
+        <div class="hero__demo" aria-hidden="true">
+          <div class="fleet">
+            <div class="fleet__chrome">
+              <span class="window__lights"><span></span><span></span><span></span></span>
+              <span class="fleet__crumb"><span class="crumb-active">atempo</span> / fleet</span>
+            </div>
+            <div class="fleet__rows">
+              <div class="fleet-row" tabindex="-1">
+                <span class="fleet-row__meter tempo-meter tempo-meter--cold"><span></span><span></span><span></span><span></span></span>
+                <span class="fleet-row__main">
+                  <span class="fleet-row__name">invoice-zen</span>
+                  <span class="fleet-row__meta"><span class="fleet-row__rest">cold · 2mo</span><span class="fleet-row__live">in tempo</span></span>
+                </span>
+                <span class="fleet-row__recap">
+                  <span class="fleet-row__text">schema &amp; auth done — pick up at PDF export</span>
+                  <span class="fleet-row__resume">Resume <span>→</span></span>
+                </span>
+              </div>
+              <div class="fleet-row" tabindex="-1">
+                <span class="fleet-row__meter tempo-meter tempo-meter--steady"><span></span><span></span><span></span><span></span></span>
+                <span class="fleet-row__main">
+                  <span class="fleet-row__name">pricing-page</span>
+                  <span class="fleet-row__meta"><span class="fleet-row__rest">steady · 2d</span><span class="fleet-row__live">in tempo</span></span>
+                </span>
+                <span class="fleet-row__recap">
+                  <span class="fleet-row__text">persist the session in <code>session.ts</code>, gate <code>/dashboard</code></span>
+                  <span class="fleet-row__resume">Resume <span>→</span></span>
+                </span>
+              </div>
+              <div class="fleet-row is-awake" tabindex="-1">
+                <span class="fleet-row__meter tempo-meter tempo-meter--in"><span></span><span></span><span></span><span></span></span>
+                <span class="fleet-row__main">
+                  <span class="fleet-row__name">atlas</span>
+                  <span class="fleet-row__meta"><span class="fleet-row__rest">in tempo · 2h</span><span class="fleet-row__live">in tempo</span></span>
+                </span>
+                <span class="fleet-row__recap">
+                  <span class="fleet-row__text">wire <code>SearchList.swift</code> to <code>/v2/captions/search</code>, drop the mock</span>
+                  <span class="fleet-row__resume">Resume <span>→</span></span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <p class="hero__demo-hint">sorted by tempo · hover to pick one back up</p>
+        </div>
+
+          <p class="eyebrow hero__run-label">what you run</p>
+          <div class="mono-block">
+            <span class="c-muted">$</span> atempo create laravel my-app<br>
+            <span class="c-muted">$</span> atempo start my-app<br>
+            app up on <span class="c-accent">:8000</span> <span class="c-confirm">✓</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================== WHAT IT DOES -->
+    <section id="what">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">What it does</p>
+          <h2>Scaffold a stack, run your fleet, pick up cold.</h2>
+          <p>It manages two things at once: the stacks that run your projects, and the context you lose between sessions.</p>
+        </div>
+        <div class="capabilities">
+          <div class="card">
+            <h3>Spin up a stack</h3>
+            <p>One command scaffolds the project, writes the Docker setup, and assigns conflict-free ports across your fleet. Bring it up the same way.</p>
+            <p class="cap__mono"><span class="c-muted">$</span> atempo create laravel my-app</p>
+          </div>
+          <div class="card">
+            <h3>Run the fleet</h3>
+            <p>Start, stop, and check any project without remembering where it lives or which port it grabbed. Cold projects stay stopped — only what's in tempo runs.</p>
+            <p class="cap__mono"><span class="c-muted">$</span> atempo start <span class="c-muted">·</span> stop <span class="c-muted">·</span> status</p>
+          </div>
+          <div class="card">
+            <h3>Pick up where you left off</h3>
+            <p>Every project carries a recap built from real signals — branch, last commit, changed files, what's running — plus the next concrete move.</p>
+            <p class="cap__mono"><span class="c-accent">feat/captions</span> <span class="c-muted">· 4 changed · 2h</span></p>
+          </div>
+          <div class="card">
+            <h3>Hand Claude your runtime</h3>
+            <p>Over MCP, Claude sees your live environment — which services are up, the real ports, the branch you're on — not just your code.</p>
+            <p class="cap__mono">postgres:16 <span class="c-muted">:5432</span> <span class="c-confirm">✓ up</span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= PROBLEM -->
+    <section class="section--restful section--band" id="problem">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">The problem</p>
+          <h2>When you build a lot at once, the work survives but the rhythm doesn't.</h2>
+          <p>You switch away, come back weeks later, and the thread is gone — in two places at once.</p>
+        </div>
+        <div class="cols-2">
+          <div>
+            <h3>In your head</h3>
+            <p>What you were mid-thought on. Why that file was open. What the next move was going to be.</p>
+          </div>
+          <div>
+            <h3>In the machine</h3>
+            <p>What was running. Which env, which port. What the run command even was.</p>
+          </div>
+        </div>
+        <p class="lead-line" style="margin-top: var(--space-8); max-width: 44ch; font-size: var(--body-xl); color: var(--text-emphasis);">
+          The expensive part of coming back isn't the code — it's rebuilding that context. Atempo makes re-entry cost almost nothing.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================================================== PRODUCT SHOT -->
+    <section id="how">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">The studio</p>
+          <h2>A live view of everything you're building.</h2>
+          <p>What's running, what's dormant, last touched — sorted by tempo, so the thing most worth resuming is the first thing you see.</p>
+        </div>
+        <!-- The shot is the cockpit kit itself, captured at 1440px with its own
+             window chrome (traffic lights + atempo/fleet breadcrumb). The kit is
+             the mock — retake whenever it changes (see Phase 3 in the plan). -->
+        <img class="product-shot" src="assets/cockpit.webp" width="1520" height="900"
+             loading="lazy" decoding="async"
+             alt="The Atempo fleet: projects sorted by tempo, each with its meter, next beat, branch, and runtime.">
+        <p class="product-shot__caption">Each project carries its tempo, next beat, branch, and runtime — readable at a glance.</p>
+      </div>
+    </section>
+
+    <!-- =========================================================== TEMPO -->
+    <section id="tempo">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Tempo</p>
+          <h2>Status as a feeling of pace, not health.</h2>
+          <p>Projects don't have a server status. They have a tempo, and it decays on its own from last activity.</p>
+        </div>
+        <div class="tempo-cols">
+          <div>
+            <span class="tempo-meter tempo-meter--in" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+            <h3 class="word-in">In tempo</h3>
+            <p>Actively in flow. Running, and the first thing you see.</p>
+          </div>
+          <div>
+            <span class="tempo-meter tempo-meter--steady" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+            <h3 class="word-steady">Steady</h3>
+            <p>Shipped and stable. Resting between sessions, ready when you are.</p>
+          </div>
+          <div>
+            <span class="tempo-meter tempo-meter--cold" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+            <h3 class="word-cold">Cold</h3>
+            <p>Drifted. Cold is physics, not a verdict — nothing failed, the project just cooled. Returning should feel free.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================== HOW CLAUDE FITS -->
+    <section class="section--band" id="claude">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow eyebrow--accent">The runtime bridge</p>
+          <h2>Claude reads your code. Atempo shows it your running environment.</h2>
+          <p>Inside a session Claude can't see what's actually up — only your source. Over MCP, Atempo hands it the live runtime: which services are running, the real port assignments, the branch you're on — so it works from what's actually live, not a guess at your setup.</p>
+        </div>
+        <div class="mono-block" style="max-width: 560px;">
+          <span class="c-muted"># what Claude sees over MCP</span><br>
+          atlas <span class="c-muted">·</span> <span class="c-accent">feat/captions</span> <span class="c-muted">· 4 changed · 2h</span><br>
+          postgres:16&nbsp;&nbsp;:5432&nbsp;&nbsp;<span class="c-confirm">✓ up</span><br>
+          redis:7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:6379&nbsp;&nbsp;<span class="c-confirm">✓ up</span><br>
+          uvicorn&nbsp;&nbsp;&nbsp;&nbsp;:8000&nbsp;&nbsp;<span class="c-confirm">✓ up</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================== THREE FACES -->
+    <section id="faces">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">One engine, three faces</p>
+          <h2>All the orchestration lives in one Go core. Everything else is a thin face over it.</h2>
+        </div>
+        <div class="faces">
+          <div class="card">
+            <h3>CLI</h3>
+            <p class="face-role eyebrow">DRIVE IT YOURSELF</p>
+            <p>The cockpit. Full manual control — create, start, logs, status, per-service — for living in the terminal.</p>
+          </div>
+          <div class="card">
+            <h3>Desktop</h3>
+            <p class="face-role eyebrow">THE DOORWAY</p>
+            <p>The calm studio. Fleet-at-a-glance and visual re-entry. Orchestration is done for you and shown, never operated.</p>
+          </div>
+          <div class="card">
+            <h3>MCP server</h3>
+            <p class="face-role eyebrow">THE BRIDGE</p>
+            <p>Hands Claude the live runtime context it otherwise can't see — services, ports, environment, branch.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= INSTALL -->
+    <section class="section--band" id="install">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Install</p>
+          <h2>The CLI works today. Install it in one line.</h2>
+          <p>Requires Go 1.23+. The desktop app is in development — for now, drive the CLI.</p>
+        </div>
+        <div class="install__grid">
+          <div class="mono-block">
+            <span class="c-muted"># install the CLI</span><br>
+            go install github.com/rhys-atempo/atempo@latest<br>
+            <br>
+            <span class="c-muted"># check your environment (needs Docker + Compose v2, Git)</span><br>
+            atempo doctor<br>
+            <br>
+            <span class="c-muted"># scaffold and wake a project</span><br>
+            atempo create laravel:12 my-app<br>
+            atempo start my-app
+          </div>
+        </div>
+        <p class="install__note">Open source with attribution. Builds from source too — see the repository.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================ FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="site-footer__top">
+        <a class="brand" href="#top" aria-label="atempo home">
+          <span class="tempo-meter tempo-meter--in" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+          <span class="brand__word">atempo</span>
+        </a>
+        <nav class="site-footer__links">
+          <a href="https://github.com/rhys-atempo/atempo">GitHub</a>
+          <a href="https://github.com/rhys-atempo/atempo/blob/main/LICENCE">License</a>
+          <a href="#install">Install</a>
+        </nav>
+      </div>
+      <p class="site-footer__line">tempo decays on its own — cold is physics, not a verdict.</p>
+    </div>
+  </footer>
+
+  <!-- Decorative motion only: the equalizer-bar backdrop + the hero auto-demo.
+       Deferred, dependency-free, and fully disabled under prefers-reduced-motion. -->
+  <script defer src="js/site.js"></script>
+</body>
+</html>

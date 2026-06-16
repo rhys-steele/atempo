@@ -1,0 +1,85 @@
+:root {
+  /* ============================================================
+     ATEMPO COLOR SYSTEM
+     A warm espresso ground — never server-black — with a single
+     teal accent and an amber reserved for "needs-a-glance" signals.
+     ============================================================ */
+
+  /* ---- Ground (backgrounds, darkest → lightest) ---- */
+  --espresso-1000: #16110d;  /* app canvas — the deepest ground */
+  --espresso-900:  #1a1410;  /* window surface (Cockpit) */
+  --espresso-850:  #1d1712;  /* window surface (alt / raised) */
+  --espresso-800:  #221b15;  /* inset field / search bar */
+  --espresso-750:  #251d16;  /* raised chip on dark */
+
+  /* ---- Cream (foregrounds, brightest → faintest) ---- */
+  --cream-50:  #f2e9dd;  /* primary text, headlines */
+  --cream-100: #e4d7c5;  /* bright body / emphasis */
+  --cream-200: #d8cab6;  /* secondary headings, breadcrumb active */
+  --cream-300: #c9b9a3;  /* "steady" tempo tone, de-emphasized name */
+  --cream-400: #b3a28c;  /* body secondary */
+  --cream-500: #8d7c67;  /* muted / mono labels / captions */
+  --cream-600: #7c6d5c;  /* cold-state text */
+  --cream-700: #6d5f4e;  /* faint meta, timestamps */
+  --cream-800: #574c3f;  /* faintest — column headers, disabled */
+
+  /* ---- Teal accent (the one accent — "in tempo", live, actions) ---- */
+  --teal-500: #56b3a3;  /* the accent: primary buttons, live, in-tempo */
+  --teal-400: #6cc3b4;  /* hover lift */
+  --teal-tint-04: rgba(86,179,163,0.04);
+  --teal-tint-06: rgba(86,179,163,0.06);
+  --teal-tint-10: rgba(86,179,163,0.10);
+  --teal-tint-12: rgba(86,179,163,0.12);
+  --teal-line-20: rgba(86,179,163,0.20);
+  --teal-line-30: rgba(86,179,163,0.30);
+  --teal-line-40: rgba(86,179,163,0.40);
+
+  /* ---- Amber (sparingly: uncommitted changes, self-notes, open questions) ---- */
+  --amber-400: #e0a458;
+
+  /* ---- Traffic lights (window chrome only) ---- */
+  --light-red:    #ff5f57;
+  --light-yellow: #febc2e;
+  --light-green:  #28c840;
+
+  /* ---- Hairlines on the dark ground ---- */
+  --line-04: rgba(242,233,221,0.04);
+  --line-05: rgba(242,233,221,0.05);
+  --line-07: rgba(242,233,221,0.07);
+  --line-08: rgba(242,233,221,0.08);
+  --line-09: rgba(242,233,221,0.09);
+  --line-12: rgba(242,233,221,0.12);
+  --line-16: rgba(242,233,221,0.16);
+
+  /* ============================================================
+     SEMANTIC ALIASES — reach for these in product code
+     ============================================================ */
+  --canvas:           var(--espresso-1000);
+  --surface-window:   var(--espresso-900);
+  --surface-raised:   var(--espresso-850);
+  --surface-inset:    var(--espresso-800);
+
+  --text-strong:      var(--cream-50);
+  --text-emphasis:    var(--cream-100);
+  --text-heading:     var(--cream-200);
+  --text-body:        var(--cream-400);
+  --text-muted:       var(--cream-500);
+  --text-faint:       var(--cream-700);
+  --text-disabled:    var(--cream-800);
+
+  --accent:           var(--teal-500);
+  --accent-hover:     var(--teal-400);
+  --on-accent:        var(--espresso-1000);  /* text on a teal fill */
+
+  --signal-live:      var(--teal-500);
+  --signal-attention: var(--amber-400);
+
+  /* Tempo tones — status as a feeling of pace */
+  --tempo-in:     var(--teal-500);   /* in tempo */
+  --tempo-steady: var(--cream-300);  /* steady / andante */
+  --tempo-cold:   var(--cream-600);  /* cold — physics, never a verdict */
+
+  --hairline:         var(--line-08);
+  --hairline-strong:  var(--line-12);
+  --field-border:     var(--line-09);
+}

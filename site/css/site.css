@@ -1,0 +1,552 @@
+/* ============================================================
+   ATEMPO SITE — layout + the translated primitives.
+   The marketing site reuses the design system's TOKENS (synced into
+   css/tokens/ by sync-tokens.sh) and translates the handful of React
+   primitives it needs into plain CSS classes below. No build step, no JS.
+
+   The one sanctioned divergence from the design system: this flows
+   responsively (the system targets a fixed 1440px window). Same tokens,
+   same type scale, same voice — one breakpoint at ~720px.
+   ============================================================ */
+
+/* Tokens first — @import must precede all other rules. These define the
+   espresso/cream/teal palette, the type scale, and spacing/radii.
+   NOTE: tokens/fonts.css is intentionally NOT imported here. The webfonts
+   load via a single combined <link> in index.html's <head> (with preconnect
+   + display=swap) so they fetch in parallel instead of through a serialized
+   @import chain — a marketing page can't afford render-blocking font CSS. The
+   fallback stacks live in tokens/typography.css and hold the layout offline. */
+@import url('tokens/colors.css');
+@import url('tokens/typography.css');
+@import url('tokens/spacing.css');
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--text-body);
+  font-family: var(--font-ui);
+  font-size: var(--body-l);
+  line-height: var(--leading-body);
+  font-weight: var(--weight-regular);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.01em;
+  margin: 0;
+  overflow-wrap: break-word;   /* never let a heading push the page wider */
+}
+
+p { margin: 0; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+
+::selection {
+  background: var(--teal-tint-12);
+  color: var(--text-strong);
+}
+
+/* Teal focus ring — keyboard nav only, never on mouse click. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+:focus:not(:focus-visible) { outline: none; }
+
+img { max-width: 100%; height: auto; display: block; }
+
+/* ============================================================
+   BACKGROUND — equalizer-bar parallax (built + driven by js/site.js).
+   A fixed, faint field of vertical bars (the tempo motif, exploded)
+   behind all content. pointer-events:none so it never intercepts input;
+   content sits above it via the stacking rules below.
+   ============================================================ */
+.bg-eq {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  will-change: transform;
+}
+.bg-eq__bar {
+  position: absolute;
+  bottom: -8vh;
+  width: 10px;
+  transform-origin: bottom center;
+  background: linear-gradient(to top, var(--teal-500), transparent 92%);
+  opacity: 0.09;
+  border-radius: 4px;
+  will-change: transform;
+}
+.bg-eq__bar--cream {
+  background: linear-gradient(to top, var(--cream-300), transparent 92%);
+  opacity: 0.055;
+}
+/* Content rides above the backdrop. (Header already sits at z-index 10.) */
+main, .site-footer { position: relative; z-index: 1; }
+
+/* ============================================================
+   LAYOUT — the fluid container.
+   Restful by default; padding ramps down at the breakpoint.
+   ============================================================ */
+.container {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: var(--space-8);   /* 40px */
+}
+
+section { padding-block: var(--space-10); }   /* 72px rhythm between sections */
+
+/* The "restful screen" pattern — extra vertical room for the emotional core. */
+.section--restful { padding-block: 96px; }
+
+/* Banded sections — a barely-raised warm ground with hairline edges, to give
+   the long page rhythm. Pure ground change; same tokens, no new color. The
+   band runs full-bleed while content stays in .container. */
+.section--band {
+  background: var(--surface-window);
+  border-block: 1px solid var(--line-07);
+}
+
+@media (max-width: 720px) {
+  .container { padding-inline: var(--space-6); }   /* 24px */
+  section { padding-block: var(--space-9); }        /* 56px */
+  .section--restful { padding-block: var(--space-9); }
+}
+
+/* ============================================================
+   PAGE FURNITURE — header, footer, and the section layouts.
+   ============================================================ */
+
+/* --- Header: mark + word-mark on the left, nav anchors on the right. */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--canvas) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line-07);
+}
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding-block: var(--space-4);
+}
+.brand { display: inline-flex; align-items: center; gap: var(--space-3); }
+.brand__word {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: 22px;
+  color: var(--text-strong);
+  letter-spacing: -0.01em;
+}
+.site-nav { display: flex; align-items: center; gap: var(--space-6); }
+.site-nav a {
+  color: var(--text-body);
+  font-size: var(--body-m);
+  font-weight: var(--weight-medium);
+}
+.site-nav a:hover { color: var(--text-strong); }
+@media (max-width: 720px) {
+  /* mobile header is just the mark + one install link — no hamburger, no JS */
+  .site-nav__secondary { display: none; }
+}
+
+/* --- Hero --------------------------------------------------------- */
+.hero { padding-block: 112px 88px; position: relative; }
+/* A faint teal glow behind the demo — warmth and a focal pull toward the
+   live fleet, not a decorative gradient on the content itself. */
+.hero::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: -8%;
+  right: -6%;
+  width: 60%;
+  height: 90%;
+  background: radial-gradient(50% 50% at 70% 35%, var(--teal-tint-10), transparent 70%);
+  pointer-events: none;
+}
+.hero__grid { position: relative; z-index: 1; }
+.hero__mark { margin-bottom: var(--space-6); }
+.hero h1 {
+  font-size: var(--display-xl);   /* sits in the narrower two-column copy block */
+  margin-bottom: var(--space-5);
+}
+.nowrap { white-space: nowrap; }
+.hero__lead {
+  font-size: var(--body-xl);
+  color: var(--text-emphasis);
+  max-width: 36ch;
+  margin-bottom: var(--space-7);
+}
+.hero__lead em { font-style: italic; color: var(--text-strong); }
+.hero__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-8); }
+@media (max-width: 720px) {
+  .hero { padding-block: 64px 56px; }
+  .hero h1 { font-size: var(--display-l); }
+  .hero__lead { font-size: var(--body-l); max-width: none; }
+}
+
+/* --- Hero two-column: copy left, the aside (demo + command block) right.
+   Top-aligned so the headline and the fleet card share a baseline, and the
+   command block under the demo lets the right column end with the left —
+   no dead lower-right void. */
+.hero__grid {
+  display: grid;
+  /* copy takes the bulk; the aside is capped so it never crowds the headline */
+  grid-template-columns: 1fr minmax(340px, 420px);
+  gap: var(--space-9);
+  align-items: start;
+}
+.hero__aside { display: flex; flex-direction: column; }
+.hero__run-label { margin-top: var(--space-7); margin-bottom: var(--space-3); }
+.hero__aside .mono-block { width: 100%; }
+@media (max-width: 880px) {
+  .hero__grid { grid-template-columns: 1fr; gap: var(--space-8); }
+  .hero__aside { max-width: 540px; }
+}
+
+.hero__demo-hint {
+  margin-top: var(--space-3);
+  padding-left: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--mono-s);
+  color: var(--text-muted);   /* AA on canvas; --text-faint fails contrast at this size */
+}
+
+/* The mini fleet — echoes the product-shot window chrome. */
+.fleet {
+  background: var(--surface-window);
+  border: 1px solid var(--line-08);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-2);
+}
+.fleet__chrome {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 10px 12px;
+}
+.fleet__chrome .window__lights span { width: 10px; height: 10px; border-radius: var(--radius-dot); }
+.fleet__crumb { font-family: var(--font-mono); font-size: var(--mono-s); color: var(--text-muted); }
+.fleet__crumb .crumb-active { color: var(--text-heading); }
+.fleet__rows { display: flex; flex-direction: column; gap: var(--space-1); }
+
+/* A row: meter + name/meta, with a recap that expands when the project wakes. */
+.fleet-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--space-3);
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  transition: background 0.35s var(--ease-standard), border-color 0.35s var(--ease-standard);
+}
+.fleet-row__meter { align-self: center; }
+.fleet-row__meter span { transition: height 0.45s var(--ease-standard), background 0.45s var(--ease-standard); }
+.fleet-row__main { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); min-width: 0; }
+.fleet-row__name { font-family: var(--font-mono); font-size: var(--mono-m); color: var(--text-heading); }
+.fleet-row__meta { position: relative; font-family: var(--font-mono); font-size: var(--mono-xs); white-space: nowrap; }
+.fleet-row__rest { color: var(--cream-400); transition: opacity 0.3s var(--ease-standard); }  /* AA on the window surface at 11px */
+.fleet-row__live { position: absolute; right: 0; top: 0; color: var(--accent); opacity: 0; transition: opacity 0.3s var(--ease-standard); }
+
+/* recap is collapsed until the row wakes */
+.fleet-row__recap {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.45s var(--ease-standard), opacity 0.35s var(--ease-standard), margin-top 0.45s var(--ease-standard);
+}
+.fleet-row__text { font-size: var(--body-s); line-height: var(--leading-snug); color: var(--text-body); }
+.fleet-row__text code { font-family: var(--font-mono); font-size: 0.92em; color: var(--text-emphasis); }
+.fleet-row__resume {
+  align-self: flex-start;
+  font-family: var(--font-ui); font-size: var(--body-s); font-weight: var(--weight-semibold);
+  color: var(--accent);
+}
+.fleet-row__resume span { font-family: var(--font-mono); }
+
+/* The wake — triggered by hover, focus, or the JS auto-demo (.is-awake). */
+.fleet-row:hover,
+.fleet-row:focus-within,
+.fleet-row.is-awake { background: var(--teal-tint-04); border-color: var(--teal-line-20); }
+
+.fleet-row:hover .fleet-row__meter span,
+.fleet-row:focus-within .fleet-row__meter span,
+.fleet-row.is-awake .fleet-row__meter span { background: var(--teal-500); }
+.fleet-row:hover .fleet-row__meter span:nth-child(1),
+.fleet-row:focus-within .fleet-row__meter span:nth-child(1),
+.fleet-row.is-awake .fleet-row__meter span:nth-child(1) { height: 30px; }
+.fleet-row:hover .fleet-row__meter span:nth-child(2),
+.fleet-row:focus-within .fleet-row__meter span:nth-child(2),
+.fleet-row.is-awake .fleet-row__meter span:nth-child(2) { height: 22px; }
+.fleet-row:hover .fleet-row__meter span:nth-child(3),
+.fleet-row:focus-within .fleet-row__meter span:nth-child(3),
+.fleet-row.is-awake .fleet-row__meter span:nth-child(3) { height: 26px; }
+.fleet-row:hover .fleet-row__meter span:nth-child(4),
+.fleet-row:focus-within .fleet-row__meter span:nth-child(4),
+.fleet-row.is-awake .fleet-row__meter span:nth-child(4) { height: 16px; }
+
+.fleet-row:hover .fleet-row__rest,
+.fleet-row.is-awake .fleet-row__rest { opacity: 0; }
+.fleet-row:hover .fleet-row__live,
+.fleet-row.is-awake .fleet-row__live { opacity: 1; }
+
+.fleet-row:hover .fleet-row__recap,
+.fleet-row:focus-within .fleet-row__recap,
+.fleet-row.is-awake .fleet-row__recap { max-height: 88px; opacity: 1; margin-top: var(--space-3); }
+
+/* --- Generic section heading block -------------------------------- */
+.section-head { max-width: 60ch; margin-bottom: var(--space-8); }
+.section-head .eyebrow { margin-bottom: var(--space-4); }
+.section-head h2 { font-size: var(--display-l); margin-bottom: var(--space-4); }
+.section-head p { color: var(--text-body); font-size: var(--body-l); }
+@media (max-width: 720px) {
+  .section-head h2 { font-size: var(--display-m); }
+}
+
+/* --- Two-column prose (the problem) ------------------------------- */
+.cols-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+}
+.cols-2 h3 { font-family: var(--font-display); font-size: var(--display-s); margin-bottom: var(--space-3); color: var(--text-heading); }
+.cols-2 p { color: var(--text-body); }
+.cols-2 .lead-line { font-size: var(--body-xl); color: var(--text-emphasis); max-width: 30ch; }
+@media (max-width: 720px) {
+  .cols-2 { grid-template-columns: 1fr; gap: var(--space-6); }
+}
+
+/* --- Tempo: three columns, each headed by a meter ----------------- */
+.tempo-cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+}
+.tempo-cols .tempo-meter { margin-bottom: var(--space-5); height: 30px; }
+.tempo-cols h3 { font-family: var(--font-display); font-size: var(--display-s); margin-bottom: var(--space-2); }
+.tempo-cols .word-in     { color: var(--tempo-in); }
+.tempo-cols .word-steady { color: var(--tempo-steady); }
+.tempo-cols .word-cold   { color: var(--tempo-cold); }
+.tempo-cols p { color: var(--text-body); font-size: var(--body-m); }
+@media (max-width: 720px) {
+  .tempo-cols { grid-template-columns: 1fr; gap: var(--space-7); }
+}
+
+/* --- What it does: 2x2 capability cards, each with a mono example -- */
+.capabilities {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-5);
+}
+.capabilities .card h3 { font-family: var(--font-display); font-size: var(--display-s); margin-bottom: var(--space-3); }
+.capabilities .card p { color: var(--text-body); font-size: var(--body-m); }
+.cap__mono {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line-07);
+  font-family: var(--font-mono);
+  font-size: var(--mono-m);
+  color: var(--cream-400);
+}
+.cap__mono .c-muted   { color: var(--text-muted); }
+.cap__mono .c-accent  { color: var(--accent); }
+.cap__mono .c-confirm { color: var(--signal-live); }
+@media (max-width: 720px) {
+  .capabilities { grid-template-columns: 1fr; }
+}
+
+/* --- Three faces: card grid --------------------------------------- */
+.faces { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+.faces .card h3 { font-family: var(--font-display); font-size: var(--display-s); margin-bottom: var(--space-3); }
+.faces .card .face-role { font-size: var(--body-s); margin-bottom: var(--space-3); }
+.faces .card p { color: var(--text-body); font-size: var(--body-m); }
+@media (max-width: 720px) {
+  .faces { grid-template-columns: 1fr; }
+}
+
+/* --- Install section ---------------------------------------------- */
+.install__note { color: var(--text-muted); font-size: var(--body-s); margin-top: var(--space-4); }
+.install__grid { display: grid; gap: var(--space-5); }
+
+/* --- Footer ------------------------------------------------------- */
+.site-footer {
+  border-top: 1px solid var(--line-07);
+  padding-block: var(--space-9);
+}
+.site-footer__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.site-footer__links { display: flex; gap: var(--space-6); }
+.site-footer__links a { color: var(--text-body); font-size: var(--body-m); }
+.site-footer__links a:hover { color: var(--text-strong); }
+.site-footer__line {
+  font-family: var(--font-mono);
+  font-size: var(--mono-m);
+  color: var(--text-muted);   /* AA on canvas (4.65:1) — --text-faint fails contrast at this size */
+}
+
+/* Respect reduced motion — only the live status dot animates, gate it. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ============================================================
+   COMPONENT LIBRARY — primitives translated from
+   design/components/**.jsx. This is the site's whole UI kit.
+   ============================================================ */
+
+/* --- Button (core/Button.jsx) — primary fill + ghost. --------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 11px 22px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--body-m);
+  line-height: 1;
+  font-weight: var(--weight-semibold);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 140ms var(--ease-standard),
+              color 140ms var(--ease-standard),
+              border-color 140ms var(--ease-standard);
+}
+.btn__glyph { font-family: var(--font-mono); font-size: 0.92em; }
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.btn--primary:hover { background: var(--accent-hover); color: var(--on-accent); }
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text-body);
+  font-weight: var(--weight-medium);
+}
+.btn--ghost:hover { color: var(--text-strong); }
+
+/* --- EyebrowLabel (surfaces/EyebrowLabel.jsx) — tracked-out mono. --- */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.eyebrow--accent { color: var(--accent); }
+.eyebrow--faint  { color: var(--text-faint); }
+
+/* --- Card (surfaces/Card.jsx) — flat espresso, hairline, no shadow. - */
+.card {
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  background: transparent;
+  border: 1px solid var(--line-08);
+}
+.card--active { background: var(--teal-tint-04); border-color: var(--teal-line-20); }
+.card--cold   { border-color: var(--line-04); }
+.card--hero   { border-radius: var(--radius-2xl); background: var(--teal-tint-04); border-color: var(--teal-line-20); }
+
+/* --- Mono block — machine copy (commands, ports, branches). -------- */
+.mono-block {
+  font-family: var(--font-mono);
+  font-size: var(--mono-l);
+  line-height: var(--leading-snug);
+  color: var(--text-emphasis);
+  background: var(--surface-inset);
+  border: 1px solid var(--line-08);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  overflow-x: auto;
+}
+.mono-block .c-muted   { color: var(--cream-400); }  /* AA on the inset ground (6.9:1) — one step brighter than --text-muted for the web */
+.mono-block .c-accent  { color: var(--accent); }
+.mono-block .c-confirm { color: var(--signal-live); }
+@media (max-width: 720px) {
+  .mono-block { font-size: var(--mono-m); padding: var(--space-4) var(--space-4); }
+  /* never below 11px — let long machine lines scroll instead of shrinking */
+}
+
+/* --- TempoMeter (status/TempoMeter.jsx) — the 4-bar mark. ----------
+   in: tall full teal · steady: front two cream, tail fades ·
+   cold: compressed to the floor, faint brown. Never animated. */
+.tempo-meter {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 30px;
+}
+.tempo-meter span {
+  width: 8px;
+  border-radius: 2px;
+}
+
+.tempo-meter--in span { background: var(--teal-500); }
+.tempo-meter--in span:nth-child(1) { height: 30px; }
+.tempo-meter--in span:nth-child(2) { height: 22px; }
+.tempo-meter--in span:nth-child(3) { height: 26px; }
+.tempo-meter--in span:nth-child(4) { height: 16px; }
+
+.tempo-meter--steady span:nth-child(1) { height: 30px; background: var(--cream-300); }
+.tempo-meter--steady span:nth-child(2) { height: 22px; background: var(--cream-300); }
+.tempo-meter--steady span:nth-child(3) { height: 9px;  background: rgba(201,185,163,0.4); }
+.tempo-meter--steady span:nth-child(4) { height: 9px;  background: rgba(201,185,163,0.25); }
+
+.tempo-meter--cold span:nth-child(1) { height: 15px; background: rgba(124,109,92,0.6); }
+.tempo-meter--cold span:nth-child(2) { height: 9px;  background: rgba(124,109,92,0.4); }
+.tempo-meter--cold span:nth-child(3) { height: 9px;  background: rgba(124,109,92,0.25); }
+.tempo-meter--cold span:nth-child(4) { height: 9px;  background: rgba(124,109,92,0.15); }
+
+/* --- Product shot — the cockpit kit captured with its own window chrome.
+   The screenshot already carries the espresso margin + window shadow, so it
+   sits directly on the ground with no extra frame. ------------------- */
+.product-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+.product-shot__caption {
+  margin-top: var(--space-4);
+  text-align: center;
+  font-size: var(--body-s);
+  color: var(--text-muted);
+}

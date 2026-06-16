@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" role="img" aria-label="atempo">
+  <!-- The 4-bar tempo meter — the Atempo mark. Teal bars, descending
+       heights (34/24/30/18 logo proportions), bottom-aligned. -->
+  <rect x="2"  y="4"  width="5" height="29" rx="1.5" fill="#56b3a3"/>
+  <rect x="11" y="13" width="5" height="20" rx="1.5" fill="#56b3a3"/>
+  <rect x="20" y="8"  width="5" height="25" rx="1.5" fill="#56b3a3"/>
+  <rect x="29" y="18" width="5" height="15" rx="1.5" fill="#56b3a3"/>
+</svg>

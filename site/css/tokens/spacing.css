@@ -1,0 +1,57 @@
+:root {
+  /* ============================================================
+     SPACING, RADII, SHADOW — calm, generous, never cramped.
+     Base unit is 2px; the rhythm leans on 8 / 12 / 16 / 20 / 24.
+     ============================================================ */
+
+  /* ---- Spacing scale ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Window padding — the breathing room inside a frame */
+  --pad-window-x: 56px;   /* Cockpit (dense) */
+  --pad-window-x-roomy: 120px; /* Studio (restful) */
+  --pad-window-y: 40px;
+
+  /* Row rhythm in the dense fleet table */
+  --row-gap: 6px;
+  --row-pad-y: 16px;
+  --row-pad-x: 18px;
+
+  /* ---- Corner radii ---- */
+  --radius-sm: 7px;    /* chips, tags, small buttons */
+  --radius-md: 10px;   /* buttons, runtime pills */
+  --radius-lg: 12px;   /* fleet rows, ramp steps */
+  --radius-xl: 14px;   /* cards, panels */
+  --radius-2xl: 20px;  /* hero / large feature cards */
+  --radius-pill: 999px;
+  --radius-dot: 50%;
+
+  /* ---- Status dot ---- */
+  --dot-size: 6px;
+  --dot-size-sm: 5px;
+
+  /* ---- Shadows — soft, deep, warm-black. Used on floating windows only;
+     surfaces on the ground separate with hairlines, not shadow. ---- */
+  --shadow-window: 0 32px 80px rgba(0,0,0,0.55);
+  --shadow-soft:   0 12px 32px rgba(0,0,0,0.35);
+
+  /* ---- Motion — quiet. A slow pulse for "live"; gentle fades elsewhere.
+     Nothing bounces; cold is reached by decay, not animation. ---- */
+  --pulse-duration: 2.2s;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The single living animation in the system: a slow breath on anything live. */
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
